@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Callistra — Stamp Wear Specimen 01 Reel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@900&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-bone: #f4f1ea;
+  --ink-carbon: #0e0e0e;
+  --accent-vermillion: #e13b1f;
+  --muted-grey: #79756d;
+  --line-hairline: rgba(14, 14, 14, 0.12);
+  --chk1: #eae7df;
+  --chk2: #ffffff;
+  --display: 'Barlow Semi Condensed', 'Arial Narrow', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden; background: #050505;
+  -webkit-font-smoothing: antialiased;
+}
+#viewport {
+  position: absolute; left: 0; top: 0;
+  width: 1080px; height: 1920px;
+  overflow: hidden; background: var(--bg-bone);
+  transform-origin: 0 0; isolation: isolate;
+}
+#viewport > * { position: absolute; left: 0; top: 0; }
+#ui {
+  width: 1080px; height: 1920px;
+  background: var(--bg-bone);
+  display: none; z-index: 1; overflow: hidden;
+  font-family: var(--mono); color: var(--ink-carbon);
+}
+#stage, #grain { width: 1080px; height: 1920px; }
+#stage { z-index: 2; }
+#grain { z-index: 3; mix-blend-mode: overlay; opacity: 0.12; pointer-events: none; }
+#vig {
+  z-index: 4; width: 1080px; height: 1920px; pointer-events: none;
+  background: radial-gradient(130% 90% at 50% 50%, rgba(0,0,0,0) 65%, rgba(14,14,14,0.18) 100%);
+}
+
+/* ---- UI Layer (Phone screen proportioned, editorial hierarchy) ---- */
+#uiCam {
+  position: absolute; left: 0; top: 0;
+  width: 1080px; height: 1920px;
+  transform-origin: 540px 600px;
+}
+#uiInner {
+  position: absolute; left: 70px; top: 0;
+  width: 940px; padding-top: 320px;
+}
+.canvas-container {
+  position: relative; width: 940px; height: 470px;
+  background-color: #fff;
+  background-image: conic-gradient(var(--chk1) 0.25turn, var(--chk2) 0.25turn 0.5turn, var(--chk1) 0.5turn 0.75turn, var(--chk2) 0.75turn);
+  background-size: 24px 24px;
+  border-radius: 2px; overflow: hidden;
+  border: 1px solid var(--line-hairline);
+}
+.canvas-container canvas { width: 100%; height: 100%; display: block; }
+.text-input {
+  margin-top: 36px; height: 120px; padding: 6px 0;
+  border-bottom: 2px solid var(--ink-carbon);
+  font-family: var(--display); font-weight: 900; font-size: 96px;
+  line-height: 1.1; text-transform: uppercase;
+  letter-spacing: -0.01em; white-space: nowrap;
+  display: flex; align-items: center;
+}
+.text-input .sel { background: rgba(225, 59, 31, 0.25); }
+#uiCaret {
+  display: inline-block; width: 6px; height: 80px;
+  background: var(--accent-vermillion); margin-left: 6px;
+}
+.row { margin-top: 38px; }
+.row-h {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--mono); font-size: 24px; font-weight: 500;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted-grey);
+}
+.lab { display: flex; align-items: center; gap: 14px; }
+.lab svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 1.8; opacity: 0.85; }
+.val {
+  color: var(--ink-carbon); font-size: 26px; font-weight: 700;
+  border-bottom: 2px dashed var(--muted-grey); min-width: 68px; text-align: right;
+}
+.track { position: relative; height: 4px; background: var(--line-hairline); margin: 30px 0 10px; }
+.thumb {
+  position: absolute; top: 50%; left: 0;
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--ink-carbon); transform: translate(-50%, -50%);
+  transition: transform 0.1s ease;
+}
+.adv { margin-top: 40px; border-top: 2px solid var(--line-hairline); padding-top: 24px; }
+.sum {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--mono); font-size: 24px; font-weight: 500;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-grey);
+}
+.adv-body { overflow: hidden; height: 0; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 28px 36px; padding-top: 26px; }
+.dd {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 12px; padding: 14px 0; border-bottom: 2px solid var(--line-hairline);
+  font-family: var(--mono); font-size: 26px; font-weight: 700; color: var(--ink-carbon);
+}
+.btn {
+  margin-top: 44px; height: 98px; background: var(--ink-carbon); color: var(--bg-bone);
+  display: flex; align-items: center; justify-content: center; gap: 16px;
+  font-family: var(--mono); font-weight: 700; font-size: 26px;
+  letter-spacing: 0.14em; border-radius: 3px;
+}
+.btn svg { width: 30px; height: 30px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+#cursor {
+  position: absolute; left: 0; top: 0; width: 56px; height: 56px;
+  z-index: 50; pointer-events: none; transform-origin: 8px 4px; opacity: 0;
+  filter: drop-shadow(0 6px 8px rgba(0,0,0,0.3));
+}
+.ripple {
+  position: absolute; width: 90px; height: 90px;
+  border: 3px solid var(--accent-vermillion); border-radius: 50%;
+  opacity: 0; z-index: 49; pointer-events: none;
+}
+#hudBanner {
+  position: absolute; left: 70px; top: 180px; width: 940px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--mono); font-size: 20px; font-weight: 500;
+  letter-spacing: 0.16em; color: var(--muted-grey); text-transform: uppercase;
+}
+#hudBanner b { color: var(--accent-vermillion); }
+#toastCard {
+  position: absolute; left: 90px; top: 780px; width: 900px; height: 230px;
+  background: var(--ink-carbon); color: var(--bg-bone);
+  display: flex; align-items: center; gap: 36px; padding: 26px 32px;
+  border-radius: 4px; opacity: 0; z-index: 30;
+  box-shadow: 0 35px 80px rgba(0,0,0,0.45);
+  border-left: 6px solid var(--accent-vermillion);
+}
+#toastThumb {
+  width: 320px; height: 160px; flex-shrink: 0; border-radius: 2px;
+  background-color: #fff;
+  background-image: conic-gradient(var(--chk1) 0.25turn, var(--chk2) 0.25turn 0.5turn, var(--chk1) 0.5turn 0.75turn, var(--chk2) 0.75turn);
+  background-size: 20px 20px; overflow: hidden;
+}
+#toastThumb canvas { width: 100%; height: 100%; display: block; }
+#toastCard .tt { display: flex; flex-direction: column; gap: 10px; font-family: var(--mono); }
+#toastCard .tt b { font-size: 26px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+#toastCard .tt span { font-size: 20px; letter-spacing: 0.12em; text-transform: uppercase; color: #a59f95; }
+
+/* ---- Preview Player Bar ---- */
+#player {
+  position: fixed; left: 0; right: 0; bottom: 0; height: 60px;
+  background: #111; color: #eee; display: flex; align-items: center;
+  gap: 14px; padding: 0 16px; font: 500 13px var(--mono); z-index: 99;
+}
+#player button {
+  background: var(--accent-vermillion); color: #fff; border: 0;
+  border-radius: 3px; padding: 8px 16px; font: 700 12px var(--mono);
+  letter-spacing: 0.08em; cursor: pointer;
+}
+#player input { flex: 1; accent-color: var(--accent-vermillion); cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="viewport">
+  <div id="ui">
+    <div id="hudBanner">
+      <span>CALLISTRA // SPECIMEN 01</span>
+      <span>MODE: <b>PROCEDURAL EROSION</b></span>
+    </div>
+    <div id="uiCam">
+      <div id="uiInner">
+        <div class="canvas-container"><canvas id="uiCanvas" width="800" height="400"></canvas></div>
+        <div class="text-input" id="uiTextBox"><span id="uiTxt"></span><i id="uiCaret"></i></div>
+
+        <div class="row">
+          <div class="row-h">
+            <span class="lab"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><circle cx="8" cy="9" r="1.5"/><circle cx="15" cy="14" r="1"/><circle cx="14" cy="8" r="1"/></svg>Erosion Level</span>
+            <span class="val" id="vEro">15%</span>
+          </div>
+          <div class="track" id="trkEro"><i class="thumb" id="thEro"></i></div>
+        </div>
+
+        <div class="row">
+          <div class="row-h">
+            <span class="lab"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z" stroke-dasharray="3 3"/><path d="M9 3v2M15 3v2M3 9h2M3 15h2M21 9h-2M21 15h-2M9 21v-2M15 21v-2"/></svg>Edge Wear</span>
+            <span class="val" id="vEdge">0%</span>
+          </div>
+          <div class="track" id="trkEdge"><i class="thumb" id="thEdge"></i></div>
+        </div>
+
+        <div class="adv">
+          <div class="sum" id="advSum"><span>Export Configuration</span><span id="advSign">＋</span></div>
+          <div class="adv-body" id="advBody">
+            <div class="grid">
+              <div>
+                <div class="row-h"><span class="lab">Format</span></div>
+                <div class="dd"><span>PNG [TRANSPARENT]</span></div>
+              </div>
+              <div>
+                <div class="row-h"><span class="lab">Export Scale</span></div>
+                <div class="dd" id="ddExp"><span id="vExp">8x ULTRA</span><span style="color:var(--accent-vermillion)">▾</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn" id="btn"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg><span id="btnLabel">DOWNLOAD PNG</span></div>
+
+        <svg id="cursor" viewBox="0 0 24 24"><path d="M4 2 L4 19 L8.6 14.8 L11.6 21.6 L14.2 20.4 L11.3 13.7 L17.5 13.4 Z" fill="#fff" stroke="#0e0e0e" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div id="toastCard">
+      <div id="toastThumb"><canvas id="toastCv" width="320" height="160"></canvas></div>
+      <div class="tt">
+        <b>stamp-wear-8x.png</b>
+        <span>6400 × 3200 PX • TRANSPARENT READY</span>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="stage" width="1080" height="1920"></canvas>
+  <canvas id="grain" width="1080" height="1920"></canvas>
+  <div id="vig"></div>
+</div>
+
+<div id="player" hidden>
+  <button id="pBtn">PLAY</button>
+  <input id="pRange" type="range" min="0" max="18" step="0.01" value="0">
+  <span id="pTime">0.00s</span>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* =====================================================================
+   DIRECTOR ENGINE CONFIGURATION
+   Duration: Exactly 18.00s (540 frames @ 30 FPS) — Seamless infinite loop
+   ===================================================================== */
+const REEL = { width: 1080, height: 1920, fps: 30, duration: 18.0, poster: 1.5 };
+window.REEL = REEL;
+const RENDER = /[?&]render=1/.test(location.search);
+const $ = id => document.getElementById(id);
+const W = 1080, H = 1920;
+
+const clamp = (x, a=0, b=1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, p) => a + (b - a) * p;
+
+const EASE = {
+  lin: p => p,
+  i2: p => p * p,
+  i3: p => p * p * p,
+  o2: p => 1 - (1 - p) * (1 - p),
+  o3: p => 1 - Math.pow(1 - p, 3),
+  io3: p => p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2,
+  oexp: p => p >= 1 ? 1 : 1 - Math.pow(2, -10 * p),
+  snap: p => 1 - Math.pow(1 - p, 5),
+  oback: p => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); }
+};
+const prog = (t, s, d, e='lin') => EASE[e](clamp((t - s) / d));
+
+function kf(t, pts) {
+  if (t <= pts[0][0]) return pts[0][1];
+  for (let i = 1; i < pts.length; i++) {
+    if (t <= pts[i][0]) {
+      const a = pts[i-1], b = pts[i];
+      return a[1] + (b[1] - a[1]) * EASE[b[2] || 'io3']((t - a[0]) / (b[0] - a[0]));
+    }
+  }
+  return pts[pts.length - 1][1];
+}
+
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+const mkCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+
+const BRAND = {
+  bone: '#f4f1ea',
+  carbon: '#0e0e0e',
+  vermillion: '#e13b1f',
+  grey: '#79756d',
+  line: 'rgba(14, 14, 14, 0.12)',
+  darkBg: '#0d0d0d',
+  darkInk: '#f0eee9'
+};
+const DISPLAY = '"Barlow Semi Condensed", "Arial Narrow", sans-serif';
+const MONO = '"JetBrains Mono", ui-monospace, monospace';
+
+/* Mono text helper */
+function mono(c, txt, x, y, o={}) {
+  const { size=22, ls=2, align='left', color=BRAND.carbon, alpha=1, weight=500 } = o;
+  if (alpha <= 0) return;
+  c.save();
+  c.font = `${weight} ${size}px ${MONO}`;
+  if ('letterSpacing' in c) c.letterSpacing = ls + 'px';
+  c.textBaseline = 'middle'; c.fillStyle = color; c.globalAlpha = alpha;
+  let xx = x;
+  if (align === 'center') { c.textAlign = 'center'; xx = x + ls/2; }
+  else if (align === 'right') { c.textAlign = 'right'; xx = x + ls; }
+  else c.textAlign = 'left';
+  c.fillText(txt, xx, y);
+  c.restore();
+}
+
+/* -------------------------------------------------------------
+   STAMP WEAR ENGINE (Exact pixel algorithm + procedural noise)
+   ------------------------------------------------------------- */
+function hash2D(x, y) {
+  const n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123;
+  return n - Math.floor(n);
+}
+function mnoise(x, y) {
+  return hash2D(Math.floor(x / 8), Math.floor(y / 8)) * 0.5 +
+         hash2D(Math.floor(x / 3), Math.floor(y / 3)) * 0.3 +
+         hash2D(x, y) * 0.2;
+}
+
+function stampWearCanvas(o) {
+  const { text, color, fontSize, erosion, edge, W: w, H: h, scale=1, seed=0 } = o;
+  const plain = mkCanvas(w, h), pc = plain.getContext('2d', { willReadFrequently: true });
+  const lines = text.split('\n');
+  pc.font = `900 ${fontSize}px ${DISPLAY}`;
+  pc.textAlign = 'center'; pc.textBaseline = 'middle'; pc.fillStyle = color;
+  const lh = fontSize * 0.95;
+  const th = lines.length * lh;
+  const sy = h / 2 - th / 2 + lh / 2;
+  lines.forEach((l, i) => pc.fillText(l, w / 2, sy + i * lh));
+
+  const src = pc.getImageData(0, 0, w, h);
+  const s32 = new Uint32Array(src.data.buffer);
+  const worn = mkCanvas(w, h), wc = worn.getContext('2d');
+  const out = wc.createImageData(w, h);
+  const t32 = new Uint32Array(out.data.buffer);
+
+  const R = Math.max(1, Math.round(3 * scale));
+  const em = new Float32Array(w * h);
+
+  for (let y = 0; y < h; y++) {
+    const row = y * w;
+    for (let x = 0; x < w; x++) {
+      const idx = row + x;
+      if (s32[idx] === 0) continue;
+      let md = R + 1;
+      for (let dy = -R; dy <= R; dy++) {
+        const ny = y + dy;
+        if (ny < 0 || ny >= h) { md = Math.min(md, Math.abs(dy)); continue; }
+        const nr = ny * w;
+        for (let dx = -R; dx <= R; dx++) {
+          const nx = x + dx;
+          if (nx < 0 || nx >= w || s32[nr + nx] === 0) {
+            const d = Math.hypot(dx, dy);
+            if (d < md) md = d;
+          }
+        }
+      }
+      em[idx] = Math.min(1, md / R);
+    }
+  }
+
+  const innerT = 1.0 - erosion * 0.72;
+  const edgeT = 1.0 - edge * 0.95;
+  const sx = seed * 149.3, sy2 = seed * 83.7;
+
+  for (let y = 0; y < h; y++) {
+    const uy = y / scale + sy2;
+    const ro = y * w;
+    for (let x = 0; x < w; x++) {
+      const idx = ro + x;
+      const px = s32[idx];
+      if (px === 0) continue;
+      const n = mnoise(x / scale + sx, uy);
+      const ef = em[idx];
+      if (n < ef * innerT + (1 - ef) * edgeT) {
+        t32[idx] = px;
+      }
+    }
+  }
+  wc.putImageData(out, 0, 0);
+  return { plain, worn };
+}
+
+/* =====================================================================
+   PRE-RENDERED ASSETS & TIMELINE SPEC
+   ===================================================================== */
+const stage = $('stage'), sc = stage.getContext('2d');
+const grain = $('grain'), gc = grain.getContext('2d');
+const ui = $('ui');
+
+let assetDestroyed = null;
+let assetHeavyDuty = null;
+let assetSilentWitness = null;
+let assetEditorial = null;
+let grainTile = null;
+
+function buildAssets() {
+  assetDestroyed = stampWearCanvas({
+    text: 'DESTROYED', color: BRAND.carbon, fontSize: 180,
+    erosion: 0.72, edge: 0.90, W: 1000, H: 400, scale: 1.5, seed: 44
+  });
+  assetHeavyDuty = stampWearCanvas({
+    text: 'HEAVY DUTY', color: BRAND.vermillion, fontSize: 140,
+    erosion: 0.65, edge: 0.85, W: 960, H: 360, scale: 1.2, seed: 12
+  });
+  assetSilentWitness = stampWearCanvas({
+    text: 'SILENT WITNESS', color: BRAND.darkInk, fontSize: 110,
+    erosion: 0.86, edge: 0.40, W: 960, H: 300, scale: 1.2, seed: 99
+  });
+  assetEditorial = stampWearCanvas({
+    text: 'CALLISTRA\nLABORATORIES\nVOL. 04', color: BRAND.carbon, fontSize: 115,
+    erosion: 0.30, edge: 0.45, W: 960, H: 500, scale: 1.2, seed: 7
+  });
+
+  const rnd = mulberry32(11);
+  grainTile = mkCanvas(512, 512);
+  const g = grainTile.getContext('2d');
+  const id = g.createImageData(512, 512);
+  for (let i = 0; i < 512 * 512; i++) {
+    const v = rnd() * 255;
+    id.data[i*4] = id.data[i*4+1] = id.data[i*4+2] = v;
+    id.data[i*4+3] = 255;
+  }
+  g.putImageData(id, 0, 0);
+}
+
+/* UI Timeline Parameters (Seconds) */
+const T_UI_ENTER = 3.20;
+const T_UI_EXIT  = 9.50;
+const T_UI_EXPO  = 14.00;
+const T_UI_DONE  = 16.50;
+
+const UI_EROSION = [
+  [3.2, 15],
+  [5.8, 15],
+  [7.2, 82, 'io3'],
+  [9.5, 82]
+];
+const UI_EDGE = [
+  [7.3, 0],
+  [8.8, 95, 'io3'],
+  [9.5, 95]
+];
+
+/* Typing sequence for "RAW INK" */
+const TYPE_STR = 'RAW INK';
+const TYPE_TIMES = [...TYPE_STR].map((_, i) => 4.70 + i * 0.12);
+
+/* App preview cache */
+let appCvCache = {};
+function getAppPreview(text, ero, edge, col=BRAND.carbon) {
+  const key = `${text}|${ero}|${edge}|${col}`;
+  if (appCvCache[key]) return appCvCache[key];
+  const cv = stampWearCanvas({
+    text, color: col, fontSize: 130,
+    erosion: ero / 100, edge: edge / 100,
+    W: 800, H: 400, scale: 1, seed: 5
+  }).worn;
+  appCvCache[key] = cv;
+  return cv;
+}
+
+/* =====================================================================
+   ACT I: THE HOOK (0.00s – 3.20s / Frames 0 to 96)
+   Clean vector "PERFECT" -> Scanline fracture -> Slam "DESTROYED" -> Macro zoom
+   ===================================================================== */
+function drawActI(c, t) {
+  c.fillStyle = BRAND.bone;
+  c.fillRect(0, 0, W, H);
+
+  // Technical crosshairs & gridlines
+  c.strokeStyle = BRAND.line;
+  c.lineWidth = 1.5;
+  c.beginPath();
+  c.moveTo(80, 0); c.lineTo(80, H);
+  c.moveTo(W - 80, 0); c.lineTo(W - 80, H);
+  c.moveTo(0, 960); c.lineTo(W, 960);
+  c.stroke();
+
+  // Top/bottom metadata
+  mono(c, "FIG. 01 — STERILE DIGITAL TYPE", 90, 180, { size: 22, ls: 3, alpha: 0.65 });
+  mono(c, "SCALE: 100% // VECTOR NO DECAY", W - 90, 180, { size: 20, ls: 2, align: 'right', alpha: 0.5 });
+  mono(c, "CALLISTRA.DESIGN", 90, H - 180, { size: 22, ls: 4, weight: 700 });
+  mono(c, "SPECIMEN CODE: CW-010", W - 90, H - 180, { size: 20, ls: 3, align: 'right', alpha: 0.5 });
+
+  // 0.00 - 0.83: Pristine Vector "PERFECT"
+  if (t < 0.86) {
+    const word = "PERFECT";
+    c.font = `900 210px ${DISPLAY}`;
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = BRAND.carbon;
+    c.fillText(word, 540, 960);
+
+    // Vector bounding box with corner anchor points
+    const boxW = 860, boxH = 240;
+    c.strokeStyle = (t > 0.72) ? BRAND.vermillion : "rgba(0, 210, 255, 0.45)";
+    c.lineWidth = 2;
+    c.strokeRect(540 - boxW/2, 960 - boxH/2, boxW, boxH);
+
+    // Anchor points
+    const anchors = [
+      [540 - boxW/2, 960 - boxH/2], [540 + boxW/2, 960 - boxH/2],
+      [540 - boxW/2, 960 + boxH/2], [540 + boxW/2, 960 + boxH/2],
+      [540, 960 - boxH/2], [540, 960 + boxH/2]
+    ];
+    c.fillStyle = (t > 0.72) ? BRAND.vermillion : "#00d2ff";
+    anchors.forEach(([ax, ay]) => {
+      c.fillRect(ax - 5, ay - 5, 10, 10);
+    });
+    return;
+  }
+
+  // 0.86 - 1.00: The Fracture Shockwave (Slices shifting horizontally)
+  if (t < 1.02) {
+    const pFrac = (t - 0.86) / 0.16;
+    const slices = 14;
+    const sh = 260 / slices;
+    const sy = 960 - 130;
+    c.save();
+    for (let i = 0; i < slices; i++) {
+      const shift = ((i % 2 === 0 ? 1 : -1) * Math.sin(pFrac * Math.PI) * 45);
+      c.save();
+      c.beginPath();
+      c.rect(0, sy + i * sh, W, sh);
+      c.clip();
+      c.font = `900 210px ${DISPLAY}`;
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillStyle = (i % 3 === 0) ? BRAND.vermillion : BRAND.carbon;
+      c.fillText("PERFECT", 540 + shift, 960);
+      c.restore();
+    }
+    c.restore();
+    return;
+  }
+
+  // 1.02 - 3.20: The Hydraulic Stamp Slam "DESTROYED" + Macro Push
+  const u = t - 1.02;
+  const slamDur = 0.12;
+
+  // Impact physics
+  let scale = 1.0, shakeY = 0, shakeX = 0, blur = 0;
+  if (u < slamDur) {
+    const p = u / slamDur;
+    scale = 1.35 - 0.35 * EASE.i2(p);
+    blur = 18 * (1 - p);
+  } else {
+    const q = u - slamDur;
+    scale = 1.0 - 0.04 * Math.exp(-q * 18) * Math.cos(q * 50);
+    const amp = 16 * Math.exp(-q * 24);
+    shakeY = Math.sin(q * 160) * amp;
+    shakeX = Math.cos(q * 130) * amp * 0.6;
+  }
+
+  // Camera Crash-Zoom (from 2.10s to 3.20s pushes 4.0x into crossbar of 'T')
+  const pZoom = prog(t, 2.15, 1.0, 'io3');
+  const camScale = lerp(scale, 4.2, pZoom);
+  const targetX = 540 + 75; // location of the letter 'T'
+  const targetY = 960 - 20;
+  const camX = lerp(540 + shakeX, targetX, pZoom);
+  const camY = lerp(960 + shakeY, targetY, pZoom);
+
+  c.save();
+  c.translate(540, 960);
+  c.scale(camScale, camScale);
+  c.translate(-camX, -camY);
+
+  if (blur > 0.5) c.filter = `blur(${blur}px)`;
+  c.drawImage(assetDestroyed.worn, 540 - 500, 960 - 200);
+  c.restore();
+
+  // Macro HUD Leader Lines (appearing during zoom)
+  if (pZoom > 0.35) {
+    const a = prog(pZoom, 0.35, 0.4);
+    c.strokeStyle = BRAND.vermillion;
+    c.lineWidth = 2;
+    c.beginPath();
+    c.moveTo(560, 920); c.lineTo(720, 840); c.lineTo(920, 840);
+    c.stroke();
+    mono(c, "EROSION THRESHOLD: 82%", 730, 815, { size: 22, ls: 2, color: BRAND.vermillion, alpha: a, weight: 700 });
+    mono(c, "ALGORITHM: 3-OCTAVE STOCHASTIC", 730, 870, { size: 18, ls: 2, color: BRAND.carbon, alpha: a });
+
+    c.strokeStyle = BRAND.carbon;
+    c.beginPath();
+    c.moveTo(480, 1020); c.lineTo(360, 1120); c.lineTo(160, 1120);
+    c.stroke();
+    mono(c, "EDGE DECAY RADIUS: 3.2PX", 160, 1095, { size: 22, ls: 2, color: BRAND.carbon, alpha: a, weight: 700 });
+  }
+
+  // Stamp impact dust flash
+  if (u >= slamDur && u < slamDur + 0.15) {
+    const fl = 0.12 * Math.exp(-(u - slamDur) * 28);
+    c.fillStyle = BRAND.carbon;
+    c.globalAlpha = fl;
+    c.fillRect(0, 0, W, H);
+    c.globalAlpha = 1;
+  }
+}
+
+/* =====================================================================
+   ACT II: THE INSTRUMENT / UI INTERACTION (3.20s – 9.50s)
+   ===================================================================== */
+const uiCanvas = $('uiCanvas'), uc = uiCanvas.getContext('2d');
+const thEro = $('thEro'), thEdge = $('thEdge');
+const vEro = $('vEro'), vEdge = $('vEdge');
+const uiTxt = $('uiTxt'), uiCaret = $('uiCaret');
+const cursor = $('cursor');
+
+function updateUIInteraction(t) {
+  // Smooth intro pullback into UI
+  const pIn = prog(t, 3.20, 0.65, 'o3');
+  $('uiCam').style.transform = `scale(${lerp(1.28, 1.0, pIn)})`;
+
+  // Typing logic for "RAW INK"
+  let currentText = "DESTROYED";
+  let isBackspacing = false;
+  let isTyping = false;
+
+  if (t < 3.80) {
+    currentText = "DESTROYED";
+    uiTxt.className = "";
+  } else if (t < 4.60) {
+    // Select all & backspace
+    currentText = (t < 4.15) ? "DESTROYED" : "";
+    uiTxt.className = (t < 4.15) ? "sel" : "";
+  } else {
+    // Type "RAW INK"
+    uiTxt.className = "";
+    let n = 0;
+    TYPE_TIMES.forEach(tt => { if (t >= tt) n++; });
+    currentText = TYPE_STR.slice(0, n);
+    isTyping = t < 5.60;
+  }
+  uiTxt.textContent = currentText;
+  uiCaret.style.display = (t >= 4.15 && t < 9.20 && (isTyping || Math.floor((t - 4.6) * 3) % 2 === 0)) ? 'inline-block' : 'none';
+
+  // Slider Values
+  const curEro = Math.round(kf(t, UI_EROSION));
+  const curEdge = Math.round(kf(t, UI_EDGE));
+
+  vEro.textContent = curEro + '%';
+  vEdge.textContent = curEdge + '%';
+
+  thEro.style.left = `calc(14px + (100% - 28px) * ${curEro / 100})`;
+  thEdge.style.left = `calc(14px + (100% - 28px) * ${curEdge / 100})`;
+
+  // Drag thumb scale feedback
+  const eroDragging = t >= 5.8 && t <= 7.2;
+  const edgeDragging = t >= 7.3 && t <= 8.8;
+  thEro.style.transform = `translate(-50%, -50%) scale(${eroDragging ? 1.7 : 1})`;
+  thEro.style.background = eroDragging ? BRAND.vermillion : BRAND.carbon;
+  thEdge.style.transform = `translate(-50%, -50%) scale(${edgeDragging ? 1.7 : 1})`;
+  thEdge.style.background = edgeDragging ? BRAND.vermillion : BRAND.carbon;
+
+  // Real-time canvas render
+  uc.clearRect(0, 0, 800, 400);
+  if (currentText.length > 0) {
+    const cv = getAppPreview(currentText, curEro, curEdge);
+    if (cv) uc.drawImage(cv, 0, 0);
+  }
+
+  // Cursor Choreography
+  let cx = 540, cy = 1100, curOp = 1, curSc = 1;
+  if (t < 3.8) {
+    curOp = prog(t, 3.2, 0.4);
+    cx = 540; cy = 480;
+  } else if (t < 4.2) {
+    // Click on text field
+    cx = 540; cy = 480;
+    curSc = 0.88;
+  } else if (t < 5.8) {
+    // Travel to Erosion slider thumb
+    const p = prog(t, 4.6, 1.1, 'io3');
+    cx = lerp(540, 70 + 14 + (940 - 28) * 0.15, p);
+    cy = lerp(480, 680, p);
+  } else if (t < 7.2) {
+    // Dragging Erosion slider
+    cx = 70 + 14 + (940 - 28) * (curEro / 100);
+    cy = 680;
+    curSc = 0.88;
+  } else if (t < 7.4) {
+    // Travel down to Edge wear slider
+    const p = prog(t, 7.2, 0.2, 'io3');
+    cx = lerp(70 + 14 + (940 - 28) * 0.82, 70 + 14, p);
+    cy = lerp(680, 820, p);
+  } else if (t < 8.8) {
+    // Dragging Edge Wear slider
+    cx = 70 + 14 + (940 - 28) * (curEdge / 100);
+    cy = 820;
+    curSc = 0.88;
+  } else {
+    // Glide towards export
+    const p = prog(t, 8.8, 0.6, 'io3');
+    cx = lerp(70 + 14 + (940 - 28) * 0.95, 540, p);
+    cy = lerp(820, 1050, p);
+  }
+
+  cursor.style.opacity = curOp;
+  cursor.style.transform = `translate(${cx}px, ${cy}px) scale(${curSc})`;
+}
+
+/* =====================================================================
+   ACT III: RAPID SPECIMEN SHOWCASE (9.50s – 14.00s)
+   Specimen A (Freight) -> Specimen B (Dark Mode) -> Specimen C (Editorial)
+   ===================================================================== */
+function drawActIII(c, t) {
+  // Specimen A: 9.50 - 10.85s (Heavy Duty Vermillion on Bone)
+  if (t < 10.85) {
+    c.fillStyle = BRAND.bone;
+    c.fillRect(0, 0, W, H);
+
+    // Distress stamp border box
+    c.save();
+    c.strokeStyle = BRAND.vermillion;
+    c.lineWidth = 14;
+    c.strokeRect(100, 680, 880, 560);
+    c.restore();
+
+    // Heavy stamp asset
+    c.drawImage(assetHeavyDuty.worn, 540 - 480, 960 - 180);
+
+    // Industrial metadata
+    mono(c, "SPECIMEN A // CARGO FREIGHT", 120, 640, { size: 24, ls: 4, color: BRAND.vermillion, weight: 700 });
+    mono(c, "INSPECTION PASSED: 100% ARCHIVAL", 120, 1280, { size: 22, ls: 3, color: BRAND.carbon, weight: 500 });
+    mono(c, "BATCH NO. 883-C", W - 120, 1280, { size: 22, ls: 3, align: 'right', color: BRAND.carbon });
+    return;
+  }
+
+  // Specimen B: 10.85 - 12.35s (Dark Mode Asphalt)
+  if (t < 12.35) {
+    c.fillStyle = BRAND.darkBg;
+    c.fillRect(0, 0, W, H);
+
+    // Background technical grid
+    c.strokeStyle = "rgba(255,255,255,0.08)";
+    c.lineWidth = 1;
+    for (let y = 300; y < H; y += 180) {
+      c.beginPath(); c.moveTo(80, y); c.lineTo(W - 80, y); c.stroke();
+    }
+
+    c.drawImage(assetSilentWitness.worn, 540 - 480, 960 - 150);
+
+    // Monospace metadata
+    mono(c, "SPECIMEN B // MATTE ASPHALT", 100, 720, { size: 22, ls: 4, color: BRAND.accent-vermillion || '#e13b1f', weight: 700 });
+    mono(c, "ALPHA CHANNEL TRANSPARENCY: PRESERVED", 100, 1200, { size: 22, ls: 2, color: BRAND.darkInk, alpha: 0.7 });
+    mono(c, "ZERO DIGITAL ARTIFACTS", W - 100, 1200, { size: 22, ls: 2, align: 'right', color: BRAND.darkInk, alpha: 0.7 });
+    return;
+  }
+
+  // Specimen C: 12.35 - 14.00s (Brutalist Editorial)
+  c.fillStyle = "#eae6dc";
+  c.fillRect(0, 0, W, H);
+
+  c.drawImage(assetEditorial.worn, 540 - 480, 960 - 250);
+
+  // Magnifying Loupe Overlay (Simulating 3x zoom into letter fibers)
+  const pLoupe = prog(t, 12.6, 1.2, 'io3');
+  const loupeX = lerp(320, 720, pLoupe);
+  const loupeY = 960;
+  const loupeR = 120;
+
+  c.save();
+  c.beginPath();
+  c.arc(loupeX, loupeY, loupeR, 0, Math.PI * 2);
+  c.clip();
+
+  // Draw magnified asset inside loupe
+  c.fillStyle = "#ffffff";
+  c.fill();
+  c.save();
+  c.translate(loupeX, loupeY);
+  c.scale(2.4, 2.4);
+  c.translate(-loupeX, -loupeY);
+  c.drawImage(assetEditorial.worn, 540 - 480, 960 - 250);
+  c.restore();
+
+  // Loupe ring
+  c.restore();
+  c.strokeStyle = BRAND.carbon;
+  c.lineWidth = 4;
+  c.beginPath();
+  c.arc(loupeX, loupeY, loupeR, 0, Math.PI * 2);
+  c.stroke();
+  mono(c, "300% MACRO FIBER", loupeX, loupeY + loupeR + 25, { size: 18, ls: 2, align: 'center', color: BRAND.carbon, weight: 700 });
+}
+
+/* =====================================================================
+   ACT IV: EXPORT ENGINE (14.00s – 16.50s)
+   ===================================================================== */
+const toastCv = $('toastCv'), tcx = toastCv.getContext('2d');
+const toastCard = $('toastCard');
+
+function updateActIV(t) {
+  // Show UI in export mode
+  const pExpand = prog(t, 14.1, 0.35, 'io3');
+  $('advBody').style.height = (120 * pExpand) + 'px';
+  $('advSign').textContent = pExpand > 0.5 ? '－' : '＋';
+
+  // Button click state
+  const isClicking = t >= 14.85 && t <= 15.35;
+  const isDone = t > 15.35;
+
+  const btn = $('btn');
+  const btnLabel = $('btnLabel');
+
+  if (isDone) {
+    btnLabel.textContent = 'EXPORT COMPLETE';
+    btn.style.background = BRAND.vermillion;
+    btn.style.transform = 'scale(1)';
+  } else if (isClicking) {
+    btnLabel.textContent = 'COMPUTING 8X...';
+    btn.style.background = BRAND.grey;
+    btn.style.transform = 'scale(0.97)';
+  } else {
+    btnLabel.textContent = 'DOWNLOAD PNG';
+    btn.style.background = BRAND.carbon;
+    btn.style.transform = 'scale(1)';
+  }
+
+  // Toast card ejection
+  const pToast = prog(t, 15.40, 0.45, 'oback');
+  toastCard.style.opacity = clamp(pToast * 2.5);
+  toastCard.style.transform = `translateY(${(1 - pToast) * 160}px)`;
+
+  if (pToast > 0) {
+    tcx.clearRect(0, 0, 320, 160);
+    const prev = getAppPreview("RAW INK", 82, 95);
+    if (prev) tcx.drawImage(prev, 0, 0, 320, 160);
+  }
+
+  // Cursor clicks button
+  let cx = 540, cy = 1200;
+  if (t < 14.85) {
+    const p = prog(t, 14.1, 0.6, 'io3');
+    cx = lerp(540, 540, p);
+    cy = lerp(1050, 1260, p);
+  } else {
+    cx = 540; cy = 1260;
+  }
+  cursor.style.opacity = prog(t, 14.0, 0.2);
+  cursor.style.transform = `translate(${cx}px, ${cy}px) scale(${isClicking ? 0.88 : 1})`;
+}
+
+/* =====================================================================
+   ACT V: OUTRO & SEAMLESS RE-ENTRY LOOP (16.50s – 18.00s)
+   17.50s - 18.00s: Pristine "PERFECT" returns exactly to match Frame 0
+   ===================================================================== */
+function drawActV(c, t) {
+  c.fillStyle = BRAND.bone;
+  c.fillRect(0, 0, W, H);
+
+  // Technical border lines
+  c.strokeStyle = BRAND.line;
+  c.lineWidth = 1.5;
+  c.beginPath();
+  c.moveTo(80, 0); c.lineTo(80, H);
+  c.moveTo(W - 80, 0); c.lineTo(W - 80, H);
+  c.stroke();
+
+  const pOut = prog(t, 16.50, 0.5, 'o3');
+
+  // Brand lockup
+  mono(c, "CALLISTRA.DESIGN", 540, 800, { size: 52, ls: 6, align: 'center', color: BRAND.carbon, weight: 800, alpha: pOut });
+  mono(c, "STAMP WEAR ENGINE", 540, 875, { size: 36, ls: 8, align: 'center', color: BRAND.carbon, weight: 500, alpha: pOut });
+
+  // Vermillion rule bar
+  const pBar = prog(t, 16.7, 0.4, 'oexp');
+  c.fillStyle = BRAND.vermillion;
+  c.fillRect(540 - 240 * pBar, 920, 480 * pBar, 4);
+
+  mono(c, "FREE IN BROWSER // LINK IN BIO", 540, 980, { size: 26, ls: 5, align: 'center', color: BRAND.grey, alpha: pOut });
+
+  // SEAMLESS LOOP RE-ENTRY (17.40s – 18.00s)
+  // The word "PERFECT" fades/drops back into identical position of Frame 0
+  if (t >= 17.35) {
+    const pLoop = prog(t, 17.35, 0.65, 'io3');
+    c.save();
+    c.globalAlpha = pLoop;
+    c.font = `900 210px ${DISPLAY}`;
+    c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillStyle = BRAND.carbon;
+    c.fillText("PERFECT", 540, 960);
+
+    const boxW = 860, boxH = 240;
+    c.strokeStyle = "rgba(0, 210, 255, 0.45)";
+    c.lineWidth = 2;
+    c.strokeRect(540 - boxW/2, 960 - boxH/2, boxW, boxH);
+
+    mono(c, "FIG. 01 — STERILE DIGITAL TYPE", 90, 180, { size: 22, ls: 3, alpha: 0.65 * pLoop });
+    mono(c, "SCALE: 100% // VECTOR NO DECAY", W - 90, 180, { size: 20, ls: 2, align: 'right', alpha: 0.5 * pLoop });
+    c.restore();
+  }
+}
+
+/* =====================================================================
+   MAIN RENDER FRAME DISPATCHER
+   ===================================================================== */
+function renderFrame(t) {
+  t = clamp(t, 0, REEL.duration);
+  sc.setTransform(1, 0, 0, 1, 0, 0);
+  sc.clearRect(0, 0, W, H);
+
+  const showUI = (t >= T_UI_ENTER && t < T_UI_EXIT) || (t >= T_UI_EXPO && t < T_UI_DONE);
+  ui.style.display = showUI ? 'block' : 'none';
+
+  if (t < T_UI_ENTER) {
+    drawActI(sc, t);
+  } else if (t < T_UI_EXIT) {
+    updateUIInteraction(t);
+  } else if (t < T_UI_EXPO) {
+    drawActIII(sc, t);
+  } else if (t < T_UI_DONE) {
+    updateActIV(t);
+  } else {
+    drawActV(sc, t);
+  }
+
+  // Procedural Film Grain Overlay (Resets seed every 2 frames)
+  const f = Math.floor(t * 15);
+  const ox = (f * 97) % 512, oy = (f * 57) % 512;
+  gc.clearRect(0, 0, W, H);
+  for (let x = -ox; x < W; x += 512) {
+    for (let y = -oy; y < H; y += 512) {
+      gc.drawImage(grainTile, x, y);
+    }
+  }
+}
+window.renderFrame = renderFrame;
+
+/* =====================================================================
+   PROCEDURAL SOUND ENGINE (Web Audio API Synthesizer)
+   ===================================================================== */
+async function buildAudio() {
+  const SR = 44100, DUR = REEL.duration;
+  const oc = new OfflineAudioContext(2, Math.ceil(SR * DUR), SR);
+  const rand = mulberry32(19);
+
+  // Shared noise buffer
+  const nb = oc.createBuffer(1, SR * 4, SR);
+  {
+    const d = nb.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = rand() * 2 - 1;
+  }
+
+  const master = oc.createGain();
+  master.gain.setValueAtTime(0.78, 0);
+
+  // Master Dynamics Limiter
+  const comp = oc.createDynamicsCompressor();
+  comp.threshold.value = -10;
+  comp.knee.value = 10;
+  comp.ratio.value = 12;
+  comp.attack.value = 0.002;
+  comp.release.value = 0.12;
+  master.connect(comp);
+  comp.connect(oc.destination);
+
+  // Convolver Reverb
+  const rl = Math.floor(SR * 1.5), ir = oc.createBuffer(2, rl, SR);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = ir.getChannelData(ch);
+    for (let i = 0; i < rl; i++) d[i] = (rand() * 2 - 1) * Math.pow(1 - i / rl, 3.5);
+  }
+  const conv = oc.createConvolver();
+  conv.buffer = ir;
+  const revIn = oc.createGain(), revOut = oc.createGain();
+  revOut.gain.value = 0.35;
+  revIn.connect(conv);
+  conv.connect(revOut);
+  revOut.connect(master);
+
+  const out = (g, o = {}) => {
+    let n = g;
+    if (o.pan) {
+      const p = oc.createStereoPanner();
+      p.pan.value = o.pan;
+      n.connect(p);
+      n = p;
+    }
+    n.connect(master);
+    if (o.rev > 0) {
+      const s = oc.createGain();
+      s.gain.value = o.rev;
+      n.connect(s);
+      s.connect(revIn);
+    }
+  };
+
+  const env = (p, t, peak, a, d) => {
+    p.setValueAtTime(0.0001, t);
+    p.linearRampToValueAtTime(peak, t + a);
+    p.exponentialRampToValueAtTime(0.0001, t + a + d);
+  };
+  const nsrc = (t, dur, seed) => {
+    const s = oc.createBufferSource();
+    s.buffer = nb; s.loop = true;
+    s.start(t, (Math.abs(seed) * 0.37) % 2, undefined);
+    s.stop(t + dur);
+    return s;
+  };
+  const flt = (type, f, q = 1) => {
+    const b = oc.createBiquadFilter();
+    b.type = type; b.frequency.value = f; b.Q.value = q;
+    return b;
+  };
+  const osc = (type, f, t, dur) => {
+    const o = oc.createOscillator();
+    o.type = type; o.frequency.setValueAtTime(f, t);
+    o.start(t); o.stop(t + dur);
+    return o;
+  };
+
+  // Sound primitives
+  const subStamp = (t, g = 0.75) => {
+    const o = osc('sine', 160, t, 0.45);
+    o.frequency.exponentialRampToValueAtTime(38, t + 0.25);
+    const og = oc.createGain();
+    env(og.gain, t, g, 0.002, 0.38);
+    o.connect(og); out(og, { rev: 0.2 });
+
+    const n = nsrc(t, 0.12, t * 11.2);
+    const bp = flt('bandpass', 650, 1.1);
+    const ng = oc.createGain();
+    env(ng.gain, t, g * 0.7, 0.001, 0.08);
+    n.connect(bp); bp.connect(ng); out(ng, { rev: 0.15 });
+  };
+
+  const mechClick = (t, f = 1600, g = 0.25) => {
+    const o = osc('triangle', f, t, 0.04);
+    const gn = oc.createGain();
+    env(gn.gain, t, g, 0.0005, 0.02);
+    o.connect(gn); out(gn);
+  };
+
+  const typeClack = (t, i) => {
+    const n = nsrc(t, 0.04, t * 7.7);
+    const hp = flt('highpass', 2200);
+    const gn = oc.createGain();
+    env(gn.gain, t, 0.25, 0.0005, 0.015);
+    n.connect(hp); hp.connect(gn); out(gn, { pan: (i % 2 ? 0.15 : -0.15) });
+  };
+
+  const paperTear = (t, dur = 0.8, g = 0.15) => {
+    const n = nsrc(t, dur, 3.8);
+    const bp = flt('bandpass', 1400, 2);
+    bp.frequency.exponentialRampToValueAtTime(2800, t + dur);
+    const gn = oc.createGain();
+    env(gn.gain, t, g, 0.02, dur);
+    n.connect(bp); bp.connect(gn); out(gn, { rev: 0.1 });
+  };
+
+  const chime = (t) => {
+    [[739.99, 0], [1108.73, 0.08]].forEach(([f, d]) => {
+      const o = osc('sine', f, t + d, 1.8);
+      const gn = oc.createGain();
+      env(gn.gain, t + d, 0.22, 0.004, 1.4);
+      o.connect(gn); out(gn, { rev: 0.45 });
+    });
+  };
+
+  const sliderDetents = (t0, t1, count) => {
+    const dt = (t1 - t0) / count;
+    for (let i = 0; i < count; i++) {
+      mechClick(t0 + i * dt, 1200 + i * 45, 0.12);
+    }
+  };
+
+  /* ---- Choreographed Timeline Audio Events ---- */
+  // 0.86s Fracture static snap
+  mechClick(0.86, 3200, 0.35);
+  // 1.02s Explosive stamp impact
+  subStamp(1.02, 0.9);
+  // 2.15s Macro crash zoom
+  paperTear(2.15, 0.5, 0.12);
+
+  // 4.60s Typewriter typing "RAW INK"
+  TYPE_TIMES.forEach((tt, i) => typeClack(tt, i));
+
+  // 5.80s - 7.20s Erosion slider dragging detents
+  sliderDetents(5.8, 7.15, 22);
+
+  // 7.30s - 8.80s Edge Wear paper tearing sound
+  paperTear(7.3, 1.4, 0.18);
+  sliderDetents(7.35, 8.7, 18);
+
+  // 9.50s Hard impact Specimen A
+  subStamp(9.50, 0.7);
+
+  // 10.85s Specimen B Dark Mode transition
+  mechClick(10.85, 900, 0.3);
+
+  // 12.35s Specimen C Brutalist Shutter
+  subStamp(12.35, 0.6);
+
+  // 14.85s Export Click
+  mechClick(14.85, 2400, 0.35);
+
+  // 15.35s Complete Chime
+  chime(15.35);
+
+  // 16.50s Outro lockup slam
+  subStamp(16.50, 0.8);
+
+  // 17.40s Reverse whoosh into seamless loop Frame 0
+  const n = nsrc(17.40, 0.58, 8.1);
+  const bp = flt('bandpass', 400, 1.2);
+  bp.frequency.exponentialRampToValueAtTime(4500, 17.98);
+  const gn = oc.createGain();
+  gn.gain.setValueAtTime(0.0001, 17.40);
+  gn.gain.exponentialRampToValueAtTime(0.25, 17.95);
+  gn.gain.linearRampToValueAtTime(0.0001, 18.00);
+  n.connect(bp); bp.connect(gn); out(gn);
+
+  return oc.startRendering();
+}
+
+let audioPromise = null;
+const getAudio = () => audioPromise || (audioPromise = buildAudio());
+
+function toWavB64(buf) {
+  const ch = buf.numberOfChannels, n = buf.length, sr = buf.sampleRate;
+  const data = []; let peak = 0;
+  for (let c = 0; c < ch; c++) {
+    const d = buf.getChannelData(c);
+    data.push(d);
+    for (let i = 0; i < n; i++) {
+      const a = Math.abs(d[i]);
+      if (a > peak) peak = a;
+    }
+  }
+  const gain = peak > 0.90 ? 0.90 / peak : 1;
+  const ab = new ArrayBuffer(44 + n * ch * 2), v = new DataView(ab);
+  const ws = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  ws(0, 'RIFF'); v.setUint32(4, 36 + n * ch * 2, true); ws(8, 'WAVE');
+  ws(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, ch, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * ch * 2, true); v.setUint16(32, ch * 2, true); v.setUint16(34, 16, true);
+  ws(36, 'data'); v.setUint32(40, n * ch * 2, true);
+  let o = 44;
+  for (let i = 0; i < n; i++) {
+    for (let c = 0; c < ch; c++) {
+      v.setInt16(o, Math.round(clamp(data[c][i] * gain, -1, 1) * 32767), true);
+      o += 2;
+    }
+  }
+  const bytes = new Uint8Array(ab);
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(s);
+}
+window.renderAudio = async () => toWavB64(await getAudio());
+
+/* =====================================================================
+   BROWSER PREVIEW CONTROLLER & BOOTSTRAP
+   ===================================================================== */
+function initPreview() {
+  const vp = $('viewport'), pl = $('player'), btn = $('pBtn'), rg = $('pRange'), tm = $('pTime');
+  pl.hidden = false;
+  rg.max = REEL.duration;
+
+  const fit = () => {
+    const s = Math.min(innerWidth / W, (innerHeight - 60) / H);
+    vp.style.transform = `scale(${s})`;
+    vp.style.left = ((innerWidth - W * s) / 2) + 'px';
+  };
+  addEventListener('resize', fit);
+  fit();
+
+  let playing = false, base = 0, started = 0, cur = 0, actx = null, srcN = null, buf = null;
+  const stopAudio = () => { if (srcN) { try { srcN.stop(); } catch(e){} srcN = null; } };
+
+  const show = t => {
+    renderFrame(t);
+    rg.value = t;
+    tm.textContent = t.toFixed(2) + 's';
+  };
+
+  function loop() {
+    if (!playing) return;
+    cur = base + (performance.now() - started) / 1000;
+    if (cur >= REEL.duration) {
+      // Instant Seamless Loop
+      base = 0;
+      started = performance.now();
+      cur = 0;
+      if (buf && actx) {
+        stopAudio();
+        srcN = actx.createBufferSource();
+        srcN.buffer = buf;
+        srcN.connect(actx.destination);
+        srcN.start(0, 0);
+      }
+    }
+    show(cur);
+    requestAnimationFrame(loop);
+  }
+
+  function pause() {
+    playing = false;
+    stopAudio();
+    if (btn.textContent === 'PAUSE') btn.textContent = 'PLAY';
+  }
+
+  async function play() {
+    btn.textContent = 'BUFFERING...';
+    if (!buf) buf = await getAudio();
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') await actx.resume();
+    stopAudio();
+    srcN = actx.createBufferSource();
+    srcN.buffer = buf;
+    srcN.connect(actx.destination);
+    srcN.start(0, cur);
+    base = cur;
+    started = performance.now();
+    playing = true;
+    btn.textContent = 'PAUSE';
+    loop();
+  }
+
+  btn.onclick = () => { playing ? pause() : play(); };
+  rg.oninput = () => {
+    const was = playing;
+    pause();
+    cur = parseFloat(rg.value);
+    show(cur);
+    if (was) play();
+  };
+  show(0);
+}
+
+async function boot() {
+  try {
+    await Promise.all([
+      document.fonts.load('900 100px "Barlow Semi Condensed"', "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.//"),
+      document.fonts.load('500 24px "JetBrains Mono"', "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,/·▾＋－: %"),
+      document.fonts.load('700 24px "JetBrains Mono"', "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,-")
+    ]).catch(() => {});
+    await document.fonts.ready;
+
+    buildAssets();
+    if (!RENDER) initPreview();
+    window.__reelReady = true;
+  } catch (e) {
+    window.__reelError = String(e && e.stack || e);
+    console.error(e);
+  }
+}
+window.addEventListener('load', boot);
+})();
+</script>
+</body>
+</html>
