@@ -1,0 +1,72 @@
+name: Render reels
+
+on:
+  push:
+    paths:
+      - "reels/*.html"
+  workflow_dispatch:
+    inputs:
+      reel:
+        description: "File name inside /reels (e.g. stamp-wear.html). Leave empty to render all."
+        required: false
+        default: ""
+      draft:
+        description: "Quick low-res draft (about 3x faster)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install tools
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Render
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+          INPUT_REEL: ${{ github.event.inputs.reel }}
+          DRAFT: ${{ github.event.inputs.draft }}
+        run: |
+          FLAGS=""
+          if [ "$DRAFT" = "true" ]; then FLAGS="--draft"; fi
+          python tools/render.py --auto $FLAGS
+
+      - name: Check output
+        id: out
+        run: |
+          if ls output/*.mp4 >/dev/null 2>&1; then echo "found=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Publish to Releases (download from your phone)
+        if: steps.out.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "reels-${{ github.run_number }}" output/* \
+            --title "Reels build #${{ github.run_number }}" \
+            --notes "Rendered from commit ${GITHUB_SHA::7}. Open Assets below and tap the .mp4 to download."
+
+      - uses: actions/upload-artifact@v4
+        if: steps.out.outputs.found == 'true'
+        with:
+          name: reels
+          path: output/
