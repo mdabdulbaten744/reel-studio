@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            width: 1080px;
+            height: 1920px;
+            overflow: hidden;
+            background-color: #f7f5f0;
+            font-family: 'JetBrains Mono', monospace;
+            color: #121212;
+            position: relative;
+        }
+
+        #viewport {
+            width: 1080px;
+            height: 1920px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: #f7f5f0;
+        }
+
+        /* Subtle organic paper texture */
+        .film-grain {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            opacity: 0.04;
+            background-image: radial-gradient(#000 1px, transparent 1px);
+            background-size: 3px 3px;
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <div id="viewport">
+        <canvas id="mainCanvas" width="1080" height="1920"></canvas>
+    </div>
+    <div class="film-grain"></div>
+
+    <script>
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        const W = 1080, H = 1920;
+        const FPS = 30;
+        const DURATION_SEC = 13.5;
+        const TOTAL_FRAMES = Math.round(FPS * DURATION_SEC);
+
+        /* --- High Quality Stamp Algorithm ported from your app --- */
+        function hash2D(x, y) {
+            let n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123;
+            return n - Math.floor(n);
+        }
+
+        function multiOctaveNoise(x, y) {
+            const coarse = hash2D(Math.floor(x / 8.0), Math.floor(y / 8.0));
+            const medium = hash2D(Math.floor(x / 3.0), Math.floor(y / 3.0));
+            const fine = hash2D(x, y);
+            return (coarse * 0.5) + (medium * 0.3) + (fine * 0.2);
+        }
+
+        function renderStampText(targetCtx, text, cx, cy, fontSize, erosion, edgeWear, color = '#121212') {
+            const temp = document.createElement('canvas');
+            const pad = 80;
+            const tw = 1000;
+            const th = Math.round(fontSize * 1.5) + pad;
+            temp.width = tw;
+            temp.height = th;
+            const tctx = temp.getContext('2d');
+
+            tctx.font = `900 ${fontSize}px "Barlow Semi Condensed", sans-serif`;
+            tctx.textAlign = 'center';
+            tctx.textBaseline = 'middle';
+            tctx.fillStyle = color;
+            tctx.fillText(text, tw / 2, th / 2);
+
+            const sData = tctx.getImageData(0, 0, tw, th);
+            const outData = targetCtx.createImageData(tw, th);
+            const sBuf = new Uint32Array(sData.data.buffer);
+            const oBuf = new Uint32Array(outData.data.buffer);
+
+            const searchRadius = 3;
+            const edgeMap = new Float32Array(tw * th);
+
+            for (let y = 0; y < th; y++) {
+                const r = y * tw;
+                for (let x = 0; x < tw; x++) {
+                    const idx = r + x;
+                    if (sBuf[idx] === 0) continue;
+                    let minD = searchRadius + 1;
+                    for (let dy = -searchRadius; dy <= searchRadius; dy++) {
+                        const ny = y + dy;
+                        if (ny < 0 || ny >= th) { minD = Math.min(minD, Math.abs(dy)); continue; }
+                        const nr = ny * tw;
+                        for (let dx = -searchRadius; dx <= searchRadius; dx++) {
+                            const nx = x + dx;
+                            if (nx < 0 || nx >= tw || sBuf[nr + nx] === 0) {
+                                const d = Math.hypot(dx, dy);
+                                if (d < minD) minD = d;
+                            }
+                        }
+                    }
+                    edgeMap[idx] = Math.min(1.0, minD / searchRadius);
+                }
+            }
+
+            for (let y = 0; y < th; y++) {
+                const r = y * tw;
+                for (let x = 0; x < tw; x++) {
+                    const idx = r + x;
+                    const px = sBuf[idx];
+                    if (px !== 0) {
+                        const noiseVal = multiOctaveNoise(x, y);
+                        const edgeFactor = edgeMap[idx];
+                        const innerThresh = 1.0 - (erosion * 0.7);
+                        const edgeThresh = 1.0 - (edgeWear * 0.95);
+                        const effective = (edgeFactor * innerThresh) + ((1.0 - edgeFactor) * edgeThresh);
+                        if (noiseVal < effective) {
+                            oBuf[idx] = px;
+                        }
+                    }
+                }
+            }
+
+            const stampCanvas = document.createElement('canvas');
+            stampCanvas.width = tw;
+            stampCanvas.height = th;
+            stampCanvas.getContext('2d').putImageData(outData, 0, 0);
+            targetCtx.drawImage(stampCanvas, cx - tw / 2, cy - th / 2);
+        }
+
+        /* --- Deterministic Timeline Renderer --- */
+        window.renderFrame = function(frameIndex) {
+            const time = frameIndex / FPS;
+            ctx.fillStyle = '#f7f5f0';
+            ctx.fillRect(0, 0, W, H);
+
+            // Editorial grid lines & header
+            drawHeaderAndGrid();
+
+            // Sequence 1: 0.0s - 3.8s -> Rapid Hook (Before & After)
+            if (time < 3.8) {
+                renderRapidHook(time);
+            } 
+            // Sequence 2: 3.8s - 5.0s -> Editorial Interstitial
+            else if (time < 5.0) {
+                renderInterstitial(time - 3.8);
+            } 
+            // Sequence 3: 5.0s - 11.0s -> Authentic App Demo UI
+            else if (time < 11.0) {
+                renderAppDemo(time - 5.0);
+            } 
+            // Sequence 4: 11.0s - 13.5s -> Bold Graphic Poster Outro & CTA
+            else {
+                renderOutro(time - 11.0);
+            }
+        };
+
+        function drawHeaderAndGrid() {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(18, 18, 18, 0.08)';
+            ctx.lineWidth = 2;
+            
+            // Frame border
+            ctx.strokeRect(60, 60, W - 120, H - 120);
+
+            // Header brand
+            ctx.fillStyle = '#121212';
+            ctx.font = '500 24px "JetBrains Mono"';
+            ctx.letterSpacing = '2px';
+            ctx.fillText('CALLISTRA.DESIGN', 90, 115);
+
+            ctx.fillStyle = '#736e65';
+            ctx.textAlign = 'right';
+            ctx.fillText('STAMP WEAR FX / 010', W - 90, 115);
+            ctx.restore();
+        }
+
+        /* 0.0s - 3.8s: Rapid-fire hook showcasing words before & after */
+        const words = ['ARCHIVE', 'EDITORIAL', 'IMPRINT', 'BRUTALIST', 'PRESSURE', 'AUTHENTIC'];
+        function renderRapidHook(t) {
+            const stepDuration = 0.6;
+            const index = Math.min(words.length - 1, Math.floor(t / stepDuration));
+            const localT = (t % stepDuration) / stepDuration;
+            const word = words[index];
+
+            ctx.save();
+            // Category tag
+            ctx.font = '700 22px "JetBrains Mono"';
+            ctx.fillStyle = '#736e65';
+            ctx.textAlign = 'center';
+            ctx.fillText(`CASE STUDY [ 0${index + 1} / 06 ]`, W / 2, 600);
+
+            // Split screen or snap: first 40% clean, next 60% heavy eroded stamp
+            if (localT < 0.35) {
+                // BEFORE: Clean flat font
+                ctx.fillStyle = '#736e65';
+                ctx.font = '500 28px "JetBrains Mono"';
+                ctx.fillText('— CLEAN DIGITAL TYPE —', W / 2, 850);
+
+                ctx.font = '900 135px "Barlow Semi Condensed"';
+                ctx.fillStyle = '#121212';
+                ctx.textAlign = 'center';
+                ctx.fillText(word, W / 2, 1020);
+            } else {
+                // IMPACT: Screen micro-shake
+                const shake = Math.sin(localT * 40) * Math.max(0, (1 - localT * 2.5) * 14);
+                ctx.translate(shake, 0);
+
+                ctx.fillStyle = '#121212';
+                ctx.font = '700 28px "JetBrains Mono"';
+                ctx.fillText('● ERODED INK STAMP', W / 2, 850);
+
+                renderStampText(ctx, word, W / 2, 1020, 135, 0.58, 0.72);
+
+                // Tactile stamp border box
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = '#121212';
+                ctx.strokeRect(W / 2 - 420, 910, 840, 180);
+            }
+            ctx.restore();
+        }
+
+        /* 3.8s - 5.0s: Slick typographic transition */
+        function renderInterstitial(t) {
+            const ease = 1 - Math.pow(1 - Math.min(1, t / 0.8), 3);
+            ctx.save();
+            ctx.fillStyle = '#121212';
+            ctx.fillRect(60, 60 + (1 - ease) * 400, W - 120, (H - 120) * ease);
+
+            if (t > 0.3) {
+                ctx.fillStyle = '#f7f5f0';
+                ctx.textAlign = 'center';
+                ctx.font = '900 86px "Barlow Semi Condensed"';
+                ctx.fillText('NO PHOTOSHOP BRUSHES.', W / 2, 880);
+                
+                ctx.font = '400 32px "JetBrains Mono"';
+                ctx.fillStyle = '#8c877e';
+                ctx.fillText('INSTANT PROCEDURAL ANALOG WEAR.', W / 2, 980);
+                
+                ctx.fillStyle = '#f7f5f0';
+                ctx.font = '700 26px "JetBrains Mono"';
+                ctx.fillText('WATCH IT WORK IN THE BROWSER →', W / 2, 1140);
+            }
+            ctx.restore();
+        }
+
+        /* 5.0s - 11.0s: The Live UI in Action */
+        function renderAppDemo(t) {
+            ctx.save();
+            const panelW = 920;
+            const panelH = 1400;
+            const panelX = 80;
+            const panelY = 240;
+
+            // App canvas preview frame
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(panelX, panelY, panelW, 580);
+            
+            // Checkerboard background
+            ctx.fillStyle = '#efece6';
+            for (let i = 0; i < panelW; i += 30) {
+                for (let j = 0; j < 580; j += 30) {
+                    if ((i / 30 + j / 30) % 2 === 0) {
+                        ctx.fillRect(panelX + i, panelY + j, 30, 30);
+                    }
+                }
+            }
+
+            // Animate parameters
+            // t = 0..6 seconds
+            const erosionVal = Math.min(0.68, Math.max(0.1, (t - 1.2) * 0.28));
+            const edgeVal = Math.min(0.82, Math.max(0.2, (t - 2.5) * 0.32));
+            const sizeVal = 145;
+
+            // Live rendered specimen on canvas
+            renderStampText(ctx, 'EDITORIAL', panelX + panelW / 2, panelY + 290, sizeVal, erosionVal, edgeVal);
+
+            // Interface Control Panel below preview
+            const ctrlY = panelY + 630;
+            ctx.fillStyle = '#121212';
+            ctx.textAlign = 'left';
+            ctx.font = '900 52px "Barlow Semi Condensed"';
+            ctx.fillText('EDITORIAL', panelX, ctrlY + 40);
+            ctx.strokeStyle = '#121212';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(panelX, ctrlY + 65);
+            ctx.lineTo(panelX + panelW, ctrlY + 65);
+            ctx.stroke();
+
+            // Erosion Slider row
+            drawSliderRow(panelX, ctrlY + 120, 'EROSION LEVEL', `${Math.round(erosionVal * 100)}%`, erosionVal);
+
+            // Edge Wear Slider row
+            drawSliderRow(panelX, ctrlY + 250, 'EDGE WEAR', `${Math.round(edgeVal * 100)}%`, edgeVal);
+
+            // Custom Font tag
+            ctx.fillStyle = '#736e65';
+            ctx.font = '700 22px "JetBrains Mono"';
+            ctx.fillText('FONT ENGINE: BARLOW CONDENSED 900 (OR UPLOAD YOUR OTF)', panelX, ctrlY + 400);
+
+            // Download Button highlight
+            const btnProgress = Math.min(1, Math.max(0, (t - 4.5) * 3));
+            ctx.fillStyle = btnProgress > 0 ? '#121212' : '#2a2825';
+            ctx.fillRect(panelX, ctrlY + 470, panelW, 95);
+            ctx.fillStyle = '#f7f5f0';
+            ctx.textAlign = 'center';
+            ctx.font = '700 28px "JetBrains Mono"';
+            ctx.fillText(t > 5.2 ? '✓ EXPORTED 4X TRANSPARENT PNG' : 'EXPORT HIGH-RES TRANSPARENT PNG', panelX + panelW / 2, ctrlY + 528);
+
+            ctx.restore();
+        }
+
+        function drawSliderRow(x, y, label, valStr, percent) {
+            ctx.fillStyle = '#736e65';
+            ctx.font = '700 22px "JetBrains Mono"';
+            ctx.textAlign = 'left';
+            ctx.fillText(label, x, y);
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#121212';
+            ctx.fillText(valStr, x + 920, y);
+
+            // Track
+            ctx.strokeStyle = 'rgba(18, 18, 18, 0.15)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x, y + 35);
+            ctx.lineTo(x + 920, y + 35);
+            ctx.stroke();
+
+            // Active Track
+            ctx.strokeStyle = '#121212';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(x, y + 35);
+            ctx.lineTo(x + 920 * percent, y + 35);
+            ctx.stroke();
+
+            // Knob
+            ctx.fillStyle = '#121212';
+            ctx.beginPath();
+            ctx.arc(x + 920 * percent, y + 35, 12, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        /* 11.0s - 13.5s: Final Call To Action & Link */
+        function renderOutro(t) {
+            ctx.save();
+            ctx.textAlign = 'center';
+            
+            // Dramatic poster layout
+            renderStampText(ctx, 'RAW TEXTURE', W / 2, 600, 125, 0.65, 0.75);
+            renderStampText(ctx, 'IN SECONDS', W / 2, 740, 125, 0.65, 0.75);
+
+            ctx.strokeStyle = '#121212';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(180, 950, W - 360, 240);
+
+            ctx.fillStyle = '#121212';
+            ctx.font = '700 36px "JetBrains Mono"';
+            ctx.fillText('TRY IT FREE', W / 2, 1030);
+
+            ctx.font = '500 28px "JetBrains Mono"';
+            ctx.fillStyle = '#736e65';
+            ctx.fillText('callistra.design', W / 2, 1090);
+
+            ctx.font = '400 22px "JetBrains Mono"';
+            ctx.fillText('LINK IN BIO / SAVE THIS FOR LATER', W / 2, 1140);
+            ctx.restore();
+        }
+
+        /* --- Complete Web Audio API Offline Synthesizer --- */
+        window.synthesizeAudioWav = async function() {
+            const sampleRate = 44100;
+            const totalSamples = Math.ceil(DURATION_SEC * sampleRate);
+            const actx = new OfflineAudioContext(2, totalSamples, sampleRate);
+
+            // Sub bass stamp punch helper
+            function triggerHeavyStamp(t) {
+                const osc = actx.createOscillator();
+                const gain = actx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(140, t);
+                osc.frequency.exponentialRampToValueAtTime(32, t + 0.18);
+                gain.gain.setValueAtTime(0.9, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+                osc.connect(gain);
+                gain.connect(actx.destination);
+                osc.start(t);
+                osc.stop(t + 0.25);
+
+                // Add ink snap / mechanical click
+                const snap = actx.createOscillator();
+                const snapGain = actx.createGain();
+                snap.type = 'square';
+                snap.frequency.setValueAtTime(900, t);
+                snap.frequency.exponentialRampToValueAtTime(80, t + 0.04);
+                snapGain.gain.setValueAtTime(0.4, t);
+                snapGain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+                snap.connect(snapGain);
+                snapGain.connect(actx.destination);
+                snap.start(t);
+                snap.stop(t + 0.06);
+            }
+
+            // Slider tick helper
+            function triggerTick(t, freq = 1200) {
+                const osc = actx.createOscillator();
+                const gain = actx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, t);
+                gain.gain.setValueAtTime(0.18, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
+                osc.connect(gain);
+                gain.connect(actx.destination);
+                osc.start(t);
+                osc.stop(t + 0.03);
+            }
+
+            // 1. Hook Impact Beats (Rapid Before/Afters)
+            for (let i = 0; i < 6; i++) {
+                const stampTime = (i * 0.6) + 0.22;
+                triggerHeavyStamp(stampTime);
+            }
+
+            // 2. Interstitial whoosh sound at 3.8s
+            const noiseBuffer = actx.createBuffer(1, sampleRate * 0.5, sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < noiseBuffer.length; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+            const whiteNoise = actx.createBufferSource();
+            whiteNoise.buffer = noiseBuffer;
+            const filter = actx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(300, 3.8);
+            filter.frequency.exponentialRampToValueAtTime(2400, 4.3);
+            const nGain = actx.createGain();
+            nGain.gain.setValueAtTime(0.25, 3.8);
+            nGain.gain.exponentialRampToValueAtTime(0.001, 4.4);
+            whiteNoise.connect(filter);
+            filter.connect(nGain);
+            nGain.connect(actx.destination);
+            whiteNoise.start(3.8);
+
+            // 3. Slider Drag Haptics (UI interaction sounds)
+            for (let t = 6.2; t <= 8.8; t += 0.12) {
+                triggerTick(t, 800 + Math.random() * 600);
+            }
+
+            // 4. Export button click at 9.5s
+            triggerHeavyStamp(9.5);
+            triggerTick(9.5, 2200);
+
+            // 5. Final Outro impact
+            triggerHeavyStamp(11.0);
+
+            const renderedBuffer = await actx.startRendering();
+            return audioBufferToWav(renderedBuffer);
+        };
+
+        // Convert AudioBuffer to standard WAV Blob
+        function audioBufferToWav(buffer) {
+            const numOfChan = buffer.numberOfChannels;
+            const length = buffer.length * numOfChan * 2 + 44;
+            const out = new DataView(new ArrayBuffer(length));
+            const channels = [];
+            let offset = 0;
+            let pos = 0;
+
+            function writeString(str) {
+                for (let i = 0; i < str.length; i++) {
+                    out.setUint8(pos++, str.charCodeAt(i));
+                }
+            }
+
+            function setUint16(data) { out.setUint16(pos, data, true); pos += 2; }
+            function setUint32(data) { out.setUint32(pos, data, true); pos += 4; }
+
+            writeString('RIFF');
+            setUint32(length - 8);
+            writeString('WAVE');
+            writeString('fmt ');
+            setUint32(16);
+            setUint16(1);
+            setUint16(numOfChan);
+            setUint32(buffer.sampleRate);
+            setUint32(buffer.sampleRate * 2 * numOfChan);
+            setUint16(numOfChan * 2);
+            setUint16(16);
+            writeString('data');
+            setUint32(length - pos - 4);
+
+            for (let i = 0; i < buffer.numberOfChannels; i++) {
+                channels.push(buffer.getChannelData(i));
+            }
+
+            while (offset < buffer.length) {
+                for (let i = 0; i < numOfChan; i++) {
+                    let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+                    sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+                    out.setInt16(pos, sample, true);
+                    pos += 2;
+                }
+                offset++;
+            }
+            return new Uint8Array(out.buffer);
+        }
+    </script>
+</body>
+</html>
