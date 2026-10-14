@@ -1,0 +1,12 @@
+{
+  "name": "stamp-wear-video-maker",
+  "version": "1.0.0",
+  "description": "Automated Instagram Reel renderer for Stamp Wear Text Effect",
+  "main": "render.js",
+  "scripts": {
+    "render": "node render.js"
+  },
+  "dependencies": {
+    "puppeteer": "^22.0.0"
+  }
+}
