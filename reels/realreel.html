@@ -3,704 +3,1788 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Callistra — Glitch Slice Short Film Reel</title>
+<title>CALLISTRA — Glitch Slice Short Film</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:ital,wght@0,300..700;1,300..700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f7f5f0;--ink:#121212;--muted:#736e65;--accent:#121212;--border:rgba(18,18,18,0.12);--canvas:#ffffff;--serif:'Instrument Serif',serif;--mono:'JetBrains Mono',monospace}
-*{box-sizing:border-box;margin:0;padding:0}
-[hidden]{display:none!important}
-html,body{width:100%;height:100%;overflow:hidden;background:#0d0d0d;-webkit-font-smoothing:antialiased}
-#viewport{position:absolute;left:0;top:0;width:1080px;height:1920px;overflow:hidden;background:var(--bg);transform-origin:0 0;isolation:isolate}
-#viewport>*{position:absolute;left:0;top:0}
-#stage,#grain{width:1080px;height:1920px}
-#stage{z-index:2}
-#grain{z-index:3;mix-blend-mode:overlay;opacity:.08;pointer-events:none}
-#vig{z-index:4;width:1080px;height:1920px;pointer-events:none;background:radial-gradient(115% 82% at 50% 47%,rgba(0,0,0,0) 52%,rgba(0,0,0,.42) 100%)}
+:root {
+  --ink: #111113;
+  --bg-paper: #f4eee1;
+  --dusk-sky: #132238;
+  --warm-amber: #d97d27;
+  --serif: "Instrument Serif", Georgia, serif;
+  --mono: "JetBrains Mono", monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  -webkit-font-smoothing: antialiased;
+}
+#viewport {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1080px;
+  height: 1920px;
+  overflow: hidden;
+  background: #0b0c10;
+  transform-origin: 0 0;
+}
+#stage, #grainLayer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1080px;
+  height: 1920px;
+  pointer-events: none;
+}
+#grainLayer {
+  mix-blend-mode: overlay;
+  opacity: 0.16;
+}
+#vignette {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1080px;
+  height: 1920px;
+  pointer-events: none;
+  background: radial-gradient(circle 980px at 50% 50%, rgba(0,0,0,0) 55%, rgba(10,12,18,0.7) 100%);
+}
 
-#player{position:fixed;left:0;right:0;bottom:0;height:64px;background:#111;color:#eee;display:flex;align-items:center;gap:12px;padding:0 14px;font:500 13px var(--mono);z-index:99}
-#player button{background:#eee;color:#111;border:0;border-radius:4px;padding:10px 14px;font:700 13px var(--mono);letter-spacing:.06em}
-#player input{flex:1}
+/* Interactive preview controls for local inspection in browser */
+#player {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 60px;
+  background: rgba(14, 16, 22, 0.94);
+  color: #eee;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  font: 500 13px var(--mono);
+  z-index: 999;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+#player button {
+  background: #f4eee1;
+  color: #111;
+  border: 0;
+  border-radius: 3px;
+  padding: 8px 16px;
+  font: 700 12px var(--mono);
+  cursor: pointer;
+  letter-spacing: 0.08em;
+}
+#player input { flex: 1; cursor: pointer; }
 </style>
 </head>
 <body>
+
 <div id="viewport">
   <canvas id="stage" width="1080" height="1920"></canvas>
-  <canvas id="grain" width="1080" height="1920"></canvas>
-  <div id="vig"></div>
+  <canvas id="grainLayer" width="1080" height="1920"></canvas>
+  <div id="vignette"></div>
 </div>
-<div id="player" hidden><button id="pBtn">PLAY</button><input id="pRange" type="range" min="0" max="24" step="0.01" value="0"><span id="pTime">0.0s</span></div>
+
+<div id="player" hidden>
+  <button id="pBtn">PLAY</button>
+  <input id="pRange" type="range" min="0" max="68" step="0.033" value="0">
+  <span id="pTime">0.0s / 68.0s</span>
+</div>
 
 <script>
-(function(){
+(function() {
 'use strict';
 
-const REEL={width:1080,height:1920,fps:30,duration:24,poster:12.0};
-window.REEL=REEL;
-const RENDER=/[?&]render=1/.test(location.search);
-const W=1080,H=1920,PI=Math.PI;
-const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
-const lerp=(a,b,p)=>a+(b-a)*p;
-const EASE={
-  lin:p=>p,i2:p=>p*p,i3:p=>p*p*p,o2:p=>1-(1-p)*(1-p),o3:p=>1-Math.pow(1-p,3),
-  io3:p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2,
-  oexp:p=>p>=1?1:1-Math.pow(2,-10*p)
+/* =========================================================================
+   REEL CONTRACT DEFINITION
+   ========================================================================= */
+const REEL = {
+  width: 1080,
+  height: 1920,
+  fps: 30,
+  duration: 68.0,
+  poster: 24.5
 };
-const prog=(t,s,d,e='lin')=>EASE[e](clamp((t-s)/d));
-const mulberry32=a=>function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
-const mkCanvas=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
+window.REEL = REEL;
 
-/* Spatial random generator matching glitch slice app */
+const W = 1080, H = 1920;
+const stage = document.getElementById('stage');
+const ctx = stage.getContext('2d');
+const grainCanvas = document.getElementById('grainLayer');
+const gctx = grainCanvas.getContext('2d');
+
+/* =========================================================================
+   MATH & EASING HELPERS
+   ========================================================================= */
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, p) => a + (b - a) * p;
+const smoothstep = (a, b, x) => {
+  const t = clamp((x - a) / (b - a));
+  return t * t * (3 - 2 * t);
+};
+
+const EASE = {
+  lin: p => p,
+  i2: p => p * p,
+  o2: p => 1 - (1 - p) * (1 - p),
+  io2: p => p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2,
+  i3: p => p * p * p,
+  o3: p => 1 - Math.pow(1 - p, 3),
+  io3: p => p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2,
+  oBack: (p, s = 1.70158) => { p = p - 1; return p * p * ((s + 1) * p + s) + 1; }
+};
+
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
 function getSpatialRandom(x, y) {
-    let n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
-    return n - Math.floor(n);
+  let n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+  return n - Math.floor(n);
 }
 
-/* Glitch Slice Renderer with strict default slider values (fringe=2, shear=9, chaos=30%) */
-function renderGlitchSlice(text, options = {}) {
-    const {
-        width = 900,
-        height = 450,
-        fringe = 2,
-        shear = 9,
-        chaos = 0.3,
-        fontSize = 140,
-        textColor = '#121212',
-        fontFamily = '"Instrument Serif", serif',
-        scale = 1
-    } = options;
+const mkCanvas = (w, h) => {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  return c;
+};
 
-    const TW = Math.round(width * scale);
-    const TH = Math.round(height * scale);
-    const off = mkCanvas(TW, TH);
-    const octx = off.getContext('2d', { willReadFrequently: true });
+/* =========================================================================
+   PROCEDURAL ASSETS & TEXTURES
+   ========================================================================= */
+let grainTile = null;
+let paperTile = null;
+let woodBenchTex = null;
+let boardTex = null;
+let buildingBackdrop = null;
+let globeTex = null;
+let phoneCanvas = null;
 
-    const lines = text.split('\n');
-    const scaledShear = shear * scale;
-    const padding = scaledShear + (40 * scale);
-    const refSize = 100 * scale;
-
-    octx.font = `400 ${refSize}px ${fontFamily}`;
-    let maxRefWidth = 1;
-    lines.forEach(line => {
-        let width = octx.measureText(line).width;
-        if (width > maxRefWidth) maxRefWidth = width;
-    });
-
-    const refTotalHeight = lines.length * (refSize * 1.1);
-    const availWidth = Math.max(10 * scale, TW - padding);
-    const availHeight = Math.max(10 * scale, TH - padding);
-    const maxFontSizeW = (availWidth * refSize) / maxRefWidth;
-    const maxFontSizeH = (availHeight * refSize) / refTotalHeight;
-    const calculatedMaxFontSize = Math.min(maxFontSizeW, maxFontSizeH);
-    const scaledFontSize = Math.max(10 * scale, Math.min(fontSize * scale, calculatedMaxFontSize));
-
-    octx.font = `400 ${scaledFontSize}px ${fontFamily}`;
-    octx.textAlign = 'center';
-    octx.textBaseline = 'middle';
-    octx.fillStyle = textColor;
-
-    const lineHeight = scaledFontSize * 1.1;
-    const totalHeight = lines.length * lineHeight;
-    let startY = (TH / 2) - (totalHeight / 2) + (lineHeight / 2);
-
-    lines.forEach((line, index) => {
-        octx.fillText(line, TW / 2, startY + (index * lineHeight));
-    });
-
-    const sourceData = octx.getImageData(0, 0, TW, TH);
-    const targetCanvas = mkCanvas(TW, TH);
-    const targetCtx = targetCanvas.getContext('2d');
-    const targetData = targetCtx.createImageData(TW, TH);
-    const sourceBuffer = new Uint32Array(sourceData.data.buffer);
-    const targetBuffer = new Uint32Array(targetData.data.buffer);
-
-    for (let dy = 0; dy < TH; dy++) {
-        const unscaledY = dy / scale;
-        const band = Math.floor(unscaledY / fringe);
-        const dir = (band % 2 === 0) ? 1 : -1;
-
-        const waveShift = Math.sin(band * 0.4) * shear;
-        const macroClump = getSpatialRandom(0, Math.floor(band / 3));
-        const microNoise = getSpatialRandom(0, band);
-        const chaosIntensity = (macroClump * 1.5 + microNoise * 0.5);
-        const chaoticShift = dir * chaosIntensity * shear;
-
-        const shiftAmount = (waveShift * (1 - chaos)) + (chaoticShift * chaos);
-        const scaledShiftX = Math.round(shiftAmount * scale);
-
-        const rowOffset = dy * TW;
-        for (let dx = 0; dx < TW; dx++) {
-            const sx = dx - scaledShiftX;
-            if (sx >= 0 && sx < TW) {
-                const sourcePixel = sourceBuffer[rowOffset + sx];
-                if (sourcePixel !== 0) {
-                    targetBuffer[rowOffset + dx] = sourcePixel;
-                }
-            }
-        }
-    }
-    targetCtx.putImageData(targetData, 0, 0);
-    return targetCanvas;
-}
-
-const stage=$('stage'),sc=stage.getContext('2d');
-const grain=$('grain'),gc=grain.getContext('2d');
-let grainTile=null, glitchImg=null, callistraImg=null;
-
-function buildAssets(){
-  const g=mkCanvas(512,512);grainTile=g;
-  const gx=g.getContext('2d'),id=gx.createImageData(512,512),r2=mulberry32(5);
-  for(let i=0;i<512*512;i++){const v=r2()*255;id.data[i*4]=id.data[i*4+1]=id.data[i*4+2]=v;id.data[i*4+3]=255;}
-  gx.putImageData(id,0,0);
-
-  // Pre-render glitch slice text assets with strict default values (fringe=2, shear=9, chaos=30%)
-  glitchImg = renderGlitchSlice("CALLISTRA", { width: 900, height: 350, fringe: 2, shear: 9, chaos: 0.3, fontSize: 130, textColor: '#121212', scale: 1.5 });
-  callistraImg = renderGlitchSlice("callistra.design", { width: 900, height: 250, fringe: 2, shear: 9, chaos: 0.3, fontSize: 90, textColor: '#f0eee9', scale: 1.5 });
-}
-
-/* Editorial typography helpers */
-function editorial(c,txt,x,y,o={}){
-  const{size=80,align='center',color='#121212',alpha=1,italic=false}=o;
-  if(alpha<=0)return;
-  c.save();c.font=`${italic?'italic':''} 400 ${size}px ${'\"Instrument Serif\", serif'}`;
-  c.textBaseline='middle';c.fillStyle=color;c.globalAlpha=alpha;c.textAlign=align;
-  c.fillText(txt,x,y);c.restore();
-}
-
-function mono(c,txt,x,y,o={}){
-  const{size=24,ls=2,align='left',color='#121212',alpha=1,weight=500}=o;
-  if(alpha<=0)return;
-  c.save();c.font=`${weight} ${size}px ${'\"JetBrains Mono\", monospace'}`;if('letterSpacing' in c)c.letterSpacing=ls+'px';
-  c.textBaseline='middle';c.fillStyle=color;c.globalAlpha=alpha;
-  let xx=x;
-  if(align==='center'){c.textAlign='center';xx=x+ls/2;}else if(align==='right'){c.textAlign='right';xx=x+ls;}else c.textAlign='left';
-  c.fillText(txt,xx,y);c.restore();
-}
-
-function flash(c,a,col){if(a>.005){c.save();c.globalAlpha=Math.min(1,a);c.fillStyle=col;c.fillRect(0,0,W,H);c.restore();}}
-function streak(c,y,a,col){
-  if(a<.01)return;
-  c.save();c.globalCompositeOperation='lighter';
-  const g=c.createLinearGradient(0,0,W,0);
-  g.addColorStop(0,'rgba(255,91,46,0)');g.addColorStop(.5,col);g.addColorStop(1,'rgba(255,91,46,0)');
-  c.fillStyle=g;
-  c.globalAlpha=Math.min(1,a);c.fillRect(0,y-2,W,4);
-  c.restore();
-}
-function grade(c,a=.15){
-  c.save();c.globalCompositeOperation='soft-light';
-  const g=c.createLinearGradient(0,0,W,H);g.addColorStop(0,`rgba(30,50,90,${a})`);g.addColorStop(.5,'rgba(0,0,0,0)');g.addColorStop(1,`rgba(200,90,40,${a*1.2})`);
-  c.fillStyle=g;c.fillRect(0,0,W,H);c.restore();
-}
-
-/* =====================================================================
-   SCENE RENDERERS (0.0s to 24.0s)
-   ===================================================================== */
-
-/* Scene 1 (0.0s - 2.5s): Art Classroom & Pencil's Struggle */
-function drawSceneClassroom(c, t) {
-  c.fillStyle = '#f7f5f0';
-  c.fillRect(0, 0, W, H);
-
-  // Wooden desk surface texture & perspective
-  c.fillStyle = '#e8e2d5';
-  c.fillRect(100, 1100, 880, 700);
-  c.strokeStyle = '#d4cbb8';
-  c.lineWidth = 2;
-  c.strokeRect(100, 1100, 880, 700);
-
-  // Instructional Blackboard in background
-  c.fillStyle = '#1a221f';
-  c.fillRect(140, 150, 800, 420);
-  c.strokeStyle = '#32423d';
-  c.lineWidth = 6;
-  c.strokeRect(140, 150, 800, 420);
-
-  editorial(c, "START WITH A STRAIGHT LINE", 540, 260, { size: 52, color: '#f0eee9' });
-  mono(c, "THE FIRST EXERCISE IN DRAWING", 540, 340, { size: 22, ls: 4, align: 'center', color: '#8c877e' });
-
-  // Sketchbook on desk
-  c.fillStyle = '#ffffff';
-  c.shadowColor = 'rgba(0,0,0,0.18)';
-  c.shadowBlur = 40;
-  c.shadowOffsetY = 20;
-  c.fillRect(200, 680, 680, 880);
-  c.shadowBlur = 0; c.shadowOffsetY = 0;
-
-  // Paper border
-  c.strokeStyle = '#eae6dc';
-  c.lineWidth = 2;
-  c.strokeRect(220, 700, 640, 840);
-
-  // Pencil drawing attempts
-  const p = clamp(t / 2.5);
-  c.save();
-  c.strokeStyle = '#2b2621';
-  c.lineWidth = 3.5;
-  c.lineCap = 'round';
-  c.lineJoin = 'round';
-
-  // Attempt 1 (Crooked line 1)
-  if (t > 0.4) {
-    c.beginPath();
-    c.moveTo(280, 820);
-    c.lineTo(500, 840);
-    c.lineTo(720, 810);
-    c.lineTo(800, 835);
-    c.stroke();
+function buildTextures() {
+  // 1. Film grain tile
+  grainTile = mkCanvas(512, 512);
+  const gc = grainTile.getContext('2d');
+  const gImg = gc.createImageData(512, 512);
+  const rnd = mulberry32(104);
+  for (let i = 0; i < 512 * 512 * 4; i += 4) {
+    const n = Math.floor(rnd() * 255);
+    gImg.data[i] = n;
+    gImg.data[i + 1] = n;
+    gImg.data[i + 2] = n;
+    gImg.data[i + 3] = 255;
   }
-  // Attempt 2 (Crooked line 2)
-  if (t > 0.9) {
-    c.beginPath();
-    c.moveTo(280, 920);
-    c.lineTo(460, 895);
-    c.lineTo(640, 935);
-    c.lineTo(800, 915);
-    c.stroke();
-  }
-  // Attempt 3 (Frustrated scribble / pause)
-  if (t > 1.4) {
-    c.beginPath();
-    c.moveTo(280, 1020);
-    c.lineTo(420, 1050);
-    c.lineTo(600, 1010);
-    c.lineTo(800, 1045);
-    c.stroke();
+  gc.putImageData(gImg, 0, 0);
+
+  // 2. Paper texture with organic graphite tooth and fibrous specks
+  paperTile = mkCanvas(1080, 1920);
+  const pc = paperTile.getContext('2d');
+  const pGrad = pc.createRadialGradient(540, 960, 100, 540, 960, 1100);
+  pGrad.addColorStop(0, '#faf6ec');
+  pGrad.addColorStop(0.7, '#f4ece0');
+  pGrad.addColorStop(1, '#ebe0cf');
+  pc.fillStyle = pGrad;
+  pc.fillRect(0, 0, 1080, 1920);
+
+  // Fine organic paper fiber mottling
+  const pRnd = mulberry32(992);
+  pc.fillStyle = 'rgba(70, 52, 35, 0.025)';
+  for (let i = 0; i < 60000; i++) {
+    const px = pRnd() * 1080;
+    const py = pRnd() * 1920;
+    const pr = pRnd() * 2.2 + 0.4;
+    pc.beginPath();
+    pc.arc(px, py, pr, 0, Math.PI * 2);
+    pc.fill();
   }
 
-  // Final Intentional Curved Line (The breakthrough)
-  if (t > 1.9) {
-    const cp = clamp((t - 1.9) / 0.6);
-    c.strokeStyle = '#121212';
-    c.lineWidth = 4.5;
-    c.beginPath();
-    c.moveTo(280, 1200);
-    c.bezierCurveTo(400, 1100 + 50*Math.sin(cp*PI), 680, 1350 - 50*Math.sin(cp*PI), 820, 1220);
-    c.stroke();
-
-    // Graphite pencil tip moving along the curve (no hand)
-    const px = lerp(280, 820, cp);
-    const py = 1200 + 40*Math.sin(cp*PI);
-    c.fillStyle = '#b58838'; // Wood pencil color
-    c.save();
-    c.translate(px, py);
-    c.rotate(-0.4);
-    c.fillRect(-35, -5, 40, 10);
-    c.fillStyle = '#222'; // Lead tip
-    c.beginPath();
-    c.moveTo(5, -5); c.lineTo(15, 0); c.lineTo(5, 5); c.fill();
-    c.restore();
+  // 3. Wooden drawing workstation bench
+  woodBenchTex = mkCanvas(1080, 1920);
+  const wc = woodBenchTex.getContext('2d');
+  const wGrad = wc.createLinearGradient(0, 0, 0, 1920);
+  wGrad.addColorStop(0, '#2c221b');
+  wGrad.addColorStop(0.4, '#3d3027');
+  wGrad.addColorStop(1, '#231a14');
+  wc.fillStyle = wGrad;
+  wc.fillRect(0, 0, 1080, 1920);
+  // Wood grain strokes
+  wc.strokeStyle = 'rgba(20, 14, 10, 0.25)';
+  for (let y = 0; y < 1920; y += 7) {
+    wc.lineWidth = 1.5 + (y % 4);
+    wc.beginPath();
+    wc.moveTo(0, y + Math.sin(y * 0.02) * 8);
+    wc.bezierCurveTo(360, y + Math.cos(y * 0.03) * 12, 720, y - Math.sin(y * 0.015) * 14, 1080, y);
+    wc.stroke();
   }
-  c.restore();
+
+  // 4. Classroom Instructional Chalkboard
+  boardTex = mkCanvas(880, 560);
+  const bc = boardTex.getContext('2d');
+  const bGrad = bc.createLinearGradient(0, 0, 880, 560);
+  bGrad.addColorStop(0, '#1c2622');
+  bGrad.addColorStop(0.5, '#222f2b');
+  bGrad.addColorStop(1, '#18211e');
+  bc.fillStyle = bGrad;
+  bc.fillRect(0, 0, 880, 560);
+  // Chalkboard wood frame
+  bc.strokeStyle = '#432e1f';
+  bc.lineWidth = 28;
+  bc.strokeRect(14, 14, 852, 532);
+  bc.strokeStyle = 'rgba(255,255,255,0.06)';
+  bc.lineWidth = 2;
+  bc.strokeRect(28, 28, 824, 504);
+  // Chalk smudges
+  bc.fillStyle = 'rgba(255, 255, 255, 0.04)';
+  for (let i = 0; i < 30; i++) {
+    const cx = pRnd() * 800 + 40;
+    const cy = pRnd() * 480 + 40;
+    bc.beginPath();
+    bc.ellipse(cx, cy, pRnd() * 120 + 20, pRnd() * 60 + 10, pRnd() * Math.PI, 0, Math.PI * 2);
+    bc.fill();
+  }
+  // Chalk text
+  bc.textAlign = 'center';
+  bc.fillStyle = 'rgba(240, 244, 240, 0.88)';
+  bc.font = '400 48px "Instrument Serif", Georgia, serif';
+  bc.fillText('START WITH A STRAIGHT LINE', 440, 260);
+  bc.font = '500 21px "JetBrains Mono", monospace';
+  bc.fillStyle = 'rgba(220, 230, 222, 0.65)';
+  bc.letterSpacing = '5px';
+  bc.fillText('THE FIRST EXERCISE IN DRAWING', 440, 315);
+  // Faint guide line drawn on chalkboard
+  bc.strokeStyle = 'rgba(255,255,255,0.2)';
+  bc.lineWidth = 2.5;
+  bc.setLineDash([12, 10]);
+  bc.beginPath();
+  bc.moveTo(140, 380);
+  bc.lineTo(740, 380);
+  bc.stroke();
+  bc.setLineDash([]);
+
+  // 5. Pre-bake Architectural Facade for Building Sequence
+  buildingBackdrop = mkCanvas(1080, 1920);
+  drawArchitecturalMaster(buildingBackdrop.getContext('2d'));
+
+  // 6. Pre-bake Inorganic Globe
+  globeTex = mkCanvas(900, 900);
+  drawGlobeMaster(globeTex.getContext('2d'));
+
+  // 7. Sleek Typographic Phone Interface
+  phoneCanvas = mkCanvas(720, 1280);
+  drawPhoneInterfaceMaster(phoneCanvas.getContext('2d'));
 }
 
-/* Scene 2 (2.5s - 5.0s): World Transformation (Railway, Wires, Building) */
-function drawSceneTransformation(c, t) {
-  const u = t - 2.5;
-  c.fillStyle = '#141414';
-  c.fillRect(0, 0, W, H);
+/* =========================================================================
+   ILLUSTRATION PAINTERS (Rich Gouache / Textured Architectural Art)
+   ========================================================================= */
 
-  c.save();
-  if (u < 0.8) {
-    // Railway tracks transforming into rhythmic zigzags
-    c.strokeStyle = '#c5bfb3';
-    c.lineWidth = 10;
-    c.beginPath();
-    const progTr = clamp(u / 0.8);
-    for (let y = 200; y < 1720; y += 120) {
-      const offset = 180 * Math.sin(y * 0.015) * progTr;
-      c.moveTo(380 + offset, y); c.lineTo(700 + offset, y + 60);
+// Detailed Beaux-Arts / Brownstone facade without any living beings
+function drawArchitecturalMaster(c) {
+  // Dusk atmospheric sky
+  const skyGrad = c.createLinearGradient(0, 0, 0, 1920);
+  skyGrad.addColorStop(0, '#091526');
+  skyGrad.addColorStop(0.35, '#162b46');
+  skyGrad.addColorStop(0.65, '#2c435c');
+  skyGrad.addColorStop(1, '#0e1724');
+  c.fillStyle = skyGrad;
+  c.fillRect(0, 0, 1080, 1920);
+
+  // Background skyscrapers with illuminated gouache windows
+  c.fillStyle = '#142132';
+  c.fillRect(60, 300, 280, 900);
+  c.fillRect(720, 220, 300, 1100);
+  c.fillRect(380, 180, 320, 1200);
+
+  // Tiny distant illuminated window squares
+  c.fillStyle = 'rgba(235, 180, 80, 0.45)';
+  for (let by = 240; by < 1100; by += 26) {
+    for (let bx = 90; bx < 310; bx += 32) {
+      if (getSpatialRandom(bx, by) > 0.4) c.fillRect(bx, by, 14, 16);
     }
-    c.stroke();
-
-    c.strokeStyle = '#e0dad0';
-    c.lineWidth = 14;
-    c.beginPath();
-    for (let y = 200; y < 1720; y += 120) {
-      const offset = 180 * Math.sin(y * 0.015) * progTr;
-      c.moveTo(360 + offset, y); c.lineTo(360 + offset, y + 120);
-      c.moveTo(720 + offset, y); c.lineTo(720 + offset, y + 120);
+    for (let bx = 750; bx < 980; bx += 30) {
+      if (getSpatialRandom(bx, by) > 0.45) c.fillRect(bx, by, 12, 14);
     }
-    c.stroke();
-    editorial(c, "GEOMETRY IN MOTION", 540, 1750, { size: 42, color: '#f0eee9' });
-
-  } else if (u < 1.7) {
-    // Roadside Electric Wires developing rhythmic curves
-    const progW = clamp((u - 0.8) / 0.9);
-    c.strokeStyle = '#a8a296';
-    c.lineWidth = 4;
-    for (let i = 0; i < 5; i++) {
-      c.beginPath();
-      const baseY = 300 + i * 320;
-      c.moveTo(80, baseY);
-      c.bezierCurveTo(320, baseY + 200 * progW * (i % 2 === 0 ? 1 : -1), 760, baseY - 200 * progW * (i % 2 === 0 ? 1 : -1), 1000, baseY);
-      c.stroke();
-    }
-    // Utility poles
-    c.fillStyle = '#2b2621';
-    c.fillRect(80, 200, 30, 1400);
-    c.fillRect(970, 200, 30, 1400);
-    editorial(c, "RHYTHMIC WAVES", 540, 1750, { size: 42, color: '#f0eee9' });
-
-  } else {
-    // Architectural building edges bending gracefully
-    const progB = clamp((u - 1.7) / 0.8);
-    c.fillStyle = '#202022';
-    c.beginPath();
-    c.moveTo(180, 1700);
-    c.lineTo(180, 400);
-    c.bezierCurveTo(180 + 120 * progB, 300, 900 - 120 * progB, 300, 900, 400);
-    c.lineTo(900, 1700);
-    c.closePath();
-    c.fill();
-
-    // Windows with curved frames
-    c.fillStyle = '#3a383f';
-    for (let y = 500; y < 1500; y += 220) {
-      for (let x = 280; x < 800; x += 180) {
-        c.fillRect(x + 30 * Math.sin(y * 0.02) * progB, y, 100, 140);
-      }
-    }
-    editorial(c, "NEW ARCHITECTURAL RULES", 540, 1750, { size: 42, color: '#f0eee9' });
   }
-  c.restore();
-}
 
-/* Scene 3 (5.0s - 7.0s): Global Reveal & Return to Building */
-function drawSceneGlobal(c, t) {
-  const u = t - 5.0;
-  c.fillStyle = '#0d0d0d';
-  c.fillRect(0, 0, W, H);
+  // Main foreground building: Deep terracotta & slate masonry
+  const bGrad = c.createLinearGradient(120, 0, 960, 0);
+  bGrad.addColorStop(0, '#66221c');
+  bGrad.addColorStop(0.5, '#7f2b24');
+  bGrad.addColorStop(1, '#531b16');
+  c.fillStyle = bGrad;
+  c.fillRect(160, 480, 760, 1440);
 
-  const progG = clamp(u / 2.0);
-  c.save();
-  c.translate(540, 960);
-
-  // Distorted Globe representing Earth
-  const r = 380;
-  c.fillStyle = '#182430';
+  // Mansard roof top (slate blue)
+  c.fillStyle = '#1b2c3d';
   c.beginPath();
-  c.arc(0, 0, r, 0, PI * 2);
-  c.fill();
-
-  c.strokeStyle = '#ff5b2e';
-  c.lineWidth = 4;
-  c.beginPath();
-  for (let angle = 0; angle < PI * 2; angle += 0.05) {
-    const wave = r + 45 * Math.sin(angle * 8 + progG * 10);
-    const x = Math.cos(angle) * wave;
-    const y = Math.sin(angle) * wave;
-    if (angle === 0) c.moveTo(x, y); else c.lineTo(x, y);
-  }
+  c.moveTo(130, 480);
+  c.lineTo(240, 260);
+  c.lineTo(840, 260);
+  c.lineTo(950, 480);
   c.closePath();
+  c.fill();
+  c.strokeStyle = '#273f57';
+  c.lineWidth = 6;
   c.stroke();
 
-  editorial(c, "THE WORLD REDEFINED", 0, 600, { size: 54, color: '#f0eee9' });
-  c.restore();
-}
+  // Roof dormer windows
+  [340, 540, 740].forEach(dx => {
+    c.fillStyle = '#111e2b';
+    c.fillRect(dx - 55, 300, 110, 140);
+    c.fillStyle = 'rgba(255, 210, 120, 0.85)';
+    c.fillRect(dx - 45, 312, 90, 115);
+    // Window mullions
+    c.strokeStyle = '#1b2c3d';
+    c.lineWidth = 4;
+    c.beginPath();
+    c.moveTo(dx, 312); c.lineTo(dx, 427);
+    c.moveTo(dx - 45, 368); c.lineTo(dx + 45, 368);
+    c.stroke();
+  });
 
-/* Scene 4 (7.0s - 10.5s): Phone Interface & Dialing */
-function drawScenePhone(c, t) {
-  const u = t - 7.0;
-  c.fillStyle = '#121212';
-  c.fillRect(0, 0, W, H);
+  // Cornice molding with carved relief
+  c.fillStyle = '#3c1815';
+  c.fillRect(140, 470, 800, 36);
+  c.fillStyle = '#a6382e';
+  c.fillRect(145, 474, 790, 8);
 
-  // Phone Frame
-  c.fillStyle = '#1c1c1e';
-  c.strokeStyle = '#3a3a3c';
-  c.lineWidth = 6;
-  c.beginPath();
-  c.roundRect(140, 260, 800, 1400, 48);
-  c.fill(); c.stroke();
+  // Multi-story windows with glowing warm amber light & dark frames
+  const windowRows = [560, 860, 1160, 1460];
+  const windowCols = [260, 460, 660, 820];
 
-  // Screen
-  c.fillStyle = '#0a0a0c';
-  c.beginPath();
-  c.roundRect(170, 290, 740, 1340, 36);
-  c.fill();
+  windowRows.forEach(wy => {
+    windowCols.forEach(wx => {
+      // Stone lintel & trim
+      c.fillStyle = '#2f1210';
+      c.fillRect(wx - 48, wy - 18, 96, 170);
+      c.fillStyle = '#9e372d';
+      c.fillRect(wx - 52, wy - 22, 104, 10);
 
-  // Header & Brand
-  mono(c, "CALLISTRA SECURE TERMINAL", 540, 420, { size: 22, ls: 6, align: 'center', color: '#8c877e' });
+      // Glowing warm interior window
+      const winGrad = c.createLinearGradient(wx, wy, wx, wy + 140);
+      winGrad.addColorStop(0, '#ffe596');
+      winGrad.addColorStop(0.7, '#f49f31');
+      winGrad.addColorStop(1, '#a6510f');
+      c.fillStyle = winGrad;
+      c.fillRect(wx - 40, wy, 80, 138);
 
-  // Input Field
-  c.fillStyle = '#161618';
-  c.beginPath();
-  c.roundRect(220, 520, 640, 110, 16);
-  c.fill();
-
-  const typingProg = clamp(u / 2.5);
-  const fullText = "callistra.design";
-  const charCount = Math.floor(typingProg * fullText.length);
-  const typedText = fullText.slice(0, charCount);
-
-  c.save();
-  c.font = '500 42px "JetBrains Mono", monospace';
-  c.fillStyle = '#f0eee9';
-  c.textBaseline = 'middle';
-  c.textAlign = 'left';
-  c.fillText(typedText, 260, 575);
-  c.restore();
-
-  // Custom Typographic Keypad
-  const keys = [
-    ['q','w','e','r','t','y','u','i','o','p'],
-    ['a','s','d','f','g','h','j','k','l'],
-    ['z','x','c','v','b','n','m','.', '/']
-  ];
-  
-  keys.forEach((row, ri) => {
-    const rx = 220 + (ri === 1 ? 40 : ri === 2 ? 100 : 0);
-    row.forEach((char, ci) => {
-      const bx = rx + ci * 64;
-      const by = 800 + ri * 130;
-      c.fillStyle = '#222226';
+      // Internal mullions
+      c.strokeStyle = '#2d1412';
+      c.lineWidth = 5;
+      c.strokeRect(wx - 40, wy, 80, 138);
       c.beginPath();
-      c.roundRect(bx, by, 54, 96, 12);
-      c.fill();
-      mono(c, char.toUpperCase(), bx + 27, by + 48, { size: 26, align: 'center', color: '#f0eee9' });
+      c.moveTo(wx, wy); c.lineTo(wx, wy + 138);
+      c.moveTo(wx - 40, wy + 70); c.lineTo(wx + 40, wy + 70);
+      c.stroke();
     });
   });
 
-  // Call / Connect Button
-  c.fillStyle = '#ff5b2e';
-  c.beginPath();
-  c.roundRect(220, 1240, 640, 100, 20);
-  c.fill();
-  mono(c, "INITIATE CALL", 540, 1290, { size: 26, ls: 6, align: 'center', color: '#ffffff', weight: 700 });
+  // Wet ground stone pavement reflection (inorganic reflections of glowing windows)
+  const streetGrad = c.createLinearGradient(0, 1720, 0, 1920);
+  streetGrad.addColorStop(0, '#0d131a');
+  streetGrad.addColorStop(0.5, '#17222c');
+  streetGrad.addColorStop(1, '#070a0e');
+  c.fillStyle = streetGrad;
+  c.fillRect(0, 1720, 1080, 200);
+
+  // Reflections of window light in the rain-slick pavement
+  c.fillStyle = 'rgba(240, 150, 40, 0.15)';
+  windowCols.forEach(wx => {
+    c.fillRect(wx - 35, 1740, 70, 160);
+  });
 }
 
-/* Scene 5 (10.5s - 17.0s): The Billboard & Glitch Slice Transformation */
-function drawSceneGlitchSlice(c, t) {
-  const u = t - 10.5;
-  c.fillStyle = '#141414';
-  c.fillRect(0, 0, W, H);
+// Master rendering of the Inorganic Earth Globe
+function drawGlobeMaster(c) {
+  const cx = 450, cy = 450, r = 380;
+  // Globe sphere ocean
+  const oceanGrad = c.createRadialGradient(cx - 90, cy - 110, 40, cx, cy, r);
+  oceanGrad.addColorStop(0, '#226079');
+  oceanGrad.addColorStop(0.7, '#133547');
+  oceanGrad.addColorStop(1, '#091a24');
+  c.fillStyle = oceanGrad;
+  c.beginPath();
+  c.arc(cx, cy, r, 0, Math.PI * 2);
+  c.fill();
 
-  // Architectural Building Façade with Billboard
-  c.fillStyle = '#1e1e22';
-  c.fillRect(100, 200, 880, 1520);
+  // Continents drawn with stylized graphic geometric shapes
+  c.fillStyle = '#619374';
+  // North / South America representation
+  c.beginPath();
+  c.moveTo(cx - 240, cy - 200);
+  c.bezierCurveTo(cx - 150, cy - 230, cx - 110, cy - 120, cx - 180, cy - 50);
+  c.bezierCurveTo(cx - 140, cy + 30, cx - 120, cy + 180, cx - 210, cy + 240);
+  c.bezierCurveTo(cx - 270, cy + 180, cx - 260, cy + 20, cx - 290, cy - 110);
+  c.closePath();
+  c.fill();
 
-  // Billboard Frame
-  c.fillStyle = '#f2ede2';
-  c.shadowColor = 'rgba(0,0,0,0.5)';
-  c.shadowBlur = 50;
-  c.fillRect(160, 600, 760, 720);
-  c.shadowBlur = 0;
+  // Europe / Africa representation
+  c.beginPath();
+  c.moveTo(cx - 30, cy - 220);
+  c.bezierCurveTo(cx + 80, cy - 240, cx + 180, cy - 160, cx + 120, cy - 70);
+  c.bezierCurveTo(cx + 170, cy + 20, cx + 140, cy + 210, cx + 20, cy + 230);
+  c.bezierCurveTo(cx - 50, cy + 120, cx - 10, cy + 10, cx - 40, cy - 110);
+  c.closePath();
+  c.fill();
 
-  // Clean Typography Memory of Old World (Early in scene)
-  if (u < 1.5) {
-    editorial(c, "CALLISTRA", 540, 920, { size: 130, color: '#121212' });
-    mono(c, "THE LAST REMNANT OF PERFECTION", 540, 1060, { size: 22, ls: 6, align: 'center', color: '#736e65' });
+  // Latitudinal & Longitudinal grid lines (Inorganic precision)
+  c.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+  c.lineWidth = 3;
+  // Parallels
+  for (let lat = -60; lat <= 60; lat += 30) {
+    const yOff = cy + Math.sin(lat * Math.PI / 180) * (r * 0.88);
+    const radY = Math.cos(lat * Math.PI / 180) * r;
+    c.beginPath();
+    c.ellipse(cx, yOff, radY, radY * 0.28, 0, 0, Math.PI * 2);
+    c.stroke();
+  }
+  // Meridians
+  for (let lon = -60; lon <= 60; lon += 30) {
+    c.beginPath();
+    c.ellipse(cx, cy, r * Math.cos(lon * Math.PI / 180), r, 0, 0, Math.PI * 2);
+    c.stroke();
+  }
+
+  // Globe rim illumination & outer brass stand ring
+  c.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+  c.lineWidth = 5;
+  c.beginPath();
+  c.arc(cx, cy, r, 0, Math.PI * 2);
+  c.stroke();
+}
+
+// Master rendering of the sleek phone interface
+function drawPhoneInterfaceMaster(c) {
+  // Device body
+  c.fillStyle = '#0f1115';
+  c.beginPath();
+  c.roundRect(40, 40, 640, 1200, 48);
+  c.fill();
+  c.strokeStyle = '#272b36';
+  c.lineWidth = 6;
+  c.stroke();
+
+  // OLED Screen
+  c.fillStyle = '#050608';
+  c.beginPath();
+  c.roundRect(60, 60, 600, 1160, 36);
+  c.fill();
+
+  // Phone status bar
+  c.font = '500 20px "JetBrains Mono", monospace';
+  c.fillStyle = '#677184';
+  c.fillText('05:20', 100, 115);
+  c.textAlign = 'right';
+  c.fillText('CALLISTRA OS', 620, 115);
+  c.textAlign = 'left';
+
+  // Typographic Input Area Container
+  c.strokeStyle = 'rgba(255,255,255,0.12)';
+  c.lineWidth = 2;
+  c.strokeRect(100, 240, 520, 110);
+
+  // Address label
+  c.font = '500 16px "JetBrains Mono", monospace';
+  c.fillStyle = '#828c9e';
+  c.letterSpacing = '3px';
+  c.fillText('DIAL TYPOGRAPHIC DOMAIN', 100, 215);
+
+  // Call Initiation Action Button
+  c.fillStyle = '#1a5938';
+  c.beginPath();
+  c.roundRect(260, 1020, 200, 90, 45);
+  c.fill();
+  c.fillStyle = '#4ade80';
+  // Receiver icon
+  c.beginPath();
+  c.arc(360, 1065, 18, 0, Math.PI * 2);
+  c.fill();
+}
+
+/* =========================================================================
+   PENCIL MODEL (Rendered without any hand/human presence)
+   ========================================================================= */
+function drawPencil(c, tipX, tipY, angleRad, shadowAlpha = 0.35) {
+  c.save();
+  c.translate(tipX, tipY);
+  c.rotate(angleRad);
+
+  // Plausible soft graphite contact shadow
+  if (shadowAlpha > 0.01) {
+    c.save();
+    c.fillStyle = `rgba(30, 20, 15, ${shadowAlpha})`;
+    c.beginPath();
+    c.ellipse(-15, 18, 28, 8, -0.2, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+  }
+
+  // 1. Graphite tip (sharp cone)
+  c.fillStyle = '#1c1c1f';
+  c.beginPath();
+  c.moveTo(0, 0);
+  c.lineTo(-14, -4);
+  c.lineTo(-14, 4);
+  c.closePath();
+  c.fill();
+
+  // 2. Carved wood collar (natural cedar grain)
+  const woodGrad = c.createLinearGradient(-14, -8, -14, 8);
+  woodGrad.addColorStop(0, '#c79867');
+  woodGrad.addColorStop(0.5, '#e4b98c');
+  woodGrad.addColorStop(1, '#a67749');
+  c.fillStyle = woodGrad;
+  c.beginPath();
+  c.moveTo(-14, -4);
+  c.lineTo(-44, -12);
+  c.lineTo(-44, 12);
+  c.lineTo(-14, 4);
+  c.closePath();
+  c.fill();
+
+  // 3. Hexagonal lacquered pencil shaft (Deep Prussian Blue / Forest Matte)
+  const shaftGrad = c.createLinearGradient(-44, -12, -44, 12);
+  shaftGrad.addColorStop(0, '#122538');
+  shaftGrad.addColorStop(0.4, '#244563');
+  shaftGrad.addColorStop(0.7, '#1b344c');
+  shaftGrad.addColorStop(1, '#0e1d2c');
+  c.fillStyle = shaftGrad;
+  c.fillRect(-340, -12, 296, 24);
+
+  // Gold foil stamped lettering on pencil body
+  c.fillStyle = 'rgba(235, 200, 110, 0.85)';
+  c.font = '500 10px "JetBrains Mono", monospace';
+  c.fillText('2B GRAPHITE · CALLISTRA STUDIO', -280, 4);
+
+  // Brass ferrule & cream eraser
+  c.fillStyle = '#bfa14a';
+  c.fillRect(-370, -12, 30, 24);
+  c.fillStyle = '#d96b6b';
+  c.beginPath();
+  c.roundRect(-395, -11, 25, 22, [6, 0, 0, 6]);
+  c.fill();
+
+  c.restore();
+}
+
+/* =========================================================================
+   EXACT GLITCH SLICE ALGORITHM (Default parameters: fringe:2, shear:9, chaos:30%)
+   ========================================================================= */
+function renderGlitchSliceText(targetCtx, text, fontSize, color, origFringe = 2, origShear = 9, origChaos = 0.30) {
+  const cw = 940, ch = 380;
+  const off = mkCanvas(cw, ch);
+  const octx = off.getContext('2d');
+
+  octx.font = `italic 400 ${fontSize}px "Instrument Serif", Georgia, serif`;
+  octx.textAlign = 'center';
+  octx.textBaseline = 'middle';
+  octx.fillStyle = color;
+  octx.fillText(text, cw / 2, ch / 2);
+
+  const sourceData = octx.getImageData(0, 0, cw, ch);
+  const targetData = targetCtx.createImageData(cw, ch);
+  const sBuf = new Uint32Array(sourceData.data.buffer);
+  const tBuf = new Uint32Array(targetData.data.buffer);
+
+  for (let dy = 0; dy < ch; dy++) {
+    const band = Math.floor(dy / origFringe);
+    const dir = (band % 2 === 0) ? 1 : -1;
+    const waveShift = Math.sin(band * 0.4) * origShear;
+    const macroClump = getSpatialRandom(0, Math.floor(band / 3));
+    const microNoise = getSpatialRandom(0, band);
+    const chaosIntensity = (macroClump * 1.5 + microNoise * 0.5);
+    const chaoticShift = dir * chaosIntensity * origShear;
+    const shiftAmount = (waveShift * (1 - origChaos)) + (chaoticShift * origChaos);
+    const scaledShiftX = Math.round(shiftAmount);
+
+    const rowOffset = dy * cw;
+    for (let dx = 0; dx < cw; dx++) {
+      const sx = dx - scaledShiftX;
+      if (sx >= 0 && sx < cw) {
+        const pix = sBuf[rowOffset + sx];
+        if (pix !== 0) {
+          tBuf[rowOffset + dx] = pix;
+        }
+      }
+    }
+  }
+
+  const resCanvas = mkCanvas(cw, ch);
+  resCanvas.getContext('2d').putImageData(targetData, 0, 0);
+  return resCanvas;
+}
+
+/* =========================================================================
+   SCENE RENDERERS (Sequenced over 68.0 Seconds)
+   ========================================================================= */
+
+// SCENE 1: The Art Classroom Establishing (0.0s – 7.0s)
+function renderSceneClassroom(c, t) {
+  const p = clamp(t / 7.0);
+  const camScale = lerp(1.0, 1.38, EASE.io3(p));
+  const camY = lerp(0, -280, EASE.io3(p));
+
+  c.save();
+  c.translate(540, 960);
+  c.scale(camScale, camScale);
+  c.translate(-540, -960 + camY);
+
+  // Background classroom wooden bench
+  c.drawImage(woodBenchTex, 0, 0);
+
+  // Instructional board hanging in background
+  const boardY = lerp(260, 160, p * 0.6);
+  c.drawImage(boardTex, 100, boardY);
+
+  // Warm studio light beam from loft window (dusk atmosphere)
+  const beamGrad = c.createLinearGradient(0, 0, 900, 1600);
+  beamGrad.addColorStop(0, 'rgba(255, 235, 185, 0.16)');
+  beamGrad.addColorStop(0.6, 'rgba(255, 215, 150, 0.05)');
+  beamGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  c.fillStyle = beamGrad;
+  c.beginPath();
+  c.moveTo(80, 0);
+  c.lineTo(780, 0);
+  c.lineTo(1080, 1600);
+  c.lineTo(0, 1400);
+  c.closePath();
+  c.fill();
+
+  // Sketchbook resting on the table
+  const bookX = 140, bookY = 960, bookW = 800, bookH = 880;
+  c.save();
+  c.shadowColor = 'rgba(12, 8, 5, 0.6)';
+  c.shadowBlur = 48;
+  c.shadowOffsetY = 24;
+  c.fillStyle = '#dfd6c6';
+  c.fillRect(bookX - 10, bookY - 10, bookW + 20, bookH + 20);
+  c.restore();
+
+  // Sketchbook paper face
+  c.drawImage(paperTile, 0, 0, 800, 880, bookX, bookY, bookW, bookH);
+
+  // Pencil resting on the sketchbook edge
+  drawPencil(c, bookX + 640, bookY + 380, -Math.PI * 0.65, 0.4);
+
+  c.restore();
+
+  // Faint poetic editorial title in safe zone
+  if (t < 5.8) {
+    const alpha = clamp(t / 1.5) * (1 - clamp((t - 4.2) / 1.6));
+    c.save();
+    c.font = '500 24px "JetBrains Mono", monospace';
+    c.fillStyle = `rgba(240, 235, 225, ${alpha * 0.7})`;
+    c.letterSpacing = '6px';
+    c.textAlign = 'center';
+    c.fillText('ACT I · THE DISCIPLINE OF STRAIGHTNESS', 540, 210);
+    c.restore();
+  }
+}
+
+// SCENE 2: The Three Failed Drawing Attempts (7.0s – 18.5s)
+function renderSceneFailedAttempts(c, t) {
+  const u = t - 7.0; // 0 to 11.5
+  // Fill entire screen with rich textured paper
+  c.drawImage(paperTile, 0, 0);
+
+  // Pencil coordinates & graphite trajectory state
+  const startX = 220, endX = 860;
+  const lineY1 = 660, lineY2 = 960, lineY3 = 1260;
+
+  c.save();
+  c.strokeStyle = '#1d1b1c';
+  c.lineCap = 'round';
+  c.lineJoin = 'round';
+  c.lineWidth = 4.2;
+
+  // --- ATTEMPT 1 (u: 0.5s to 3.2s) ---
+  const p1 = clamp((u - 0.5) / 2.7);
+  if (p1 > 0) {
+    c.beginPath();
+    c.moveTo(startX, lineY1);
+    const currX = lerp(startX, endX, p1);
+    for (let x = startX; x <= currX; x += 12) {
+      // Unintended deviation wobbling downward
+      const dev = Math.sin((x - startX) * 0.009) * 28 + (x > 500 ? (x - 500) * 0.12 : 0);
+      c.lineTo(x, lineY1 + dev);
+    }
+    c.stroke();
+  }
+
+  // --- ATTEMPT 2 (u: 3.8s to 6.5s) ---
+  const p2 = clamp((u - 3.8) / 2.7);
+  if (p2 > 0) {
+    c.beginPath();
+    c.moveTo(startX, lineY2);
+    const currX = lerp(startX, endX, p2);
+    for (let x = startX; x <= currX; x += 12) {
+      // Unintended deviation wobbling upward
+      const dev = -Math.sin((x - startX) * 0.012) * 32 - ((x - startX) * 0.05);
+      c.lineTo(x, lineY2 + dev);
+    }
+    c.stroke();
+  }
+
+  // --- ATTEMPT 3 (u: 7.0s to 9.8s) ---
+  const p3 = clamp((u - 7.0) / 2.8);
+  if (p3 > 0) {
+    c.beginPath();
+    c.moveTo(startX, lineY3);
+    const currX = lerp(startX, endX, p3);
+    for (let x = startX; x <= currX; x += 12) {
+      // Unintended sharp wobble and drift
+      const dev = Math.cos((x - startX) * 0.015) * 22 + Math.sin((x - startX) * 0.005) * 40;
+      c.lineTo(x, lineY3 + dev);
+    }
+    c.stroke();
+  }
+  c.restore();
+
+  // Floating pencil position without hand
+  let pencilX = startX, pencilY = lineY1, pencilAngle = -0.78, pActive = false;
+
+  if (u < 3.4) {
+    pActive = true;
+    pencilX = lerp(startX, endX, p1);
+    const dev = Math.sin((pencilX - startX) * 0.009) * 28 + (pencilX > 500 ? (pencilX - 500) * 0.12 : 0);
+    pencilY = lineY1 + dev;
+  } else if (u < 6.8) {
+    pActive = true;
+    pencilX = lerp(startX, endX, p2);
+    const dev = -Math.sin((pencilX - startX) * 0.012) * 32 - ((pencilX - startX) * 0.05);
+    pencilY = lineY2 + dev;
+  } else if (u < 10.2) {
+    pActive = true;
+    pencilX = lerp(startX, endX, p3);
+    const dev = Math.cos((pencilX - startX) * 0.015) * 22 + Math.sin((pencilX - startX) * 0.005) * 40;
+    pencilY = lineY3 + dev;
   } else {
-    // The Glitch Slice Transformation using exact default app values (fringe=2, shear=9, chaos=30%)
-    const glitchProg = clamp((u - 1.5) / 1.5);
-    c.save();
-    c.translate(540, 960);
-    c.scale(1.2 + 0.05 * Math.sin(t * 5), 1.2 + 0.05 * Math.cos(t * 5));
-    if (glitchImg) {
-      c.drawImage(glitchImg, -glitchImg.width / 4, -glitchImg.height / 4, glitchImg.width / 2, glitchImg.height / 2);
-    }
-    c.restore();
-
-    if (u > 2.5) {
-      mono(c, "GLITCH SLICE EFFECT APPLIED", 540, 1180, { size: 24, ls: 8, align: 'center', color: '#ff5b2e', weight: 700 });
-    }
-  }
-}
-
-/* Scene 6 (17.0s - 20.0s): Product Showcase Artifacts */
-function drawSceneShowcase(c, t) {
-  const u = t - 17.0;
-  c.fillStyle = '#0f0f11';
-  c.fillRect(0, 0, W, H);
-
-  // Editorial Product Presentation Mockup Card
-  c.fillStyle = '#f7f5f0';
-  c.shadowColor = 'rgba(0,0,0,0.4)';
-  c.shadowBlur = 60;
-  c.fillRect(120, 260, 840, 1400);
-  c.shadowBlur = 0;
-
-  c.fillStyle = '#121212';
-  c.fillRect(180, 340, 720, 800);
-
-  if (callistraImg) {
-    c.save();
-    c.translate(540, 740);
-    c.drawImage(callistraImg, -callistraImg.width / 4, -callistraImg.height / 4, callistraImg.width / 2, callistraImg.height / 2);
-    c.restore();
+    // Frustrated brief pause: pencil hovers in stillness
+    pActive = true;
+    pencilX = endX + 20;
+    pencilY = lineY3 + 30;
+    pencilAngle = -0.65;
   }
 
-  editorial(c, "Callistra Design Systems", 180, 1260, { size: 64, color: '#121212' });
-  mono(c, "MINIMALIST TYPOGRAPHY TOOLS & WEGL SHADERS", 180, 1340, { size: 20, ls: 6, color: '#736e65', weight: 700 });
-  mono(c, "CALLISTRA.DESIGN", 180, 1420, { size: 24, ls: 8, color: '#ff5b2e', weight: 700 });
+  if (pActive) {
+    drawPencil(c, pencilX, pencilY, pencilAngle, 0.42);
+  }
+
+  // Subtitle / editorial commentary in safe zone
+  c.save();
+  c.textAlign = 'center';
+  c.font = '500 22px "JetBrains Mono", monospace';
+  c.fillStyle = 'rgba(40, 32, 28, 0.55)';
+  c.letterSpacing = '4px';
+  if (u < 3.5) c.fillText('ATTEMPT 01 · DRIFT', 540, 480);
+  else if (u < 7.0) c.fillText('ATTEMPT 02 · IMPERFECT HORIZON', 540, 480);
+  else if (u < 10.2) c.fillText('ATTEMPT 03 · ACCUMULATED DEVIATION', 540, 480);
+  else c.fillText('THE ILLUSION OF RIGID PERFECTION', 540, 480);
+  c.restore();
 }
 
-/* Scene 7 (20.0s - 24.0s): Final Lockup & CTA (Avoiding Instagram UI Blocked Zones) */
-function drawSceneLockup(c, t) {
-  const u = t - 20.0;
-  c.fillStyle = '#f7f5f0';
-  c.fillRect(0, 0, W, H);
+// SCENE 3: The Intentional Curve (18.5s – 27.0s)
+function renderSceneIntentionalCurve(c, t) {
+  const u = t - 18.5; // 0 to 8.5
+  c.drawImage(paperTile, 0, 0);
 
-  haze(c, t, 0.12, 540, 960);
-
-  const p1 = prog(u, 0.2, 0.6, 'oexp');
-  editorial(c, "CALLISTRA", 540, 800, { size: 150, color: '#121212' });
-  mono(c, "GLITCH SLICE TEXT EFFECT MAKER", 540, 940, { size: 28, ls: 10, align: 'center', color: '#736e65', weight: 700 });
-
-  // Safe Zone Respected Call to Action (Center-Top, avoiding bottom-left Instagram UI overlay)
-  c.fillStyle = '#121212';
+  // Subtle faded remnants of failed lines above
+  c.save();
+  c.strokeStyle = 'rgba(50, 40, 36, 0.16)';
+  c.lineWidth = 3.5;
   c.beginPath();
-  c.roundRect(240, 1080, 600, 100, 12);
-  c.fill();
-  mono(c, "LINK IN BIO", 540, 1130, { size: 28, ls: 12, align: 'center', color: '#f7f5f0', weight: 700 });
+  c.moveTo(220, 480); c.lineTo(860, 520);
+  c.moveTo(220, 600); c.lineTo(860, 560);
+  c.stroke();
+  c.restore();
 
-  streak(c, 1300, 0.6 * Math.exp(-u * 2), 'rgba(255,91,46,1)');
-}
+  // The Intentional Curve trajectory
+  const startX = 140, endX = 940, baseCenterY = 1040;
+  const pCurve = clamp(u / 6.5, 0, 1);
+  const currX = lerp(startX, endX, EASE.io2(pCurve));
 
-function haze(c, t, a, x=540, y=960){
-  const g=c.createRadialGradient(x,y,0,x,y,1050);
-  g.addColorStop(0,`rgba(255,91,46,${a})`);g.addColorStop(.6,`rgba(255,91,46,${a*.2})`);g.addColorStop(1,'rgba(255,91,46,0)');
-  c.fillStyle=g;c.fillRect(0,0,W,H);
-}
+  c.save();
+  c.strokeStyle = '#181617';
+  c.lineWidth = 5.2;
+  c.lineCap = 'round';
+  c.lineJoin = 'round';
 
-function renderFrame(t){
-  t=clamp(t,0,REEL.duration);
-  sc.setTransform(1,0,0,1,0,0);sc.clearRect(0,0,W,H);
+  c.beginPath();
+  let lastX = startX, lastY = baseCenterY;
+  c.moveTo(startX, baseCenterY);
 
-  if(t < 2.5) drawSceneClassroom(sc, t);
-  else if(t < 5.0) drawSceneTransformation(sc, t);
-  else if(t < 7.0) drawSceneGlobal(sc, t);
-  else if(t < 10.5) drawScenePhone(sc, t);
-  else if(t < 17.0) drawSceneGlitchSlice(sc, t);
-  else if(t < 20.0) drawSceneShowcase(sc, t);
-  else drawSceneLockup(sc, t);
-
-  grade(sc, 0.12);
-
-  const fo=prog(t, REEL.duration-.4, .4);
-  if(fo>0){sc.fillStyle='#000';sc.globalAlpha=fo;sc.fillRect(0,0,W,H);sc.globalAlpha=1;}
-
-  const f=Math.floor(t*REEL.fps+.001),ox=(f*97)%512,oy=(f*57)%512;
-  gc.clearRect(0,0,W,H);
-  for(let x=-ox;x<W;x+=512)for(let y=-oy;y<H;y+=512)gc.drawImage(grainTile,x,y);
-}
-window.renderFrame=renderFrame;
-
-/* =====================================================================
-   SOUNDTRACK GENERATION (Synthesized via OfflineAudioContext)
-   ===================================================================== */
-async function buildAudio(){
-  const SR=44100,DUR=REEL.duration;
-  const oc=new OfflineAudioContext(2,Math.ceil(SR*DUR),SR);
-  const rand=mulberry32(7);
-  const nb=oc.createBuffer(1,SR*3,SR);{const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=rand()*2-1;}
-  const master=oc.createGain();master.gain.setValueAtTime(.85,0);master.gain.setValueAtTime(.85,DUR-.5);master.gain.linearRampToValueAtTime(0,DUR-.03);
-  const comp=oc.createDynamicsCompressor();comp.threshold.value=-14;comp.knee.value=10;comp.ratio.value=8;comp.attack.value=.003;comp.release.value=.14;
-  master.connect(comp);comp.connect(oc.destination);
-
-  const rl=Math.floor(SR*2.6),ir=oc.createBuffer(2,rl,SR);
-  for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<rl;i++)d[i]=(rand()*2-1)*Math.pow(1-i/rl,3);}
-  const conv=oc.createConvolver();conv.buffer=ir;
-  const revIn=oc.createGain(),revLp=oc.createBiquadFilter(),revOut=oc.createGain();
-  revLp.type='lowpass';revLp.frequency.value=4500;revOut.gain.value=.55;
-  revIn.connect(conv);conv.connect(revLp);revLp.connect(revOut);revOut.connect(master);
-
-  const out=(g,o={})=>{let n=g;
-    if(o.pan){const p=oc.createStereoPanner();p.pan.value=o.pan;n.connect(p);n=p;}
-    n.connect(master);
-    if(o.rev>0){const s=oc.createGain();s.gain.value=o.rev;n.connect(s);s.connect(revIn);}
-  };
-  const env=(p,t,peak,a,d)=>{p.setValueAtTime(.0001,t);p.linearRampToValueAtTime(peak,t+a);p.exponentialRampToValueAtTime(.0001,t+a+d);};
-  const nsrc=(t,dur,seed)=>{const s=oc.createBufferSource();s.buffer=nb;s.loop=true;s.start(t,(Math.abs(seed)*.37)%2,undefined);s.stop(t+dur);return s;};
-  const flt=(type,f,q=1)=>{const b=oc.createBiquadFilter();b.type=type;b.frequency.value=f;b.Q.value=q;return b;};
-  const osc=(type,f,t,dur)=>{const o=oc.createOscillator();o.type=type;o.frequency.setValueAtTime(f,t);o.start(t);o.stop(t+dur);return o;};
-
-  const impact=(t,g=1)=>{
-    const s=osc('sine',120,t,1.3);s.frequency.exponentialRampToValueAtTime(30,t+.9);
-    const sg=oc.createGain();env(sg.gain,t,g*.9,.004,1.1);s.connect(sg);out(sg,{rev:.25});
-  };
-  const thud=(t,g=.5)=>{
-    const o=osc('sine',170,t,.4);o.frequency.exponentialRampToValueAtTime(46,t+.18);
-    const og=oc.createGain();env(og.gain,t,g,.003,.28);o.connect(og);out(og,{rev:.15});
-  };
-  const tick=(t,f=1200,g=.2)=>{const o=osc('triangle',f,t,.08),gn=oc.createGain();env(gn.gain,t,g,.001,.05);o.connect(gn);out(gn,{rev:.1});};
-  
-  // Ambient atmospheric bed & structural impacts
-  impact(0, 0.8);
-  impact(2.5, 0.9);
-  impact(5.0, 1.0);
-  impact(10.5, 1.2); // Glitch slice transformation hit
-  impact(17.0, 0.9);
-  impact(20.0, 1.1);
-
-  for(let t=0; t<DUR; t+=2) {
-    thud(t, 0.3);
+  for (let x = startX; x <= currX; x += 4) {
+    const normX = (x - startX) / (endX - startX);
+    // Harmonious deliberate curve with aesthetic bends
+    const wave = Math.sin(normX * Math.PI * 4) * 160 * Math.sin(normX * Math.PI)
+               + Math.sin(normX * Math.PI * 2) * 80;
+    const cy = baseCenterY + wave;
+    c.lineTo(x, cy);
+    lastX = x;
+    lastY = cy;
   }
+  c.stroke();
+  c.restore();
+
+  // Active floating pencil following the deliberate stroke
+  if (pCurve < 1) {
+    drawPencil(c, lastX, lastY, -0.82, 0.45);
+  } else {
+    // Pencil gently lifts away
+    const lift = clamp((u - 6.5) / 1.5);
+    drawPencil(c, endX + lift * 40, lastY - lift * 50, -0.82 - lift * 0.2, (1 - lift) * 0.45);
+  }
+
+  // Editorial caption
+  c.save();
+  c.font = 'italic 400 36px "Instrument Serif", Georgia, serif';
+  c.fillStyle = '#221b18';
+  c.textAlign = 'center';
+  c.fillText('An intentional rhythm replaces the straight line.', 540, 360);
+  c.restore();
+}
+
+// SCENE 4: Paper-to-Railway Match-Cut Transition (27.0s – 34.0s)
+function renderScenePaperToRailway(c, t) {
+  const u = t - 27.0; // 0 to 7.0
+  const blend = smoothstep(1.5, 4.5, u);
+
+  // Background: transition from paper color to dark ballast & dusk horizon
+  c.save();
+  c.drawImage(paperTile, 0, 0);
+
+  // Overlay dusk atmosphere for railway landscape
+  c.save();
+  c.globalAlpha = blend;
+  const skyGrad = c.createLinearGradient(0, 0, 0, 1920);
+  skyGrad.addColorStop(0, '#0c1622');
+  skyGrad.addColorStop(0.4, '#1b2c3f');
+  skyGrad.addColorStop(0.75, '#2f2724');
+  skyGrad.addColorStop(1, '#151313');
+  c.fillStyle = skyGrad;
+  c.fillRect(0, 0, 1080, 1920);
+  c.restore();
+
+  // Camera perspective down the tracks
+  const vanishX = 540, vanishY = 640;
+  const bottomW = 680, topW = 60;
+
+  // Draw railway wooden ties (sleepers)
+  const numTies = 24;
+  for (let i = 0; i < numTies; i++) {
+    const z = i / numTies;
+    const tieY = lerp(1850, vanishY, Math.pow(z, 2.2));
+    const tieW = lerp(bottomW * 1.3, topW * 1.3, z);
+    const tieH = lerp(28, 4, z);
+
+    c.fillStyle = `rgba(45, 34, 27, ${blend * 0.95})`;
+    c.fillRect(vanishX - tieW / 2, tieY, tieW, tieH);
+  }
+
+  // Draw the two steel rails: Left & Right
+  // As blend increases, the graphite drawn line smoothly aligns into the steel rail
+  [-1, 1].forEach(side => {
+    c.beginPath();
+    const startBottomX = vanishX + side * (bottomW / 2);
+    const startTopX = vanishX + side * (topW / 2);
+
+    c.moveTo(startBottomX, 1920);
+    for (let step = 0; step <= 40; step++) {
+      const z = step / 40;
+      const ry = lerp(1920, vanishY, Math.pow(z, 1.8));
+      const rx = lerp(startBottomX, startTopX, z);
+      c.lineTo(rx, ry);
+    }
+
+    c.strokeStyle = blend < 0.5 ? '#1f1a18' : '#7c94a6';
+    c.lineWidth = lerp(9, 24 * (1 - blend) + 12 * blend, blend);
+    c.stroke();
+
+    // Steel top rail specular reflection highlight
+    if (blend > 0.3) {
+      c.strokeStyle = `rgba(230, 242, 255, ${blend * 0.75})`;
+      c.lineWidth = 3.5;
+      c.stroke();
+    }
+  });
+
+  // Editorial text in safe zone
+  c.save();
+  c.font = '500 22px "JetBrains Mono", monospace';
+  c.fillStyle = `rgba(230, 235, 245, ${blend * 0.75})`;
+  c.letterSpacing = '5px';
+  c.textAlign = 'center';
+  c.fillText('ACT II · THE ESCAPE INTO REALITY', 540, 260);
+  c.restore();
+}
+
+// SCENE 5: Railway Tracks — Controlled Zigzag Geometry (34.0s – 40.0s)
+function renderSceneRailwayZigzag(c, t) {
+  const u = t - 34.0; // 0 to 6.0
+  const deformProg = smoothstep(0.8, 3.8, u);
+
+  // Dusk railway environment
+  const skyGrad = c.createLinearGradient(0, 0, 0, 1920);
+  skyGrad.addColorStop(0, '#09131e');
+  skyGrad.addColorStop(0.38, '#182b3d');
+  skyGrad.addColorStop(0.7, '#342928');
+  skyGrad.addColorStop(1, '#111012');
+  c.fillStyle = skyGrad;
+  c.fillRect(0, 0, 1080, 1920);
+
+  const vanishX = 540, vanishY = 580;
+  const bottomW = 720, topW = 70;
+
+  // Controlled rhythmic zigzag displacement function
+  const zigzagShift = (normZ) => {
+    return Math.sin(normZ * Math.PI * 6 + u * 0.5) * (140 * deformProg) * (1 - normZ * 0.5);
+  };
+
+  // Draw wooden railway ties along zigzag
+  const numTies = 32;
+  for (let i = 0; i < numTies; i++) {
+    const z = i / numTies;
+    const tieY = lerp(1900, vanishY, Math.pow(z, 2.0));
+    const shift = zigzagShift(z);
+    const tieCenterX = vanishX + shift;
+    const tieW = lerp(bottomW * 1.35, topW * 1.4, z);
+    const tieH = lerp(32, 5, z);
+
+    c.fillStyle = '#2f241d';
+    c.fillRect(tieCenterX - tieW / 2, tieY, tieW, tieH);
+  }
+
+  // Draw parallel steel rails adhering strictly to the zigzag rule
+  [-1, 1].forEach(side => {
+    c.beginPath();
+    for (let step = 0; step <= 80; step++) {
+      const z = step / 80;
+      const ry = lerp(1900, vanishY, Math.pow(z, 2.0));
+      const shift = zigzagShift(z);
+      const railGauge = lerp(bottomW / 2, topW / 2, z);
+      const rx = vanishX + shift + side * railGauge;
+
+      if (step === 0) c.moveTo(rx, ry);
+      else c.lineTo(rx, ry);
+    }
+
+    // Steel rail body
+    c.strokeStyle = '#627c8f';
+    c.lineWidth = 14;
+    c.stroke();
+
+    // Steel top cap specular highlight
+    c.strokeStyle = 'rgba(235, 245, 255, 0.85)';
+    c.lineWidth = 4;
+    c.stroke();
+  });
+
+  // Editorial label
+  c.save();
+  c.font = '500 22px "JetBrains Mono", monospace';
+  c.fillStyle = 'rgba(215, 225, 235, 0.75)';
+  c.letterSpacing = '5px';
+  c.textAlign = 'center';
+  c.fillText('01 / INFRASTRUCTURE · CONTROLLED ZIGZAG', 540, 240);
+  c.restore();
+}
+
+// SCENE 6: Roadside Electric Wires — Harmonic Waves (40.0s – 46.0s)
+function renderSceneElectricWires(c, t) {
+  const u = t - 40.0; // 0 to 6.0
+  const bendProg = smoothstep(0.8, 3.8, u);
+
+  // Urban dusk blue with illuminated high-rises in background
+  const bgGrad = c.createLinearGradient(0, 0, 0, 1920);
+  bgGrad.addColorStop(0, '#0a1420');
+  bgGrad.addColorStop(0.45, '#17273a');
+  bgGrad.addColorStop(0.85, '#2e3846');
+  bgGrad.addColorStop(1, '#11151a');
+  c.fillStyle = bgGrad;
+  c.fillRect(0, 0, 1080, 1920);
+
+  // Distant architectural towers
+  c.fillStyle = '#101a28';
+  c.fillRect(120, 720, 220, 1200);
+  c.fillRect(420, 600, 260, 1320);
+  c.fillRect(760, 780, 240, 1140);
+
+  // Distant warm glowing windows
+  c.fillStyle = 'rgba(235, 175, 75, 0.35)';
+  for (let wy = 800; wy < 1600; wy += 36) {
+    if (wy % 72 === 0) c.fillRect(160, wy, 16, 20);
+    if (wy % 108 === 0) c.fillRect(480, wy, 20, 24);
+    if (wy % 54 === 0) c.fillRect(820, wy, 18, 20);
+  }
+
+  // Utility pole silhouette (Left side)
+  c.fillStyle = '#1c1716';
+  c.fillRect(140, 360, 32, 1560);
+  // Crossarms
+  c.fillRect(80, 500, 260, 24);
+  c.fillRect(100, 680, 220, 22);
+
+  // Ceramic insulators on crossarms
+  c.fillStyle = '#3a4b56';
+  [95, 150, 270, 325].forEach(ix => {
+    c.fillRect(ix - 8, 478, 16, 22);
+    c.fillRect(ix - 8, 658, 16, 22);
+  });
+
+  // Multiple rhythmic electric wires running horizontally across the frame
+  const wireHeights = [500, 680, 880, 1060, 1240];
+  wireHeights.forEach((baseY, idx) => {
+    c.beginPath();
+    const wirePhase = idx * 0.85 + u * 1.1;
+
+    for (let x = 0; x <= 1080; x += 12) {
+      const normX = x / 1080;
+      // Normal gravitational sag vs. Intentional rhythmic harmonic curve
+      const naturalSag = Math.sin(normX * Math.PI) * 45;
+      const intentionalCurve = Math.sin(normX * Math.PI * 4 + wirePhase) * (95 * bendProg);
+      const wy = baseY + naturalSag * (1 - bendProg) + intentionalCurve;
+
+      if (x === 0) c.moveTo(x, wy);
+      else c.lineTo(x, wy);
+    }
+
+    c.strokeStyle = '#111822';
+    c.lineWidth = 5.5;
+    c.stroke();
+
+    // Subtle sky reflection on upper rim of copper/steel wires
+    c.strokeStyle = 'rgba(175, 205, 235, 0.45)';
+    c.lineWidth = 1.8;
+    c.stroke();
+  });
+
+  // Editorial title
+  c.save();
+  c.font = '500 22px "JetBrains Mono", monospace';
+  c.fillStyle = 'rgba(215, 225, 235, 0.75)';
+  c.letterSpacing = '5px';
+  c.textAlign = 'center';
+  c.fillText('02 / CONDUITS · RHYTHMIC HARMONIC WAVES', 540, 240);
+  c.restore();
+}
+
+// SCENE 7: Architectural Transformation — Bending Building (46.0s – 52.0s)
+function renderSceneBuilding(c, t) {
+  const u = t - 46.0; // 0 to 6.0
+  const deformProg = smoothstep(0.8, 4.0, u);
+
+  // Render the pre-baked architectural facade through a rhythmic slice-wave displacement
+  const bCanvas = buildingBackdrop;
+  const sliceH = 4;
+  const numSlices = 1920 / sliceH;
+
+  for (let i = 0; i < numSlices; i++) {
+    const sy = i * sliceH;
+    // Rhythmic architectural bend (smooth undulating wave, no fractures or destruction)
+    const waveShift = Math.sin(sy * 0.008 + u * 0.6) * (65 * deformProg) * (sy > 400 ? 1 : sy / 400);
+
+    c.drawImage(bCanvas, 0, sy, 1080, sliceH, waveShift, sy, 1080, sliceH);
+  }
+
+  // Editorial title
+  c.save();
+  c.font = '500 22px "JetBrains Mono", monospace';
+  c.fillStyle = 'rgba(240, 235, 225, 0.85)';
+  c.letterSpacing = '5px';
+  c.textAlign = 'center';
+  c.fillText('03 / ARCHITECTURE · ELASTIC PROPORTIONS', 540, 220);
+  c.restore();
+}
+
+// SCENE 8: Global Reveal — Distorted Earth (52.0s – 57.0s)
+function renderSceneGlobe(c, t) {
+  const u = t - 52.0; // 0 to 5.0
+  const deformProg = smoothstep(0.6, 3.2, u);
+
+  // Deep space / cosmic dusk background
+  const spaceGrad = c.createRadialGradient(540, 960, 200, 540, 960, 1100);
+  spaceGrad.addColorStop(0, '#0b1626');
+  spaceGrad.addColorStop(0.7, '#060b13');
+  spaceGrad.addColorStop(1, '#020407');
+  c.fillStyle = spaceGrad;
+  c.fillRect(0, 0, 1080, 1920);
+
+  // Subtle star field (pure inorganic light points)
+  const rnd = mulberry32(404);
+  c.fillStyle = 'rgba(255, 255, 255, 0.6)';
+  for (let i = 0; i < 90; i++) {
+    const sx = rnd() * 1080, sy = rnd() * 1920;
+    c.fillRect(sx, sy, rnd() * 2.5 + 1, rnd() * 2.5 + 1);
+  }
+
+  // Deform the Globe using harmonic wave displacement
+  const gSize = 900;
+  const targetX = (1080 - gSize) / 2;
+  const targetY = (1920 - gSize) / 2;
+  const sliceH = 4;
+  const numSlices = gSize / sliceH;
+
+  c.save();
+  for (let i = 0; i < numSlices; i++) {
+    const sy = i * sliceH;
+    const waveShift = Math.sin((sy / gSize) * Math.PI * 5 + u * 1.2) * (52 * deformProg);
+    c.drawImage(globeTex, 0, sy, gSize, sliceH, targetX + waveShift, targetY + sy, gSize, sliceH);
+  }
+  c.restore();
+
+  // Editorial caption
+  c.save();
+  c.font = '500 22px "JetBrains Mono", monospace';
+  c.fillStyle = 'rgba(215, 230, 245, 0.85)';
+  c.letterSpacing = '5px';
+  c.textAlign = 'center';
+  c.fillText('ACT III · THE TOTALITY OF IMPERFECTION', 540, 260);
+  c.restore();
+}
+
+// SCENE 9: Return to Transformed Building & The Clean Billboard (57.0s – 61.5s)
+function renderSceneBillboardOldMemory(c, t) {
+  const u = t - 57.0; // 0 to 4.5
+  const zoomIn = lerp(1.1, 1.85, EASE.io3(u / 4.5));
+
+  c.save();
+  // Camera push-in towards the central facade where the billboard is mounted
+  c.translate(540, 960);
+  c.scale(zoomIn, zoomIn);
+  c.translate(-540, -960);
+
+  // Render the transformed building in background
+  const bCanvas = buildingBackdrop;
+  const sliceH = 4;
+  const numSlices = 1920 / sliceH;
+  for (let i = 0; i < numSlices; i++) {
+    const sy = i * sliceH;
+    const waveShift = Math.sin(sy * 0.008 + 4.2) * 65;
+    c.drawImage(bCanvas, 0, sy, 1080, sliceH, waveShift, sy, 1080, sliceH);
+  }
+
+  // The Billboard: Mounted firmly on the facade
+  // MUST BE CLEAN, RIGID, STRAIGHT (Surviving memory of old world)
+  const bbX = 220, bbY = 760, bbW = 640, bbH = 340;
+  c.save();
+  c.shadowColor = 'rgba(0,0,0,0.7)';
+  c.shadowBlur = 36;
+  c.shadowOffsetY = 16;
+  c.fillStyle = '#0f1114';
+  c.fillRect(bbX - 10, bbY - 10, bbW + 20, bbH + 20);
+  c.restore();
+
+  // Billboard enamel face
+  c.fillStyle = '#f7f5f0';
+  c.fillRect(bbX, bbY, bbW, bbH);
+  c.strokeStyle = '#222';
+  c.lineWidth = 4;
+  c.strokeRect(bbX, bbY, bbW, bbH);
+
+  // Clean, rigid, straight typography
+  c.fillStyle = '#121212';
+  c.textAlign = 'center';
+  c.font = '400 68px "Instrument Serif", Georgia, serif';
+  c.fillText('PERFECTION', bbX + bbW / 2, bbY + 140);
+  c.font = '500 18px "JetBrains Mono", monospace';
+  c.letterSpacing = '4px';
+  c.fillText('THE LAST REMAINING STRAIGHT LINE', bbX + bbW / 2, bbY + 210);
+
+  c.restore();
+
+  // Safe zone editorial subtitle
+  c.save();
+  c.font = '500 22px "JetBrains Mono", monospace';
+  c.fillStyle = 'rgba(255, 245, 235, 0.9)';
+  c.letterSpacing = '4px';
+  c.textAlign = 'center';
+  c.fillText('A SURVIVING MEMORY OF THE OLD ORDER', 540, 220);
+  c.restore();
+}
+
+// SCENE 10: Dialing Callistra & The Climax Glitch Slice Transformation (61.5s – 68.0s)
+function renderSceneCallAndFinale(c, t) {
+  const u = t - 61.5; // 0 to 6.5
+
+  if (u < 2.5) {
+    // --- PHONE CALL SEQUENCE (u: 0 to 2.5) ---
+    // Deep textured warm desk background
+    c.drawImage(woodBenchTex, 0, 0);
+
+    const phoneInProg = clamp(u / 0.8, 0, 1);
+    const phoneY = lerp(1600, 360, EASE.o3(phoneInProg));
+
+    c.save();
+    c.translate(220, phoneY);
+    c.drawImage(phoneCanvas, 0, 0);
+
+    // Typographic typing of 'callistra.design'
+    const fullText = 'callistra.design';
+    const typeProg = clamp((u - 0.4) / 1.1, 0, 1);
+    const numChars = Math.floor(typeProg * fullText.length);
+    const typedStr = fullText.substring(0, numChars);
+
+    c.font = '500 34px "JetBrains Mono", monospace';
+    c.fillStyle = '#4ade80';
+    c.textAlign = 'left';
+    c.fillText(typedStr, 130, 310);
+
+    // Call active pulse ripple
+    if (u > 1.6) {
+      const callPulse = (u - 1.6) * 3;
+      c.strokeStyle = `rgba(74, 222, 128, ${Math.max(0, 1 - callPulse * 0.4)})`;
+      c.lineWidth = 4;
+      c.beginPath();
+      c.arc(360, 1065, 45 + callPulse * 30, 0, Math.PI * 2);
+      c.stroke();
+    }
+    c.restore();
+
+  } else {
+    // --- THE BILLBOARD GLITCH SLICE TRANSFORMATION (u: 2.5 to 6.5) ---
+    const transProg = clamp((u - 2.5) / 1.8, 0, 1);
+
+    // Dark cinematic gallery backdrop
+    c.fillStyle = '#0b0c0f';
+    c.fillRect(0, 0, 1080, 1920);
+
+    // Billboard Enamel White Backing
+    const bW = 940, bH = 500;
+    const bX = (1080 - bW) / 2, bY = 710;
+
+    c.save();
+    c.shadowColor = 'rgba(0,0,0,0.85)';
+    c.shadowBlur = 64;
+    c.shadowOffsetY = 24;
+    c.fillStyle = '#f7f5f0';
+    c.fillRect(bX, bY, bW, bH);
+    c.restore();
+
+    c.strokeStyle = 'rgba(18, 18, 18, 0.18)';
+    c.lineWidth = 4;
+    c.strokeRect(bX, bY, bW, bH);
+
+    // Glitch Slice text rendering using exact user formula
+    // Default values: fringe: 2, shear: 9, chaos: 30%
+    const currentShear = lerp(0, 9, transProg);
+    const currentChaos = lerp(0, 0.30, transProg);
+    const currentFringe = 2;
+
+    const sliceCanvas = renderGlitchSliceText(
+      c,
+      'PERFECTION',
+      150,
+      '#121212',
+      currentFringe,
+      currentShear,
+      currentChaos
+    );
+
+    c.drawImage(sliceCanvas, bX, bY + 40);
+
+    // Sub-text transformation
+    c.save();
+    c.textAlign = 'center';
+    c.font = '500 24px "JetBrains Mono", monospace';
+    c.letterSpacing = '5px';
+    c.fillStyle = '#736e65';
+    c.fillText('NO LINE WAS EVER MEANT TO BE STRAIGHT', 540, bY + 360);
+    c.restore();
+
+    // Final brand resolve in upper/lower safe zones
+    const brandFade = smoothstep(1.2, 2.6, u - 2.5);
+    c.save();
+    c.textAlign = 'center';
+    c.font = '700 36px "JetBrains Mono", monospace';
+    c.letterSpacing = '10px';
+    c.fillStyle = `rgba(240, 235, 225, ${brandFade})`;
+    c.fillText('CALLISTRA', 540, 460);
+
+    c.font = 'italic 400 32px "Instrument Serif", Georgia, serif';
+    c.fillStyle = `rgba(240, 235, 225, ${brandFade * 0.85})`;
+    c.fillText('Glitch Slice Typography Effect', 540, 520);
+
+    c.font = '500 22px "JetBrains Mono", monospace';
+    c.letterSpacing = '6px';
+    c.fillStyle = `rgba(220, 215, 205, ${brandFade * 0.7})`;
+    c.fillText('CALLISTRA.DESIGN', 540, 1420);
+
+    // Accent line
+    c.strokeStyle = `rgba(217, 125, 39, ${brandFade * 0.9})`;
+    c.lineWidth = 4;
+    c.beginPath();
+    c.moveTo(420, 1450);
+    c.lineTo(660, 1450);
+    c.stroke();
+    c.restore();
+  }
+
+  // Final gentle fade to black (last 0.8s)
+  if (t > REEL.duration - 0.8) {
+    const fo = clamp((t - (REEL.duration - 0.8)) / 0.8);
+    c.fillStyle = `rgba(0, 0, 0, ${fo})`;
+    c.fillRect(0, 0, 1080, 1920);
+  }
+}
+
+/* =========================================================================
+   MASTER FRAME DISPATCHER
+   ========================================================================= */
+function renderFrame(t) {
+  t = clamp(t, 0, REEL.duration);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  if (t < 7.0) {
+    renderSceneClassroom(ctx, t);
+  } else if (t < 18.5) {
+    renderSceneFailedAttempts(ctx, t);
+  } else if (t < 27.0) {
+    renderSceneIntentionalCurve(ctx, t);
+  } else if (t < 34.0) {
+    renderScenePaperToRailway(ctx, t);
+  } else if (t < 40.0) {
+    renderSceneRailwayZigzag(ctx, t);
+  } else if (t < 46.0) {
+    renderSceneElectricWires(ctx, t);
+  } else if (t < 52.0) {
+    renderSceneBuilding(ctx, t);
+  } else if (t < 57.0) {
+    renderSceneGlobe(ctx, t);
+  } else if (t < 61.5) {
+    renderSceneBillboardOldMemory(ctx, t);
+  } else {
+    renderSceneCallAndFinale(ctx, t);
+  }
+
+  // Draw procedural dynamic film grain over entire composition
+  const frameIdx = Math.floor(t * REEL.fps);
+  const ox = (frameIdx * 97) % 512;
+  const oy = (frameIdx * 53) % 512;
+
+  gctx.clearRect(0, 0, W, H);
+  for (let x = -ox; x < W; x += 512) {
+    for (let y = -oy; y < H; y += 512) {
+      gctx.drawImage(grainTile, x, y);
+    }
+  }
+}
+window.renderFrame = renderFrame;
+
+/* =========================================================================
+   SYNTHETIC SOUNDTRACK GENERATOR (OfflineAudioContext)
+   Produces full 68-second cinematic audio with tactile foley & chimes
+   ========================================================================= */
+async function buildAudio() {
+  const SR = 44100;
+  const DUR = REEL.duration;
+  const oc = new OfflineAudioContext(2, Math.ceil(SR * DUR), SR);
+  const rnd = mulberry32(881);
+
+  // Noise buffer for pencil friction and ambient atmosphere
+  const nb = oc.createBuffer(1, SR * 4, SR);
+  const nd = nb.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = rnd() * 2 - 1;
+
+  // Master bus & Dynamics Compressor
+  const master = oc.createGain();
+  master.gain.setValueAtTime(0.82, 0);
+  master.gain.setValueAtTime(0.82, DUR - 1.0);
+  master.gain.linearRampToValueAtTime(0, DUR - 0.05);
+
+  const comp = oc.createDynamicsCompressor();
+  comp.threshold.value = -14;
+  comp.ratio.value = 8;
+  comp.attack.value = 0.003;
+  comp.release.value = 0.15;
+  master.connect(comp);
+  comp.connect(oc.destination);
+
+  // Reverb Impulse Response (Warm resonant art hall)
+  const revLen = Math.floor(SR * 2.2);
+  const ir = oc.createBuffer(2, revLen, SR);
+  for (let c = 0; c < 2; c++) {
+    const d = ir.getChannelData(c);
+    for (let i = 0; i < revLen; i++) {
+      d[i] = (rnd() * 2 - 1) * Math.pow(1 - i / revLen, 2.8);
+    }
+  }
+  const conv = oc.createConvolver();
+  conv.buffer = ir;
+  const revGain = oc.createGain();
+  revGain.gain.value = 0.35;
+  conv.connect(revGain);
+  revGain.connect(master);
+
+  // Sound synthesis utility functions
+  const osc = (type, freq, t, dur) => {
+    const o = oc.createOscillator();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    o.start(t);
+    o.stop(t + dur);
+    return o;
+  };
+
+  const noise = (t, dur, seed = 1) => {
+    const s = oc.createBufferSource();
+    s.buffer = nb;
+    s.loop = true;
+    s.start(t, (Math.abs(seed) * 0.43) % 2, dur);
+    s.stop(t + dur);
+    return s;
+  };
+
+  // Pencil graphite scratch on textured tooth paper
+  const pencilScratch = (t, dur, pitch = 2800) => {
+    const n = noise(t, dur, t * 11.3);
+    const bp = oc.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(pitch, t);
+    bp.Q.value = 3.5;
+
+    const g = oc.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.24, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+    n.connect(bp);
+    bp.connect(g);
+    g.connect(master);
+  };
+
+  // Deep cinematic drone chord (Scene transitions & world changes)
+  const atmosphericPad = (t, dur, freq, gainVal = 0.18) => {
+    const o = osc('sawtooth', freq, t, dur);
+    const lp = oc.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(320, t);
+    lp.frequency.linearRampToValueAtTime(640, t + dur * 0.5);
+    lp.frequency.linearRampToValueAtTime(260, t + dur);
+
+    const g = oc.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(gainVal, t + dur * 0.25);
+    g.gain.linearRampToValueAtTime(0.0001, t + dur);
+
+    o.connect(lp);
+    lp.connect(g);
+    g.connect(master);
+    g.connect(conv);
+  };
+
+  // Bell / Glass harmonic tone (Intentional bends & discovery)
+  const harmonicChime = (t, freq) => {
+    const o = osc('sine', freq, t, 3.0);
+    const g = oc.createGain();
+    g.gain.setValueAtTime(0.28, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 2.8);
+    o.connect(g);
+    g.connect(master);
+    g.connect(conv);
+  };
+
+  // Glitch Slice dispersion sound (micro-clicks and rapid shear offset)
+  const glitchSliceStab = (t, dur = 0.65) => {
+    const n = noise(t, dur, 9.4);
+    const bp = oc.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(1400, t);
+    bp.frequency.exponentialRampToValueAtTime(4200, t + dur);
+    bp.Q.value = 6;
+
+    const g = oc.createGain();
+    g.gain.setValueAtTime(0.001, t);
+    g.gain.linearRampToValueAtTime(0.38, t + 0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+    n.connect(bp);
+    bp.connect(g);
+    g.connect(master);
+  };
+
+  // DTMF phone dialing tone
+  const dtmfTone = (t, f1, f2, dur = 0.12) => {
+    [f1, f2].forEach(f => {
+      const o = osc('sine', f, t, dur);
+      const g = oc.createGain();
+      g.gain.setValueAtTime(0.12, t);
+      g.gain.linearRampToValueAtTime(0.001, t + dur);
+      o.connect(g);
+      g.connect(master);
+    });
+  };
+
+  // --- SCORE TIMELINE SCHEDULING ---
+  // Opening classroom atmosphere (0.0s – 7.0s)
+  atmosphericPad(0.5, 9.0, 110, 0.22);
+  atmosphericPad(1.0, 8.0, 165, 0.15);
+
+  // Attempt 1 scratching (7.5s – 10.2s)
+  for (let k = 0; k < 6; k++) pencilScratch(7.5 + k * 0.45, 0.38, 2600 + k * 40);
+
+  // Attempt 2 scratching (10.8s – 13.5s)
+  for (let k = 0; k < 6; k++) pencilScratch(10.8 + k * 0.45, 0.38, 2900 - k * 30);
+
+  // Attempt 3 scratching (14.0s – 16.8s)
+  for (let k = 0; k < 7; k++) pencilScratch(14.0 + k * 0.4, 0.35, 3100 + (k % 2) * 200);
+
+  // Frustration pause drone (16.8s – 18.5s)
+  atmosphericPad(17.0, 4.0, 92, 0.25);
+
+  // The Intentional Curve: Beautiful harmonic chords (18.5s – 27.0s)
+  harmonicChime(18.6, 523.25); // C5
+  harmonicChime(20.4, 659.25); // E5
+  harmonicChime(22.2, 783.99); // G5
+  harmonicChime(24.0, 987.77); // B5
+  atmosphericPad(18.5, 8.5, 130.81, 0.26);
+
+  // Continuous smooth rhythmic graphite stroke during intentional curve
+  for (let k = 0; k < 14; k++) pencilScratch(18.8 + k * 0.45, 0.42, 2200 + Math.sin(k) * 400);
+
+  // Paper-to-railway match cut (27.0s – 34.0s)
+  atmosphericPad(27.0, 8.0, 146.83, 0.28);
+  harmonicChime(28.5, 587.33); // D5
+
+  // Railway tracks zigzag (34.0s – 40.0s): Metallic resonant percussions
+  atmosphericPad(34.0, 7.0, 98.0, 0.32);
+  for (let k = 0; k < 6; k++) {
+    const o = osc('triangle', 180 + k * 25, 34.5 + k * 0.9, 0.25);
+    const g = oc.createGain();
+    g.gain.setValueAtTime(0.2, 34.5 + k * 0.9);
+    g.gain.exponentialRampToValueAtTime(0.001, 34.5 + k * 0.9 + 0.24);
+    o.connect(g);
+    g.connect(master);
+  }
+
+  // Electric wires undulating (40.0s – 46.0s): Singing harmonic swells
+  atmosphericPad(40.0, 7.0, 220.0, 0.24);
+  harmonicChime(41.0, 880.0);
+  harmonicChime(43.0, 1046.5);
+
+  // Building architecture bend (46.0s – 52.0s): Deep tectonic bass pad
+  atmosphericPad(46.0, 7.0, 73.42, 0.35); // D2
+  harmonicChime(47.5, 440.0);
+
+  // Globe Reveal (52.0s – 57.0s): Cosmic cinematic expansion
+  atmosphericPad(52.0, 6.0, 65.41, 0.36); // C2
+  harmonicChime(53.2, 523.25);
+  harmonicChime(54.8, 659.25);
+
+  // Return to Billboard & Old Memory (57.0s – 61.5s): Quiet solitary note
+  atmosphericPad(57.0, 5.0, 110.0, 0.20);
+  harmonicChime(58.0, 440.0);
+
+  // Phone Call DTMF typing (61.5s – 63.8s)
+  const dtmfPairs = [
+    [697, 1209], [770, 1336], [852, 1477], [697, 1336],
+    [770, 1209], [852, 1336], [941, 1336], [697, 1477]
+  ];
+  dtmfPairs.forEach((pair, idx) => {
+    dtmfTone(61.8 + idx * 0.18, pair[0], pair[1], 0.11);
+  });
+
+  // Call connection chime
+  harmonicChime(63.5, 1174.66);
+
+  // Climax Billboard Glitch Slice Transformation (64.0s – 68.0s)
+  glitchSliceStab(64.0, 0.85);
+  glitchSliceStab(64.8, 0.70);
+  atmosphericPad(64.0, 4.0, 130.81, 0.38);
+  harmonicChime(64.2, 523.25);
+  harmonicChime(64.9, 783.99);
+  harmonicChime(65.6, 1046.5);
 
   return oc.startRendering();
 }
-function toWavB64(buf){
-  const ch=buf.numberOfChannels,n=buf.length,sr=buf.sampleRate;
-  const data=[];let peak=0;
-  for(let c=0;c<ch;c++){const d=buf.getChannelData(c);data.push(d);for(let i=0;i<n;i++){const a=Math.abs(d[i]);if(a>peak)peak=a;}}
-  const gain=.79/Math.max(peak,1e-6);
-  const ab=new ArrayBuffer(44+n*ch*2),v=new DataView(ab);
-  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
-  ws(0,'RIFF');v.setUint32(4,36+n*ch*2,true);ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,ch,true);
-  v.setUint32(24,sr,true);v.setUint32(28,sr*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,n*ch*2,true);
-  let o=44;
-  for(let i=0;i<n;i++)for(let c=0;c<ch;c++){v.setInt16(o,Math.round(clamp(data[c][i]*gain,-1,1)*32767),true);o+=2;}
-  const bytes=new Uint8Array(ab);let s='';
-  for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
-  return btoa(s);
-}
-window.renderAudio=async()=>toWavB64(await buildAudio());
 
-function initPreview(){
-  const vp=$('viewport'),pl=$('player'),btn=$('pBtn'),rg=$('pRange'),tm=$('pTime');
-  pl.hidden=false;rg.max=REEL.duration;
-  const fit=()=>{const s=Math.min(innerWidth/W,(innerHeight-64)/H);vp.style.transform=`scale(${s})`;vp.style.left=((innerWidth-W*s)/2)+'px';};
-  addEventListener('resize',fit);fit();
-  let playing=false,base=0,started=0,cur=0,actx=null,srcN=null,buf=null;
-  const stopAudio=()=>{if(srcN){try{srcN.stop();}catch(e){}srcN=null;}};
-  const show=t=>{renderFrame(t);rg.value=t;tm.textContent=t.toFixed(1)+'s';};
-  function loop(){
-    if(!playing)return;
-    cur=base+(performance.now()-started)/1000;
-    if(cur>=REEL.duration){cur=REEL.duration;show(cur);pause();btn.textContent='REPLAY';cur=0;return;}
-    show(cur);requestAnimationFrame(loop);
+let audioBufferPromise = null;
+const getAudio = () => audioBufferPromise || (audioBufferPromise = buildAudio());
+
+function toWavB64(buf) {
+  const ch = buf.numberOfChannels;
+  const n = buf.length;
+  const sr = buf.sampleRate;
+  const data = [];
+  let peak = 0;
+
+  for (let c = 0; c < ch; c++) {
+    const d = buf.getChannelData(c);
+    data.push(d);
+    for (let i = 0; i < n; i++) {
+      const a = Math.abs(d[i]);
+      if (a > peak) peak = a;
+    }
   }
-  function pause(){playing=false;stopAudio();if(btn.textContent==='PAUSE')btn.textContent='PLAY';}
-  async function play(){
-    btn.textContent='PREPARING SOUND…';
-    if(!buf)buf=await getAudio();
-    if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();
-    if(actx.state==='suspended')await actx.resume();
-    stopAudio();srcN=actx.createBufferSource();srcN.buffer=buf;srcN.connect(actx.destination);srcN.start(0,cur);
-    base=cur;started=performance.now();playing=true;btn.textContent='PAUSE';loop();
+
+  const gain = peak > 0.92 ? 0.92 / peak : 1;
+  const ab = new ArrayBuffer(44 + n * ch * 2);
+  const v = new DataView(ab);
+
+  const writeStr = (o, str) => {
+    for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i));
+  };
+
+  writeStr(0, 'RIFF');
+  v.setUint32(4, 36 + n * ch * 2, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  v.setUint32(16, 16, true);
+  v.setUint16(20, 1, true); // PCM
+  v.setUint16(22, ch, true);
+  v.setUint32(24, sr, true);
+  v.setUint32(28, sr * ch * 2, true);
+  v.setUint16(32, ch * 2, true);
+  v.setUint16(34, 16, true);
+  writeStr(36, 'data');
+  v.setUint32(40, n * ch * 2, true);
+
+  let offset = 44;
+  for (let i = 0; i < n; i++) {
+    for (let c = 0; c < ch; c++) {
+      v.setInt16(offset, Math.round(clamp(data[c][i] * gain, -1, 1) * 32767), true);
+      offset += 2;
+    }
   }
-  btn.onclick=()=>{playing?pause():play();};
-  rg.oninput=()=>{const was=playing;pause();cur=parseFloat(rg.value);show(cur);if(was)play();};
+
+  const bytes = new Uint8Array(ab);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
+}
+
+window.renderAudio = async () => toWavB64(await getAudio());
+
+/* =========================================================================
+   PREVIEW PLAYER (For local browser inspection)
+   ========================================================================= */
+function initPreview() {
+  const vp = document.getElementById('viewport');
+  const pl = document.getElementById('player');
+  const btn = document.getElementById('pBtn');
+  const rg = document.getElementById('pRange');
+  const tm = document.getElementById('pTime');
+
+  pl.hidden = false;
+  rg.max = REEL.duration;
+
+  const fit = () => {
+    const s = Math.min(window.innerWidth / W, (window.innerHeight - 60) / H);
+    vp.style.transform = `scale(${s})`;
+    vp.style.left = ((window.innerWidth - W * s) / 2) + 'px';
+  };
+  window.addEventListener('resize', fit);
+  fit();
+
+  let playing = false, base = 0, started = 0, cur = 0;
+  let actx = null, srcN = null, buf = null;
+
+  const stopAudio = () => {
+    if (srcN) { try { srcN.stop(); } catch (e) {} srcN = null; }
+  };
+
+  const show = (t) => {
+    renderFrame(t);
+    rg.value = t;
+    tm.textContent = t.toFixed(1) + 's / ' + REEL.duration.toFixed(1) + 's';
+  };
+
+  function loop() {
+    if (!playing) return;
+    cur = base + (performance.now() - started) / 1000;
+    if (cur >= REEL.duration) {
+      cur = REEL.duration;
+      show(cur);
+      pause();
+      btn.textContent = 'REPLAY';
+      cur = 0;
+      return;
+    }
+    show(cur);
+    requestAnimationFrame(loop);
+  }
+
+  function pause() {
+    playing = false;
+    stopAudio();
+    if (btn.textContent === 'PAUSE') btn.textContent = 'PLAY';
+  }
+
+  async function play() {
+    btn.textContent = 'PREPARING AUDIO...';
+    if (!buf) buf = await getAudio();
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') await actx.resume();
+
+    stopAudio();
+    srcN = actx.createBufferSource();
+    srcN.buffer = buf;
+    srcN.connect(actx.destination);
+    srcN.start(0, cur);
+
+    base = cur;
+    started = performance.now();
+    playing = true;
+    btn.textContent = 'PAUSE';
+    loop();
+  }
+
+  btn.onclick = () => { playing ? pause() : play(); };
+  rg.oninput = () => {
+    const was = playing;
+    pause();
+    cur = parseFloat(rg.value);
+    show(cur);
+    if (was) play();
+  };
+
   show(0);
 }
 
-async function boot(){
-  try{
-    const lat="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.?'’&, ";
+/* =========================================================================
+   BOOTSTRAP & ASSET INITIALIZATION
+   ========================================================================= */
+async function boot() {
+  try {
+    const lat = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.?'’&, ";
     await Promise.all([
-      document.fonts.load('400 100px "Instrument Serif"',lat),
-      document.fonts.load('500 30px "JetBrains Mono"','ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,/·▾＋－’%'),
-      document.fonts.load('700 30px "JetBrains Mono"','ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,-')
-    ]).catch(()=>{});
+      document.fonts.load('400 100px "Instrument Serif"', lat),
+      document.fonts.load('italic 400 100px "Instrument Serif"', lat),
+      document.fonts.load('500 30px "JetBrains Mono"', lat),
+      document.fonts.load('700 30px "JetBrains Mono"', lat)
+    ]).catch(() => {});
     await document.fonts.ready;
-    buildAssets();
-    if(!RENDER)initPreview();
-    window.__reelReady=true;
-  }catch(e){window.__reelError=String(e&&e.stack||e);console.error(e);}
+
+    buildTextures();
+
+    const isRenderMode = /[?&]render=1/.test(location.search);
+    if (!isRenderMode) {
+      initPreview();
+    }
+
+    window.__reelReady = true;
+  } catch (err) {
+    window.__reelError = String(err && err.stack || err);
+    console.error(err);
+  }
 }
-window.addEventListener('load',boot);
+
+window.addEventListener('load', boot);
 })();
 </script>
 </body>
