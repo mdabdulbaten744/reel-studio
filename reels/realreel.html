@@ -3,858 +3,1124 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Gridfill Text Effect Maker — Reel</title>
+<title>Your Text Is Your Design — Callistra Design</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:ital,wght@0,700;0,900;1,700;1,900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f7f5f0;--ink:#121212;--muted:#736e65;--line:rgba(18,18,18,.14);--chk1:#efece6;--chk2:#ffffff;--display:'Barlow Semi Condensed',sans-serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+:root{
+  --bg:#f7f5f0;
+  --paper:#faf8f5;
+  --ink:#121212;
+  --muted:#736e65;
+  --line:rgba(18,18,18,.14);
+  --accent:#C23A1E;
+  --chk1:#efece6;
+  --chk2:#ffffff;
+  --serif:'Instrument Serif',serif;
+  --cond:'Barlow Condensed',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
 *{box-sizing:border-box;margin:0;padding:0}
 [hidden]{display:none!important}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;-webkit-font-smoothing:antialiased}
 #viewport{position:absolute;left:0;top:0;width:1080px;height:1920px;overflow:hidden;background:var(--bg);transform-origin:0 0;isolation:isolate}
-#viewport>*{position:absolute;left:0;top:0}
-#ui{width:1080px;height:1920px;background:var(--bg);display:none;z-index:1;overflow:hidden;font-family:var(--mono);color:var(--ink)}
-#stage,#grain{width:1080px;height:1920px}
+#stage,#grain{position:absolute;left:0;top:0;width:1080px;height:1920px}
 #stage{z-index:2}
-#grain{z-index:3;mix-blend-mode:overlay;opacity:.10;pointer-events:none}
-#vig{z-index:4;width:1080px;height:1920px;pointer-events:none;background:radial-gradient(120% 85% at 50% 46%,rgba(0,0,0,0) 58%,rgba(0,0,0,.16) 100%)}
+#grain{z-index:3;mix-blend-mode:overlay;opacity:.085;pointer-events:none}
+#vig{position:absolute;left:0;top:0;width:1080px;height:1920px;z-index:4;pointer-events:none;background:radial-gradient(120% 85% at 50% 50%,rgba(0,0,0,0) 60%,rgba(0,0,0,.14) 100%)}
 
-/* ---- UI scene: mirrors the app's own markup + styling, scaled for 1080x1920 ---- */
-#uiCam{position:absolute;left:0;top:0;width:1080px;height:1920px;transform-origin:510px 320px}
-#uiInner{position:absolute;left:110px;top:0;width:800px;padding-top:330px}
-.canvas-container{position:relative;width:800px;height:400px;background-color:#fff;background-image:conic-gradient(var(--chk1) .25turn,var(--chk2) .25turn .5turn,var(--chk1) .5turn .75turn,var(--chk2) .75turn);background-size:24px 24px;border-radius:2px;overflow:hidden}
-.canvas-container canvas{width:100%;height:100%;display:block}
-.text-input{margin-top:24px;height:94px;border-bottom:2px solid var(--ink);font-family:var(--display);font-weight:900;font-size:78px;line-height:1.1;letter-spacing:.01em;text-transform:uppercase;white-space:nowrap;display:flex;align-items:center}
-.text-input .sel{background:rgba(36,110,255,.30)}
-#uiCaret{display:inline-block;width:4px;height:66px;background:var(--ink);margin-left:3px}
-.row{margin-top:22px}
-.row-h{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:21px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.lab{display:flex;align-items:center;gap:12px}
-.lab svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.5;opacity:.85;flex-shrink:0}
-.val{color:var(--ink);font-family:var(--mono);font-size:22px;letter-spacing:0;border-bottom:2px dashed var(--muted);min-width:54px;text-align:right}
-.track{position:relative;height:3px;background:var(--line);margin:24px 0 8px}
-.thumb{position:absolute;top:50%;left:0;width:22px;height:22px;border-radius:50%;background:var(--ink);transform:translate(-50%,-50%)}
-.adv{margin-top:26px;border-top:2px solid var(--line);padding-top:18px}
-.sum{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:21px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.adv-body{overflow:hidden;height:0}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px 30px;padding-top:22px;padding-bottom:4px}
-.color-sel{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--line);padding:8px 0 6px;margin-top:8px}
-.swatch{width:36px;height:36px;border-radius:50%;border:2px solid var(--line);background:#121212}
-.dd{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding:12px 0 8px;border-bottom:2px solid var(--line);font-family:var(--mono);font-size:21px;color:var(--ink)}
-.btn{margin-top:28px;height:86px;background:var(--ink);color:var(--bg);display:flex;align-items:center;justify-content:center;gap:16px;font-family:var(--mono);font-weight:500;font-size:22px;letter-spacing:.12em;border-radius:2px}
-.btn svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.5}
-#cursor{position:absolute;left:0;top:0;width:60px;height:60px;z-index:50;pointer-events:none;transform-origin:10px 5px;opacity:0;filter:drop-shadow(0 5px 6px rgba(0,0,0,.28))}
-.ripple{position:absolute;width:96px;height:96px;border:4px solid var(--ink);border-radius:50%;opacity:0;z-index:49;pointer-events:none}
-#capMask{position:absolute;left:0;top:0;width:1080px;height:330px;background:var(--bg);z-index:5}
-#cap{position:absolute;left:110px;top:230px;width:800px;height:90px;overflow:hidden}
-.capl{position:absolute;left:0;top:0;height:90px;display:flex;align-items:center;gap:22px;font-family:var(--display);font-weight:900;font-size:74px;line-height:90px;text-transform:uppercase;white-space:nowrap}
-.capl b{font-family:var(--mono);font-style:normal;font-weight:500;font-size:25px;color:var(--muted);letter-spacing:.1em}
-#toast{position:absolute;left:130px;top:740px;width:780px;height:220px;background:var(--ink);color:var(--bg);display:flex;align-items:center;gap:34px;padding:26px;border-radius:4px;opacity:0;z-index:20;box-shadow:0 30px 80px rgba(0,0,0,.32)}
-#toastCv{width:320px;height:160px;flex-shrink:0;border-radius:2px;background-color:#fff;background-image:conic-gradient(var(--chk1) .25turn,var(--chk2) .25turn .5turn,var(--chk1) .5turn .75turn,var(--chk2) .75turn);background-size:22px 22px}
-#toast .tt{display:flex;flex-direction:column;gap:12px;font-family:var(--mono)}
-#toast .tt b{font-size:24px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
-#toast .tt span{font-size:19px;letter-spacing:.12em;text-transform:uppercase;color:#a29d93}
-
-/* ---- preview player (normal browser only; never part of the video) ---- */
+/* Preview bar (browser preview only) */
 #player{position:fixed;left:0;right:0;bottom:0;height:64px;background:#111;color:#eee;display:flex;align-items:center;gap:12px;padding:0 14px;font:500 13px var(--mono);z-index:99}
-#player button{background:#eee;color:#111;border:0;border-radius:4px;padding:10px 14px;font:700 13px var(--mono);letter-spacing:.06em}
+#player button{background:#eee;color:#111;border:0;border-radius:4px;padding:10px 14px;font:700 13px var(--mono);letter-spacing:.06em;cursor:pointer}
 #player input{flex:1}
 </style>
 </head>
 <body>
 <div id="viewport">
-  <div id="ui">
-    <div id="uiCam">
-      <div id="uiInner">
-        <div class="canvas-container"><canvas id="uiCanvas" width="1200" height="600"></canvas></div>
-        <div class="text-input" id="uiTextBox"><span id="uiTxt"></span><i id="uiCaret"></i></div>
-
-        <!-- SLIDER 01: CELL SIZE -->
-        <div class="row">
-          <div class="row-h">
-            <span class="lab"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>Cell Size</span>
-            <span class="val" id="vCell">16px</span>
-          </div>
-          <div class="track" id="trkCell"><i class="thumb" id="thCell"></i></div>
-        </div>
-
-        <!-- SLIDER 02: GRID SPACING -->
-        <div class="row">
-          <div class="row-h">
-            <span class="lab"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="6" height="14"/><rect x="15" y="5" width="6" height="14"/><path d="M9 12h6M11 10l-2 2 2 2M13 10l2 2-2 2"/></svg>Grid Spacing</span>
-            <span class="val" id="vSpace">12%</span>
-          </div>
-          <div class="track" id="trkSpace"><i class="thumb" id="thSpace"></i></div>
-        </div>
-
-        <!-- SLIDER 03: ALTERNATE OFFSET -->
-        <div class="row">
-          <div class="row-h">
-            <span class="lab"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="6"/><rect x="13" y="4" width="8" height="6"/><rect x="7" y="14" width="8" height="6"/><path d="M3 14h2M17 14h4"/></svg>Alternate Offset</span>
-            <span class="val" id="vOffset">50%</span>
-          </div>
-          <div class="track" id="trkOffset"><i class="thumb" id="thOffset"></i></div>
-        </div>
-
-        <!-- EXPANDABLE COLOR AND SIZE SECTION -->
-        <div class="adv">
-          <div class="sum" id="advSum"><span>Color and Size</span><span id="advSign">＋</span></div>
-          <div class="adv-body" id="advBody"><div class="grid">
-            <div>
-              <div class="row-h"><span class="lab"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>Cell Color A</span></div>
-              <div class="color-sel"><i class="swatch" id="swatchA"></i><span class="val" id="vColorA" style="border:0;font-size:20px">#121212</span></div>
-            </div>
-            <div>
-              <div class="row-h"><span class="lab"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" stroke-dasharray="3 3"/></svg>Cell Color B</span></div>
-              <div class="color-sel"><i class="swatch" id="swatchB" style="background:#8C877E"></i><span class="val" id="vColorB" style="border:0;font-size:20px">#8C877E</span></div>
-            </div>
-            <div>
-              <div class="row-h"><span class="lab"><svg viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>Size</span><span class="val" id="vSize">140px</span></div>
-              <div class="track" id="trkSize"><i class="thumb" id="thSize"></i></div>
-            </div>
-            <div>
-              <div class="row-h"><span class="lab"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>Export Size</span></div>
-              <div class="dd" id="ddExp"><span id="vExp">4x</span><span style="color:var(--muted)">▾</span></div>
-            </div>
-          </div></div>
-        </div>
-
-        <div class="btn" id="btn"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg><span id="btnLabel">DOWNLOAD PNG</span></div>
-
-        <svg id="cursor" viewBox="0 0 24 24"><path d="M4 2 L4 19 L8.6 14.8 L11.6 21.6 L14.2 20.4 L11.3 13.7 L17.5 13.4 Z" fill="#fff" stroke="#121212" stroke-width="1.5" stroke-linejoin="round"/></svg>
-      </div>
-    </div>
-    <div id="capMask"><div id="cap">
-      <div class="capl"><b>01</b><span>Type anything</span></div>
-      <div class="capl"><b>02</b><span>Adjust cell size</span></div>
-      <div class="capl"><b>03</b><span>Tune grid spacing</span></div>
-      <div class="capl"><b>04</b><span>Shift alternate offset</span></div>
-      <div class="capl"><b>05</b><span>Style colors &amp; size</span></div>
-      <div class="capl"><b>06</b><span>Download your PNG</span></div>
-    </div></div>
-    <div id="toast"><canvas id="toastCv" width="320" height="160"></canvas><div class="tt"><b>gridfill-8x.png</b><span>Transparent PNG · Ready</span></div></div>
-  </div>
   <canvas id="stage" width="1080" height="1920"></canvas>
   <canvas id="grain" width="1080" height="1920"></canvas>
   <div id="vig"></div>
 </div>
-<div id="player" hidden><button id="pBtn">PLAY</button><input id="pRange" type="range" min="0" max="24" step="0.01" value="0"><span id="pTime">0.0s</span></div>
+<div id="player" hidden><button id="pBtn">PLAY</button><input id="pRange" type="range" min="0" max="8" step="0.01" value="0"><span id="pTime">0.0s</span></div>
 
 <script>
 (function(){
 'use strict';
 
 /* =====================================================================
-   ENGINE  (reusable)
+   ENGINE & SYSTEM CONTRACT
    ===================================================================== */
-const REEL={width:1080,height:1920,fps:30,duration:24,poster:.9};
-window.REEL=REEL;
-const RENDER=/[?&]render=1/.test(location.search);
-const $=id=>document.getElementById(id);
-const W=1080,H=1920;
-const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
-const lerp=(a,b,p)=>a+(b-a)*p;
-const EASE={
-  lin:p=>p,i2:p=>p*p,i3:p=>p*p*p,o2:p=>1-(1-p)*(1-p),o3:p=>1-Math.pow(1-p,3),
-  io3:p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2,
-  oexp:p=>p>=1?1:1-Math.pow(2,-10*p),
-  oback:p=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(p-1,3)+c1*Math.pow(p-1,2);}
+const REEL = { width: 1080, height: 1920, fps: 30, duration: 8.0, poster: 4.3 };
+window.REEL = REEL;
+const RENDER = /[?&]render=1/.test(location.search);
+const $ = id => document.getElementById(id);
+const W = 1080, H = 1920;
+
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, p) => a + (b - a) * p;
+const EASE = {
+  lin: p => p,
+  i2: p => p * p,
+  i3: p => p * p * p,
+  o2: p => 1 - (1 - p) * (1 - p),
+  o3: p => 1 - Math.pow(1 - p, 3),
+  io2: p => p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2,
+  io3: p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2,
+  oexp: p => p >= 1 ? 1 : 1 - Math.pow(2, -10 * p),
+  oback: p => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); }
 };
-const prog=(t,s,d,e='lin')=>EASE[e](clamp((t-s)/d));
-function kf(t,pts){
-  if(t<=pts[0][0])return pts[0][1];
-  for(let i=1;i<pts.length;i++){
-    if(t<=pts[i][0]){const a=pts[i-1],b=pts[i];return a[1]+(b[1]-a[1])*EASE[b[2]||'io3']((t-a[0])/(b[0]-a[0]));}
-  }
-  return pts[pts.length-1][1];
-}
-function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-const mkCanvas=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
-const hex2=n=>Math.round(n).toString(16).padStart(2,'0');
-function mixHex(a,b,p){const pa=[1,3,5].map(i=>parseInt(a.substr(i,2),16)),pb=[1,3,5].map(i=>parseInt(b.substr(i,2),16));return'#'+pa.map((v,i)=>hex2(lerp(v,pb[i],p))).join('');}
+const prog = (t, s, d, e = 'lin') => EASE[e](clamp((t - s) / d));
 
-const BRAND={bg:'#f7f5f0',ink:'#121212',muted:'#736e65',darkBg:'#0d0d0d',darkInk:'#f0eee9',accent:'#B83D1B',brickA:'#B33E1D',brickB:'#5E1E0E',mortar:'#D8D2C6'};
-const DISPLAY='"Barlow Semi Condensed",sans-serif';
-const MONO='"JetBrains Mono",ui-monospace,monospace';
-
-function mono(c,txt,x,y,o={}){
-  const{size=28,ls=0,align='left',color=BRAND.ink,alpha=1,weight=500}=o;
-  if(alpha<=0)return;
-  c.save();c.font=`${weight} ${size}px ${MONO}`;if('letterSpacing' in c)c.letterSpacing=ls+'px';
-  c.textBaseline='middle';c.fillStyle=color;c.globalAlpha=alpha;
-  let xx=x;
-  if(align==='center'){c.textAlign='center';xx=x+ls/2;}else if(align==='right'){c.textAlign='right';xx=x+ls;}else c.textAlign='left';
-  c.fillText(txt,xx,y);c.restore();
-}
-function monoW(c,txt,size,ls,weight=500){c.save();c.font=`${weight} ${size}px ${MONO}`;if('letterSpacing' in c)c.letterSpacing=ls+'px';const w=c.measureText(txt).width;c.restore();return w;}
-
-/* centered bold headline block, auto-fitted to 860px */
-function block(c,lines,x,y,size,color,alpha=1){
-  c.save();c.font=`900 ${size}px ${DISPLAY}`;let mw=1;lines.forEach(l=>{mw=Math.max(mw,c.measureText(l).width);});
-  const s=Math.min(size,size*860/mw);c.font=`900 ${s}px ${DISPLAY}`;
-  c.textAlign='center';c.textBaseline='middle';c.fillStyle=color;c.globalAlpha=alpha;
-  lines.forEach((l,i)=>c.fillText(l,x,y+(i-(lines.length-1)/2)*(s*0.96)));c.restore();
+function mulberry32(a) {
+  return function() {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
 }
 
-/* ---- the tool's own gridfill algorithm (pure canvas math, exact match) ---- */
-function gridfillCanvas(o){
-  const{text,colorA='#121212',colorB='#8C877E',cellSize=16,spacing=.12,offset=.5,fontSize=140,scale=1,bw=800,bh=400,bgMortar=null}=o;
-  if(!text)return null;
+const mkCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 
-  const targetWidth=Math.round(bw*scale),targetHeight=Math.round(bh*scale);
-  const textCanvas=mkCanvas(targetWidth,targetHeight),tctx=textCanvas.getContext('2d');
-  const lines=text.split('\n'),padding=40*scale,refSize=100*scale;
+const BRAND = {
+  bg: '#f7f5f0',
+  paper: '#faf8f5',
+  ink: '#121212',
+  muted: '#736e65',
+  line: 'rgba(18,18,18,.14)',
+  accent: '#C23A1E',
+  darkBg: '#0d0d0d',
+  darkInk: '#f0eee9'
+};
 
-  tctx.font=`900 ${refSize}px ${DISPLAY}`;
-  let maxRefWidth=1;
-  lines.forEach(l=>{const w=tctx.measureText(l).width;if(w>maxRefWidth)maxRefWidth=w;});
+const SERIF = '"Instrument Serif", Georgia, serif';
+const COND = '"Barlow Condensed", "Arial Narrow", sans-serif';
+const MONO = '"JetBrains Mono", ui-monospace, monospace';
 
-  const refTotalHeight=lines.length*(refSize*1.1);
-  const availWidth=Math.max(10*scale,targetWidth-padding);
-  const availHeight=Math.max(10*scale,targetHeight-padding);
-  const maxFontSizeW=(availWidth*refSize)/maxRefWidth;
-  const maxFontSizeH=(availHeight*refSize)/refTotalHeight;
-  const calculatedMaxFontSize=Math.min(maxFontSizeW,maxFontSizeH);
-  const scaledFontSize=Math.max(10*scale,Math.min(fontSize*scale,calculatedMaxFontSize));
-
-  tctx.font=`900 ${scaledFontSize}px ${DISPLAY}`;
-  tctx.textAlign='center';tctx.textBaseline='middle';tctx.fillStyle='#000000';
-  const lineHeight=scaledFontSize*1.1,totalHeight=lines.length*lineHeight;
-  let startY=(targetHeight/2)-(totalHeight/2)+(lineHeight/2);
-  lines.forEach((line,idx)=>{tctx.fillText(line,targetWidth/2,startY+idx*lineHeight);});
-
-  const gridCanvas=mkCanvas(targetWidth,targetHeight),gctx=gridCanvas.getContext('2d');
-  if(bgMortar){gctx.fillStyle=bgMortar;gctx.fillRect(0,0,targetWidth,targetHeight);}
-
-  const side=Math.max(2,cellSize*scale),gap=side*spacing,pitch=side+gap;
-  const cx=targetWidth/2,cy=targetHeight/2;
-  const rStart=Math.floor((-cy)/pitch)-2,rEnd=Math.ceil((targetHeight-cy)/pitch)+2;
-  const rectsA=[],rectsB=[];
-
-  for(let r=rStart;r<=rEnd;r++){
-    const isOddRow=((r%2+2)%2)===1;
-    const rowShift=isOddRow?(offset*pitch):0;
-    const rowY=cy+(r*pitch)-(side/2);
-    const cStart=Math.floor((-cx-rowShift)/pitch)-2;
-    const cEnd=Math.ceil((targetWidth-cx-rowShift)/pitch)+2;
-    for(let cl=cStart;cl<=cEnd;cl++){
-      const colX=cx+rowShift+(cl*pitch)-(side/2);
-      const parity=(((r%2+2)%2)+((cl%2+2)%2))%2;
-      if(parity===0)rectsA.push(colX,rowY);
-      else rectsB.push(colX,rowY);
-    }
-  }
-
-  gctx.fillStyle=colorA;gctx.beginPath();
-  for(let i=0;i<rectsA.length;i+=2)gctx.rect(rectsA[i],rectsA[i+1],side,side);
-  gctx.fill();
-
-  gctx.fillStyle=colorB;gctx.beginPath();
-  for(let i=0;i<rectsB.length;i+=2)gctx.rect(rectsB[i],rectsB[i+1],side,side);
-  gctx.fill();
-
-  gctx.globalCompositeOperation='destination-in';
-  gctx.drawImage(textCanvas,0,0);
-  return gridCanvas;
-}
-
-function stampAnim(u,dur=.12){
-  if(u<0)return null;
-  const p=clamp(u/dur);let s,blur;
-  if(u<dur){s=1.32-.32*EASE.i2(p);blur=14*(1-p);}
-  else{const q=u-dur;s=1-.035*Math.exp(-q*16)*Math.cos(q*55);blur=0;}
-  return{s,blur,a:clamp(u/.04)};
-}
-function wipe(c,t,tIn,color){
-  const cover=tIn+WIPE_DUR+(WIPE_BARS-1)*WIPE_STAG,bh=H/WIPE_BARS;
-  c.fillStyle=color;
-  for(let i=0;i<WIPE_BARS;i++){
-    const pin=EASE.io3(clamp((t-(tIn+i*WIPE_STAG))/WIPE_DUR));
-    const pout=EASE.io3(clamp((t-(cover+i*WIPE_STAG))/WIPE_DUR));
-    const x0=pout*W,x1=pin*W;if(x1>x0+.5)c.fillRect(x0,i*bh,x1-x0,bh+1);
-  }
-}
-
-/* =====================================================================
-   TIMELINE (seconds) — visuals and sound read the exact same numbers
-   ===================================================================== */
-const SL=1.3,CRUMB0=1.45,CRUMB_D=.9;                      // slam + brick masonry crumble
-const MW=['BLOCK','MOSAIC','PIXEL','TILED','BRICK','GRID'];
-const MPAL=[
-  [BRAND.bg,BRAND.ink,'#8C877E'],
-  [BRAND.darkBg,BRAND.darkInk,'#504C44'],
-  ['#E8B83A','#141414','#7B5E14'],
-  ['#1E4BB8','#F7F5F0','#89A8F5'],
-  ['#226649','#EAE2CE','#95C9AF'],
-  ['#B83D1B','#F7F5F0','#611A07']
-];
-const MONT0=2.6,M_DUR=[.5,.46,.42,.4,.4,.4],M_T0=[];{let a=MONT0;M_DUR.forEach(d=>{M_T0.push(a);a+=d;});}
-const B0=M_T0[5]+M_DUR[5];                                 // bridge starts
-const WIPE_DUR=.3,WIPE_STAG=.045,WIPE_BARS=4,W1_IN=6.5;
-const W1_COVER=W1_IN+WIPE_DUR+(WIPE_BARS-1)*WIPE_STAG;
-const C0=W1_COVER,R=x=>C0+x;
-const UI_LEN=12.4;
-const W2_IN=C0+UI_LEN,W2_COVER=W2_IN+WIPE_DUR+(WIPE_BARS-1)*WIPE_STAG;
-const D0=W2_COVER,Dr=x=>D0+x;
-const K=a=>a.map(p=>[R(p[0]),p[1],p[2]]);
-
-/* slider journeys: start and end at defaults (16px / 12% / 50% / 140px) */
-const DEF={cell:16,space:12,offset:50,size:140};
-const CELLV=K([[1.9,16],[2.3,8],[2.4,8],[2.85,32],[2.95,32],[3.3,16]]);
-const SPACEV=K([[3.8,12],[4.2,2],[4.3,2],[4.75,32],[4.85,32],[5.15,12]]);
-const OFFV=K([[5.65,50],[6.1,0],[6.2,0],[6.65,90],[6.75,90],[7.05,50]]);
-const SIZEV=K([[8.3,140],[8.65,230],[8.75,230],[9.1,70],[9.2,70],[9.45,140]]);
-const TYPED='MASON';
-const CH_T=[...TYPED].map((_,i)=>R(1.15)+i*.11+.012*Math.sin(i*91.7+3.3));
-const CLICKS=[.8,7.55,9.85,10.35,11.0];
-const DRAGS=[[1.9,3.35,'cell'],[3.8,5.2,'space'],[5.65,7.1,'offset'],[8.3,9.5,'size']];
-const PRESS=[...CLICKS.map(c=>[c,c+.12]),...DRAGS.map(d=>[d[0],d[1]])].map(p=>[R(p[0]),R(p[1])]);
-const RIPPLES=[...CLICKS,...DRAGS.map(d=>d[0])].map(R);
-const CAP_T=[.4,1.7,3.55,5.4,7.4,10.3].map(R);
-
-/* =====================================================================
-   SCENES
-   ===================================================================== */
-const stage=$('stage'),sc=stage.getContext('2d');
-const grain=$('grain'),gc=grain.getContext('2d');
-const ui=$('ui');
-const M={};
-let hookBrick,mA=[],bridgeA,outA,grainTile=null;
-
-function mkAsset(text,colorA,colorB,o={}){
-  const scale=o.scale||1.8,bw=o.bw||800,bh=o.bh||400;
-  const cv=gridfillCanvas({
-    text,colorA,colorB,
-    cellSize:o.cellSize||16,
-    spacing:o.spacing!==undefined?o.spacing:.12,
-    offset:o.offset!==undefined?o.offset:.5,
-    fontSize:o.fontSize||250,
-    scale,bw,bh,bgMortar:o.bgMortar||null
-  });
-  return{cv,bw,bh,cellSize:o.cellSize||16};
-}
-
-function buildAssets(){
-  // Hook brick asset: running bond (offset: 0.5) brick red & deep burnt sienna with subtle mortar lines
-  hookBrick=mkAsset('BRICK',BRAND.brickA,BRAND.brickB,{
-    scale:2.4,cellSize:18,spacing:.10,offset:.5,fontSize:260,bgMortar:'rgba(216,210,198,0.35)'
-  });
-  MW.forEach((w,i)=>{
-    mA.push(mkAsset(w,MPAL[i][1],MPAL[i][2],{
-      cellSize:14+((i*3)%10),spacing:.08+((i%3)*.06),offset:(i%2===0)?.5:.25
-    }));
-  });
-  bridgeA=mkAsset('YOURS',BRAND.ink,BRAND.accent,{cellSize:18,spacing:.12,offset:.5});
-  outA=mkAsset('GRID\nFILL',BRAND.darkInk,'#5C574F',{scale:2,bw:800,bh:600,cellSize:18,spacing:.12,offset:.5});
-
-  const rnd=mulberry32(5);grainTile=mkCanvas(512,512);
-  const g=grainTile.getContext('2d'),id=g.createImageData(512,512);
-  for(let i=0;i<512*512;i++){const v=rnd()*255;id.data[i*4]=id.data[i*4+1]=id.data[i*4+2]=v;id.data[i*4+3]=255;}
-  g.putImageData(id,0,0);
-}
-
-function drawGridAsset(c,a,cx,cy,dw,o={}){
-  const top=o.top||0,alpha=o.alpha===undefined?1:o.alpha;
-  const dh=dw*a.bh/a.bw,x0=cx-dw/2,y0=cy-dh/2;
-  if(top>=1)return;
-  c.save();c.globalAlpha=alpha;
-  if(top>0){
-    const rows=Math.ceil(a.bh/a.cellSize),tq=Math.round(top*rows)/rows;
-    c.beginPath();c.rect(x0-4,y0+dh*tq,dw+8,dh*(1-tq)+4);c.clip();
-  }
-  c.drawImage(a.cv,x0,y0,dw,dh);c.restore();
-}
-
-function loupe(c,a,cx,cy,dw,lx,ly,r,Z){
-  if(r<3)return;
-  c.save();c.shadowColor='rgba(0,0,0,.30)';c.shadowBlur=44;c.shadowOffsetY=20;
-  c.beginPath();c.arc(lx,ly,r,0,Math.PI*2);c.fillStyle=BRAND.bg;c.fill();c.restore();
-  c.save();c.beginPath();c.arc(lx,ly,r,0,Math.PI*2);c.clip();
-  c.translate(lx,ly);c.scale(Z,Z);c.translate(-lx,-ly);
-  drawGridAsset(c,a,cx,cy,dw);c.restore();
-  c.save();c.strokeStyle=BRAND.ink;c.lineWidth=9;c.beginPath();c.arc(lx,ly,r,0,Math.PI*2);c.stroke();
-  c.strokeStyle='rgba(255,255,255,.6)';c.lineWidth=7;c.lineCap='round';c.beginPath();c.arc(lx,ly,r-26,Math.PI*1.08,Math.PI*1.42);c.stroke();c.restore();
-}
-
-function flash(c,a,col){if(a>.005){c.save();c.globalAlpha=a;c.fillStyle=col;c.fillRect(0,0,W,H);c.restore();}}
-
-/* ---------- 0 – 2.6 s : the hook (brick facade & running bond inspection) ---------- */
-function drawHook(c,t){
-  c.fillStyle=BRAND.bg;c.fillRect(0,0,W,H);
-
-  // Subtle architectural grid background guidelines for masonry feel
-  c.save();c.strokeStyle='rgba(18,18,18,0.04)';c.lineWidth=1;
-  for(let x=40;x<W;x+=60){c.beginPath();c.moveTo(x,0);c.lineTo(x,H);c.stroke();}
-  for(let y=40;y<H;y+=60){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke();}
+function mono(c, txt, x, y, o = {}) {
+  const { size = 26, ls = 0, align = 'left', color = BRAND.ink, alpha = 1, weight = 500 } = o;
+  if (alpha <= 0) return;
+  c.save();
+  c.font = `${weight} ${size}px ${MONO}`;
+  if ('letterSpacing' in c) c.letterSpacing = ls + 'px';
+  c.textBaseline = 'middle';
+  c.fillStyle = color;
+  c.globalAlpha = alpha;
+  let xx = x;
+  if (align === 'center') { c.textAlign = 'center'; xx = x + ls / 2; }
+  else if (align === 'right') { c.textAlign = 'right'; xx = x + ls; }
+  else c.textAlign = 'left';
+  c.fillText(txt, xx, y);
   c.restore();
+}
 
-  const q=t-SL;let sx=0,sy=0;
-  if(q>=0){const a=13*Math.exp(-q*20);sx=Math.sin(t*210)*a;sy=Math.cos(t*173)*a*.8;}
-  c.save();c.translate(sx,sy);
-  const cx=520,cy=900,dw=1000;
-  const un=prog(t,CRUMB0,CRUMB_D,'i2');
-
-  if(t<CRUMB0+CRUMB_D){
-    const ws=q>=0?1+.05*Math.exp(-q*18):1;
-    c.save();c.translate(cx,cy);c.scale(ws,ws);c.translate(-cx,-cy);
-    drawGridAsset(c,hookBrick,cx,cy,dw,{top:t>=CRUMB0?un:0});c.restore();
-  }
-
-  // Falling masonry fragments & mortar dust when the brick structure collapses
-  if(t>=CRUMB0&&t<CRUMB0+CRUMB_D+.18){
-    const pFrac=prog(t,CRUMB0,CRUMB_D);
-    const fade=1-prog(t,CRUMB0+CRUMB_D-.1,.25);
-    c.save();c.globalAlpha=fade;
-    const rnd=mulberry32(42);
-    for(let k=0;k<24;k++){
-      const bx=cx-400+rnd()*800,by=cy-140+pFrac*340+rnd()*120;
-      const bsize=8+rnd()*14;
-      c.fillStyle=k%2===0?BRAND.brickA:BRAND.brickB;
-      c.fillRect(bx+Math.sin(t*8+k)*20,by,bsize,bsize*0.6);
-    }
+function flash(c, a, col = '#000') {
+  if (a > 0.005) {
+    c.save();
+    c.globalAlpha = clamp(a, 0, 1);
+    c.fillStyle = col;
+    c.fillRect(0, 0, W, H);
     c.restore();
   }
-
-  // Magnifier inspecting running bond masonry courses
-  if(t<SL){
-    const lx=lerp(250,790,EASE.io3(clamp(t/1.15))),ly=900+32*Math.sin(t*4.2);
-    const r=230*(1-prog(t,SL-.1,.1,'i2'))*prog(t,0,.01);
-    loupe(c,hookBrick,cx,cy,dw,lx,ly,r,3.2);
-  }
-
-  // Headline
-  if(t<SL){
-    block(c,['Is this','real brick?'],540,470,146,BRAND.ink);
-    mono(c,'LOOK CLOSER',540,268,{size:27,ls:8,align:'center',alpha:.7});
-  }else{
-    const st=stampAnim(q,.1);
-    c.save();c.translate(540,470);c.scale(st.s,st.s);c.globalAlpha=st.a;if(st.blur>.4)c.filter=`blur(${st.blur}px)`;
-    block(c,['Nope.','Just type.'],0,0,146,BRAND.ink);c.restore();
-    mono(c,'NO MORTAR WAS USED',540,268,{size:27,ls:8,align:'center',alpha:.7*prog(t,SL+.05,.2)});
-  }
-  c.restore();
-  if(q>=0)flash(c,.14*Math.exp(-q*30),'#000');
 }
-
-/* ---------- 2.6 – 5.18 s : cut montage ---------- */
-function drawMontage(c,t){
-  let i=0;for(let k=0;k<MW.length;k++)if(t>=M_T0[k])i=k;
-  const bg=MPAL[i][0],ink=MPAL[i][1],u=t-M_T0[i];
-  c.fillStyle=bg;c.fillRect(0,0,W,H);
-  const p=EASE.o3(clamp(u/.2)),z=1.07-.07*EASE.o3(clamp(u/.35)),q=u-.2;
-  const amp=q>=0?(6+i*1.2)*Math.exp(-q*24):0;
-  c.save();c.translate(Math.sin(t*210)*amp,Math.cos(t*173)*amp*.8);
-  c.translate(520,900);c.scale(z,z);c.translate(-520,-900);
-  drawGridAsset(c,mA[i],520,900,1000,{top:1-p});
-  c.restore();
-  mono(c,'ALL OF THIS IS JUST TYPE',80,300,{size:26,ls:4,color:ink,alpha:.75});
-  mono(c,String(i+1).padStart(2,'0')+' / 06',940,300,{size:26,ls:4,align:'right',color:ink,alpha:.75});
-  const pg=clamp((t-MONT0)/(B0-MONT0));
-  c.save();c.strokeStyle=ink;c.globalAlpha=.25;c.lineWidth=3;c.beginPath();c.moveTo(80,345);c.lineTo(940,345);c.stroke();
-  c.globalAlpha=.9;c.beginPath();c.moveTo(80,345);c.lineTo(80+860*pg,345);c.stroke();c.restore();
-  mono(c,'GRIDFILL TEXT EFFECT',520,1200,{size:24,ls:6,align:'center',color:ink,alpha:.65});
-  flash(c,.16*Math.exp(-u*30),i%2?'#fff':'#000');
-}
-
-/* ---------- 5.18 – 6.5 s : bridge ---------- */
-function drawBridge(c,t){
-  c.fillStyle=BRAND.bg;c.fillRect(0,0,W,H);
-  const u=t-B0;
-  mono(c,'CALLISTRA.DESIGN',80,300,{size:26,ls:3,alpha:.55*prog(t,B0+.05,.3)});
-  const p1=prog(t,B0+.04,.5,'oexp');
-  c.save();c.beginPath();c.rect(0,330,W,200);c.clip();
-  block(c,['Now make'],540,440+(1-p1)*200,166,BRAND.ink);c.restore();
-  const bp=EASE.o3(clamp((u-.25)/.3)),q=u-.55;
-  const amp=q>=0?10*Math.exp(-q*22):0;
-  c.save();c.translate(Math.sin(t*210)*amp,Math.cos(t*173)*amp*.8);
-  drawGridAsset(c,bridgeA,520,830,1000,{top:1-bp});c.restore();
-  const ps=prog(t,B0+.7,.5,'oexp'),ys=1150;
-  mono(c,'HERE’S HOW',540,ys,{size:36,ls:lerp(20,8,ps),align:'center',alpha:ps});
-  const lp=prog(t,B0+.85,.4,'oexp');
-  c.save();c.strokeStyle=BRAND.ink;c.globalAlpha=.5;c.lineWidth=2;c.beginPath();c.moveTo(540-300*lp,ys+46);c.lineTo(540+300*lp,ys+46);c.stroke();c.restore();
-  flash(c,q>=0?.10*Math.exp(-q*30):0,'#000');
-}
-
-/* ---------- outro ---------- */
-function drawOutro(c,t){
-  c.fillStyle=BRAND.darkBg;c.fillRect(0,0,W,H);
-  const bp=EASE.o3(clamp((t-Dr(.2))/.55)),q=t-Dr(.75);
-  const amp=q>=0?12*Math.exp(-q*22):0;
-  c.save();c.translate(Math.sin(t*210)*amp,Math.cos(t*173)*amp*.8);
-  drawGridAsset(c,outA,520,700,940,{top:1-bp});c.restore();
-  const p1=prog(t,Dr(1.0),.55,'oexp');
-  c.save();c.beginPath();c.rect(0,1060,W,100);c.clip();
-  block(c,['Try it on your name.'],540,1110+(1-p1)*100,64,BRAND.darkInk);c.restore();
-  const ps=prog(t,Dr(1.2),.6,'oexp');
-  mono(c,'TEXT EFFECT MAKER',540,1200,{size:30,ls:lerp(18,8,ps),align:'center',color:BRAND.darkInk,alpha:ps*.85});
-  mono(c,'CALLISTRA.DESIGN',540,1285,{size:44,ls:4,align:'center',color:BRAND.darkInk,alpha:prog(t,Dr(1.5),.4,'o3'),weight:700});
-  const up=prog(t,Dr(1.6),.45,'oexp');
-  c.save();c.strokeStyle=BRAND.accent;c.lineWidth=5;c.beginPath();c.moveTo(540-290*up,1330);c.lineTo(540+290*up,1330);c.stroke();c.restore();
-  mono(c,'LINK IN BIO',540,1390,{size:26,ls:6,align:'center',color:'#8c877e',alpha:prog(t,Dr(2.0),.4,'o3')});
-  flash(c,q>=0?.10*Math.exp(-q*30):0,'#fff');
-}
-
-/* ---------- UI scene ---------- */
-const uiCam=$('uiCam'),uiCanvas=$('uiCanvas'),uc=uiCanvas.getContext('2d');
-const toastCv=$('toastCv'),tcx=toastCv.getContext('2d');
-let uiKey='',rippleEls=[];
-
-function off(el,root){let x=0,y=0,e=el;while(e&&e!==root){x+=e.offsetLeft;y+=e.offsetTop;e=e.offsetParent;}return{x,y,w:el.offsetWidth,h:el.offsetHeight};}
-function measure(){
-  const inner=$('uiInner');
-  $('advBody').style.height='0px';
-  M.trk={cell:off($('trkCell'),inner),space:off($('trkSpace'),inner),offset:off($('trkOffset'),inner)};
-  M.input=off($('uiTextBox'),inner);M.sum=off($('advSum'),inner);
-  $('advBody').style.height='auto';
-  M.bodyH=$('advBody').offsetHeight;
-  M.trk.size=off($('trkSize'),inner);
-  M.swatchA=off($('swatchA'),inner);M.swatchB=off($('swatchB'),inner);
-  M.dd=off($('ddExp'),inner);
-  M.btnOpen=off($('btn'),inner);
-  $('advBody').style.height='0px';
-  RIPPLES.forEach(()=>{const e=document.createElement('i');e.className='ripple';inner.appendChild(e);rippleEls.push(e);});
-}
-const center=o=>[o.x+o.w/2,o.y+o.h/2];
-function thumbPos(row,v,min,max){const tr=M.trk[row],r=11;return[tr.x+r+(tr.w-2*r)*((v-min)/(max-min)),tr.y+tr.h/2];}
-function arc(a,b,p){
-  const dx=b[0]-a[0],dy=b[1]-a[1],d=Math.hypot(dx,dy),k=Math.sin(Math.PI*p)*d*.12;
-  return[lerp(a[0],b[0],p)-dy/(d||1)*k,lerp(a[1],b[1],p)+dx/(d||1)*k];
-}
-
-let SEG=null;
-function buildSeg(){
-  SEG=[
-    {t0:R(.35),t1:R(.85),to:()=>[M.input.x+300,M.input.y+M.input.h*.5]},
-    {t0:R(1.45),t1:R(1.85),to:()=>thumbPos('cell',DEF.cell,6,48)},
-    {t0:R(1.9),t1:R(3.35),fn:t=>thumbPos('cell',kf(t,CELLV),6,48)},
-    {t0:R(3.4),t1:R(3.75),to:()=>thumbPos('space',DEF.space,0,40)},
-    {t0:R(3.8),t1:R(5.2),fn:t=>thumbPos('space',kf(t,SPACEV),0,40)},
-    {t0:R(5.25),t1:R(5.6),to:()=>thumbPos('offset',DEF.offset,0,100)},
-    {t0:R(5.65),t1:R(7.1),fn:t=>thumbPos('offset',kf(t,OFFV),0,100)},
-    {t0:R(7.15),t1:R(7.5),to:()=>[M.sum.x+M.sum.w-30,M.sum.y+M.sum.h/2]},
-    {t0:R(7.9),t1:R(8.25),to:()=>thumbPos('size',DEF.size,30,250)},
-    {t0:R(8.3),t1:R(9.5),fn:t=>thumbPos('size',kf(t,SIZEV),30,250)},
-    {t0:R(9.55),t1:R(9.8),to:()=>center(M.swatchA)},
-    {t0:R(9.95),t1:R(10.25),to:()=>center(M.dd)},
-    {t0:R(10.5),t1:R(10.9),to:()=>center(M.btnOpen)},
-    {t0:R(11.8),t1:R(12.3),to:()=>[M.btnOpen.x+M.btnOpen.w-60,M.btnOpen.y+M.btnOpen.h+120]}
-  ];
-}
-
-function cursorAt(t){
-  let pos=[880,1500];
-  for(const s of SEG){
-    if(t<s.t0)return pos;
-    if(s.fn){if(t<=s.t1)return s.fn(t);pos=s.fn(s.t1);continue;}
-    const to=s.to();
-    if(t<=s.t1)return arc(pos,to,EASE.io3((t-s.t0)/(s.t1-s.t0)));
-    pos=to;
-  }
-  return pos;
-}
-function pressedAt(t){return PRESS.some(p=>t>=p[0]&&t<=p[1]);}
-function dragRow(t){for(const d of DRAGS)if(t>=R(d[0])&&t<=R(d[1]))return d[2];return'';}
-
-function captionUpdate(t){
-  document.querySelectorAll('.capl').forEach((el,i)=>{
-    const pin=prog(t,CAP_T[i],.4,'oexp');
-    const pout=i<CAP_T.length-1?prog(t,CAP_T[i+1],.3,'i3'):0;
-    el.style.transform=`translateY(${(1-pin)*100-pout*100}px)`;
-  });
-}
-
-function updateUI(t){
-  const intro=prog(t,C0,.8,'o3');
-  const fitS=Math.min(1,(1440-330)/(M.btnOpen.y+M.btnOpen.h-330));
-  const zoom=kf(t,[[R(7.5),1],[R(8.2),fitS,'io3']]);
-  uiCam.style.transform=`scale(${zoom*(1+.08*(1-intro))})`;
-
-  const vCell=Math.round(kf(t,CELLV)),vSpace=Math.round(kf(t,SPACEV)),vOffset=Math.round(kf(t,OFFV)),vSize=Math.round(kf(t,SIZEV));
-  const cNow=kf(t,CELLV),spNow=kf(t,SPACEV),oNow=kf(t,OFFV),zNow=kf(t,SIZEV);
-
-  const colP=prog(t,R(9.85),.5,'io3'),colA=mixHex('#121212',BRAND.accent,colP),colB='#8C877E';
-  const open=prog(t,R(7.55),.35,'io3');
-
-  let n=0;CH_T.forEach(ct=>{if(t>=ct)n++;});
-  const sel=t>=R(.8)&&t<CH_T[0];
-  const text=t<CH_T[0]?'GRIDFILL':TYPED.slice(0,n);
-  const key=`${text}|${vCell}|${vSpace}|${vOffset}|${vSize}|${colA}`;
-
-  if(key!==uiKey){
-    uiKey=key;uc.clearRect(0,0,1200,600);
-    const cv=gridfillCanvas({
-      text,colorA:colA,colorB:colB,
-      cellSize:vCell,spacing:vSpace/100,offset:vOffset/100,
-      fontSize:vSize,scale:1.5
-    });
-    if(cv)uc.drawImage(cv,0,0);
-  }
-
-  const txt=$('uiTxt');txt.textContent=text;txt.className=sel?'sel':'';
-  const typing=t>=R(.8)&&t<R(1.9);
-  const solid=t<CH_T[CH_T.length-1]+.5;
-  $('uiCaret').style.display=typing&&!sel&&(solid||Math.floor((t-R(.8))*2.2)%2===0)?'inline-block':'none';
-
-  $('vCell').textContent=vCell+'px';$('vSpace').textContent=vSpace+'%';$('vOffset').textContent=vOffset+'%';$('vSize').textContent=vSize+'px';
-  const pos=(id,v,mn,mx)=>{$(id).style.left=`calc(11px + (100% - 22px) * ${(v-mn)/(mx-mn)})`;};
-  pos('thCell',cNow,6,48);pos('thSpace',spNow,0,40);pos('thOffset',oNow,0,100);pos('thSize',zNow,30,250);
-
-  const dr=dragRow(t);
-  [['thCell','cell'],['thSpace','space'],['thOffset','offset'],['thSize','size']].forEach(([id,k])=>{
-    $(id).style.transform=`translate(-50%,-50%) scale(${dr===k?1.7:1})`;
-  });
-
-  $('advBody').style.height=(M.bodyH*open)+'px';
-  $('advSign').textContent=open>.5?'－':'＋';
-  $('swatchA').style.background=colA;$('vColorA').textContent=colA.toUpperCase();
-  $('vExp').textContent=t>=R(10.45)?'8x':'4x';
-  const ff=t>=R(10.35)&&t<R(10.75);$('ddExp').style.background=ff?'rgba(18,18,18,.07)':'transparent';
-
-  const rendering=t>=R(11.0)&&t<R(11.45);
-  $('btnLabel').textContent=rendering?'RENDERING...':'DOWNLOAD PNG';
-  $('btn').style.background=rendering?BRAND.muted:BRAND.ink;
-  $('btn').style.transform=(t>=R(11.0)&&t<R(11.12))?'scale(.985)':'scale(1)';
-
-  const tp=prog(t,R(11.45),.5,'oback');
-  const toast=$('toast');toast.style.opacity=clamp(tp*3);toast.style.transform=`translateY(${(1-tp)*170}px)`;
-  if(tp>0){tcx.clearRect(0,0,320,160);tcx.drawImage(uiCanvas,0,0,320,160);}
-
-  const cp=cursorAt(t),cur=$('cursor');
-  cur.style.opacity=prog(t,R(.35),.2);
-  cur.style.transform=`translate(${cp[0]-10}px,${cp[1]-5}px) scale(${pressedAt(t)?.88:1})`;
-
-  RIPPLES.forEach((rt,i)=>{
-    const p=(t-rt)/.45,el=rippleEls[i];
-    if(p>=0&&p<=1){
-      const c0=cursorAt(rt);el.style.left=c0[0]+'px';el.style.top=c0[1]+'px';
-      el.style.opacity=.55*(1-p);el.style.transform=`translate(-50%,-50%) scale(${.3+.9*EASE.o3(p)})`;
-    }else el.style.opacity=0;
-  });
-
-  captionUpdate(t);
-}
-
-function renderFrame(t){
-  t=clamp(t,0,REEL.duration);
-  sc.setTransform(1,0,0,1,0,0);sc.clearRect(0,0,W,H);
-  const showUI=t>=W1_COVER&&t<W2_COVER;
-  ui.style.display=showUI?'block':'none';
-
-  if(t<W1_COVER){
-    if(t<MONT0)drawHook(sc,t);else if(t<B0)drawMontage(sc,t);else drawBridge(sc,t);
-  }else if(showUI)updateUI(t);
-  else drawOutro(sc,t);
-
-  wipe(sc,t,W1_IN,BRAND.ink);
-  wipe(sc,t,W2_IN,BRAND.accent);
-
-  const fo=prog(t,REEL.duration-.45,.45);
-  if(fo>0){sc.fillStyle='#000';sc.globalAlpha=fo;sc.fillRect(0,0,W,H);sc.globalAlpha=1;}
-
-  const f=Math.floor(t*REEL.fps+.001),ox=(f*97)%512,oy=(f*57)%512;
-  gc.clearRect(0,0,W,H);
-  for(let x=-ox;x<W;x+=512)for(let y=-oy;y<H;y+=512)gc.drawImage(grainTile,x,y);
-}
-window.renderFrame=renderFrame;
 
 /* =====================================================================
-   SOUND — synthesised with the Web Audio API, rendered offline
+   PART 1: SPECIMEN SHEET & PEN PATH ("YOUR TEXT IS YOUR DESIGN")
    ===================================================================== */
-async function buildAudio(){
-  const SR=44100,DUR=REEL.duration;
-  const oc=new OfflineAudioContext(2,Math.ceil(SR*DUR),SR);
-  const rand=mulberry32(7);
-  const nb=oc.createBuffer(1,SR*3,SR);{const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=rand()*2-1;}
-  const master=oc.createGain();master.gain.setValueAtTime(.72,0);master.gain.setValueAtTime(.72,DUR-.5);master.gain.linearRampToValueAtTime(0,DUR-.03);
-  const comp=oc.createDynamicsCompressor();comp.threshold.value=-12;comp.knee.value=12;comp.ratio.value=10;comp.attack.value=.002;comp.release.value=.12;
-  master.connect(comp);comp.connect(oc.destination);
+// Target arrangement of the final phrase in the safe area center
+const TARGET_WORDS = [
+  { word: "Your",   targetY: 830,  targetX: 540 - 240, font: `italic 400 136px ${SERIF}`,  cap: false },
+  { word: "text",   targetY: 830,  targetX: 540 + 200, font: `900 142px ${COND}`,          cap: true },
+  { word: "is",     targetY: 980,  targetX: 540 - 290, font: `italic 400 120px ${SERIF}`,  cap: false },
+  { word: "your",   targetY: 980,  targetX: 540 - 70,  font: `500 100px ${MONO}`,          cap: true },
+  { word: "design.",targetY: 980,  targetX: 540 + 250, font: `italic 400 144px ${SERIF}`,  cap: false }
+];
 
-  const rl=Math.floor(SR*1.8),ir=oc.createBuffer(2,rl,SR);
-  for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<rl;i++)d[i]=(rand()*2-1)*Math.pow(1-i/rl,3.2);}
-  const conv=oc.createConvolver();conv.buffer=ir;
-  const revIn=oc.createGain(),revLp=oc.createBiquadFilter(),revOut=oc.createGain();
-  revLp.type='lowpass';revLp.frequency.value=5000;revOut.gain.value=.5;
-  revIn.connect(conv);conv.connect(revLp);revLp.connect(revOut);revOut.connect(master);
+// Scatter typography specimens across the sheet background
+const SPECIMEN_CHARS = [];
+const SPECIMEN_FONTS = [
+  `900 78px ${COND}`,
+  `italic 400 84px ${SERIF}`,
+  `400 90px ${SERIF}`,
+  `500 68px ${MONO}`,
+  `700 72px ${MONO}`,
+  `900 102px ${COND}`,
+  `italic 400 108px ${SERIF}`
+];
 
-  const out=(g,o={})=>{let n=g;
-    if(o.pan){const p=oc.createStereoPanner();p.pan.value=o.pan;n.connect(p);n=p;}
-    n.connect(master);
-    if(o.rev>0){const s=oc.createGain();s.gain.value=o.rev;n.connect(s);s.connect(revIn);}
-  };
-  const env=(p,t,peak,a,d)=>{p.setValueAtTime(.0001,t);p.linearRampToValueAtTime(peak,t+a);p.exponentialRampToValueAtTime(.0001,t+a+d);};
-  const nsrc=(t,dur,seed)=>{const s=oc.createBufferSource();s.buffer=nb;s.loop=true;s.start(t,(Math.abs(seed)*.37)%2,undefined);s.stop(t+dur);return s;};
-  const flt=(type,f,q=1)=>{const b=oc.createBiquadFilter();b.type=type;b.frequency.value=f;b.Q.value=q;return b;};
-  const osc=(type,f,t,dur)=>{const o=oc.createOscillator();o.type=type;o.frequency.setValueAtTime(f,t);o.start(t);o.stop(t+dur);return o;};
+// Target pickup positions and timings for the 5 words (0.0s - 3.8s)
+const PICKUPS = [
+  { word: "Your",    tPick: 0.70, tArrive: 1.05, sx: 240,  sy: 480,  tx: 300, ty: 830, font: `italic 400 136px ${SERIF}` },
+  { word: "text",    tPick: 1.40, tArrive: 1.75, sx: 820,  sy: 560,  tx: 740, ty: 830, font: `900 142px ${COND}` },
+  { word: "is",      tPick: 2.10, tArrive: 2.45, sx: 320,  sy: 1280, tx: 250, ty: 980, font: `italic 400 120px ${SERIF}` },
+  { word: "your",    tPick: 2.75, tArrive: 3.05, sx: 760,  sy: 1220, tx: 470, ty: 980, font: `500 100px ${MONO}` },
+  { word: "design.", tPick: 3.35, tArrive: 3.75, sx: 540,  sy: 1420, tx: 790, ty: 980, font: `italic 400 144px ${SERIF}` }
+];
 
-  const thud=(t,g=.6)=>{
-    const o=osc('sine',170,t,.45);o.frequency.exponentialRampToValueAtTime(44,t+.2);
-    const og=oc.createGain();env(og.gain,t,g,.003,.32);o.connect(og);out(og,{rev:.18});
-    const n=nsrc(t,.14,t*13.7),bp=flt('bandpass',950,.9),ng=oc.createGain();env(ng.gain,t,g*.7,.001,.075);n.connect(bp);bp.connect(ng);out(ng,{rev:.12});
-    const c=nsrc(t,.04,t*3.1),hp=flt('highpass',3500),cg=oc.createGain();env(cg.gain,t,g*.45,.0005,.012);c.connect(hp);hp.connect(cg);out(cg);
-  };
-  const tick=(t,f=1200,g=.2,pan=0)=>{
-    const o=osc('triangle',f,t,.08),gn=oc.createGain();env(gn.gain,t,g,.001,.05);o.connect(gn);out(gn,{pan,rev:.08});
-  };
-  const stoneClick=(t,g=.25,pan=0)=>{
-    const n=nsrc(t,.025,t*8.7),bp=flt('bandpass',3200,1.4),gn=oc.createGain();env(gn.gain,t,g,.0005,.008);n.connect(bp);bp.connect(gn);out(gn,{pan});
-    const o=osc('sine',280,t,.04),og=oc.createGain();env(og.gain,t,g*.5,.001,.02);o.connect(og);out(og);
-  };
-  const key=(t,i)=>{
-    const n=nsrc(t,.03,t*5.3),hp=flt('highpass',1800),g1=oc.createGain();env(g1.gain,t,.22,.0008,.012);n.connect(hp);hp.connect(g1);out(g1,{pan:i%2?.1:-.1});
-    const o=osc('sine',190+(i%3)*14,t,.06),g2=oc.createGain();env(g2.gain,t,.12,.001,.03);o.connect(g2);out(g2);
-  };
-  const clk=(t,g,f)=>{const n=nsrc(t,.03,t*9.1),bp=flt('bandpass',f,1.2),gn=oc.createGain();env(gn.gain,t,g,.0006,.007);n.connect(bp);bp.connect(gn);out(gn);};
-  const click=(t,g=.3)=>{clk(t,g,2800);clk(t+.075,g*.6,2000);};
-  const whoosh=(t,dur,o={})=>{
-    const{g=.3,up=true,f0=250,f1=5200}=o;
-    const n=nsrc(t,dur,t*7.3),bp=flt('bandpass',1,1.1);
-    bp.frequency.setValueAtTime(up?f0:f1,t);bp.frequency.exponentialRampToValueAtTime(up?f1:f0,t+dur);
-    const gn=oc.createGain();gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(g,t+dur*(up?.7:.3));gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
-    n.connect(bp);bp.connect(gn);
-    const p=oc.createStereoPanner();p.pan.setValueAtTime(up?-.7:.7,t);p.pan.linearRampToValueAtTime(up?.7:-.7,t+dur);gn.connect(p);out(p,{rev:.15});
-  };
-  const glide=(t,dur,f0,f1,g,type='sine')=>{
-    const o=osc(type,f0,t,dur+.05);o.frequency.exponentialRampToValueAtTime(f1,t+dur);
-    const gn=oc.createGain();env(gn.gain,t,g,.01,dur);o.connect(gn);out(gn,{rev:.2});
-  };
-  const chime=(t)=>{[[659.25,0],[987.77,.09]].forEach(([f,d])=>{
-    [[1,.2],[2,.05],[3,.02]].forEach(([m,a])=>{const o=osc('sine',f*m,t+d,1.6),gn=oc.createGain();env(gn.gain,t+d,a,.004,1.3);o.connect(gn);out(gn,{rev:.55});});
-  });};
-  const riser=(t0,t1,g)=>{
-    const n=nsrc(t0,t1-t0,3.3),bp=flt('bandpass',1,3);
-    bp.frequency.setValueAtTime(300,t0);bp.frequency.exponentialRampToValueAtTime(4200,t1);
-    const gn=oc.createGain();gn.gain.setValueAtTime(.0001,t0);gn.gain.exponentialRampToValueAtTime(g,t1-.05);gn.gain.linearRampToValueAtTime(0,t1);
-    n.connect(bp);bp.connect(gn);out(gn,{rev:.1});
-  };
-  const boom=(t,g)=>{
-    const o=osc('sine',100,t,1.2);o.frequency.exponentialRampToValueAtTime(28,t+.9);
-    const og=oc.createGain();env(og.gain,t,g,.004,1.0);o.connect(og);out(og,{rev:.35});
-    const n=nsrc(t,.5,t*2.2),lp=flt('lowpass',800),ng=oc.createGain();env(ng.gain,t,g*.6,.002,.35);n.connect(lp);lp.connect(ng);out(ng,{rev:.3});
-  };
-  const masonryZip=(t,dur,g)=>{
-    const n=Math.floor(dur*65);
-    for(let k=0;k<n;k++){stoneClick(t+k/65,g*(1-k/n*.4),k%2?.3:-.3);}
-  };
-  const sliderTicks=(fn,t0,t1,step,fb,g)=>{
-    let last=Math.round(fn(t0)/step);
-    for(let t=t0;t<=t1;t+=1/240){const q=Math.round(fn(t)/step);if(q!==last){last=q;tick(t,fb+fn(t)*5,g,0);}}
-  };
+function initSpecimenSheet() {
+  const rnd = mulberry32(101);
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz&?!*0123456789";
+  for (let row = 0; row < 10; row++) {
+    for (let col = 0; col < 6; col++) {
+      const char = alphabet[Math.floor(rnd() * alphabet.length)];
+      const bx = 110 + col * 165 + (rnd() - 0.5) * 45;
+      const by = 260 + row * 155 + (rnd() - 0.5) * 45;
+      const f = SPECIMEN_FONTS[Math.floor(rnd() * SPECIMEN_FONTS.length)];
+      const rot = (rnd() - 0.5) * 0.16;
+      SPECIMEN_CHARS.push({ char, x: bx, y: by, font: f, rot, alpha: 0.18 + rnd() * 0.14 });
+    }
+  }
+}
 
-  /* hook: loupe scan → slam → masonry deconstruction */
-  riser(0,SL-.02,.10);
-  for(let k=0;k<8;k++)stoneClick(.08+k*.15,.12,k%2?.3:-.3);
-  thud(SL,.85);boom(SL,.35);whoosh(SL,.35,{g:.18,up:false,f0:300,f1:4200});
-  masonryZip(CRUMB0,CRUMB_D,.08);
+// Compute continuous pen tip path
+function getPenTipAt(t) {
+  // Waypoints connecting the words
+  const pts = [
+    { t: 0.00, x: 180, y: 380 },
+    { t: 0.70, x: PICKUPS[0].sx, y: PICKUPS[0].sy },
+    { t: 1.05, x: PICKUPS[0].tx, y: PICKUPS[0].ty },
+    { t: 1.40, x: PICKUPS[1].sx, y: PICKUPS[1].sy },
+    { t: 1.75, x: PICKUPS[1].tx, y: PICKUPS[1].ty },
+    { t: 2.10, x: PICKUPS[2].sx, y: PICKUPS[2].sy },
+    { t: 2.45, x: PICKUPS[2].tx, y: PICKUPS[2].ty },
+    { t: 2.75, x: PICKUPS[3].sx, y: PICKUPS[3].sy },
+    { t: 3.05, x: PICKUPS[3].tx, y: PICKUPS[3].ty },
+    { t: 3.35, x: PICKUPS[4].sx, y: PICKUPS[4].sy },
+    { t: 3.75, x: PICKUPS[4].tx + 30, y: PICKUPS[4].ty },
+    { t: 4.40, x: 920, y: 1040 }
+  ];
 
-  /* montage cuts */
-  M_T0.forEach((t0,i)=>{
-    tick(t0,620*Math.pow(2,i*.12),.22,i%2?.25:-.25);
-    stoneClick(t0,.15);
-    thud(t0+.2,.45+.04*i);
+  if (t <= pts[0].t) return [pts[0].x, pts[0].y];
+  if (t >= pts[pts.length - 1].t) return [pts[pts.length - 1].x, pts[pts.length - 1].y];
+
+  for (let i = 1; i < pts.length; i++) {
+    if (t <= pts[i].t) {
+      const p0 = pts[i - 1], p1 = pts[i];
+      const p = (t - p0.t) / (p1.t - p0.t);
+      const ep = EASE.io3(p);
+      // Gentle curve deviation
+      const dx = p1.x - p0.x, dy = p1.y - p0.y;
+      const arch = Math.sin(p * Math.PI) * 40 * ((i % 2 === 0) ? 1 : -1);
+      return [p0.x + dx * ep - (dy / (Math.hypot(dx, dy) || 1)) * arch,
+              p0.y + dy * ep + (dx / (Math.hypot(dx, dy) || 1)) * arch];
+    }
+  }
+  return [pts[pts.length - 1].x, pts[pts.length - 1].y];
+}
+
+/* Draws real luxury drafting fountain pen */
+function drawPen(c, x, y, angle = -Math.PI / 4) {
+  c.save();
+  c.translate(x, y);
+  c.rotate(angle);
+
+  // Soft contact drop shadow
+  c.save();
+  c.fillStyle = 'rgba(0,0,0,0.22)';
+  c.beginPath();
+  c.ellipse(10, 16, 24, 7, Math.PI / 6, 0, Math.PI * 2);
+  c.filter = 'blur(8px)';
+  c.fill();
+  c.restore();
+
+  // Fine ink contact point
+  c.fillStyle = BRAND.ink;
+  c.beginPath();
+  c.arc(0, 0, 3.5, 0, Math.PI * 2);
+  c.fill();
+
+  // Nib: polished iridium steel tip
+  c.beginPath();
+  c.moveTo(0, 0);
+  c.lineTo(-12, -45);
+  c.lineTo(-18, -90);
+  c.lineTo(18, -90);
+  c.lineTo(12, -45);
+  c.closePath();
+  c.fillStyle = '#1c1b18';
+  c.fill();
+  c.strokeStyle = '#d4af37';
+  c.lineWidth = 2.5;
+  c.stroke();
+
+  // Nib slit & breather hole
+  c.strokeStyle = '#e6c86e';
+  c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(0, 0);
+  c.lineTo(0, -50);
+  c.stroke();
+  c.beginPath();
+  c.arc(0, -52, 3.5, 0, Math.PI * 2);
+  c.fillStyle = '#e6c86e';
+  c.fill();
+
+  // Pen grip section (matte black with gold trim)
+  c.fillStyle = '#222';
+  c.fillRect(-20, -180, 40, 90);
+  c.fillStyle = '#d4af37';
+  c.fillRect(-22, -186, 44, 6);
+
+  // Lacquered barrel
+  c.fillStyle = '#0f0f0f';
+  c.beginPath();
+  c.moveTo(-22, -186);
+  c.lineTo(-24, -420);
+  c.lineTo(24, -420);
+  c.lineTo(22, -186);
+  c.closePath();
+  c.fill();
+
+  // Pen barrel specular highlight
+  c.strokeStyle = 'rgba(255,255,255,0.22)';
+  c.lineWidth = 4;
+  c.beginPath();
+  c.moveTo(-10, -190);
+  c.lineTo(-11, -410);
+  c.stroke();
+
+  c.restore();
+}
+
+function drawSpecimenScene(c, t) {
+  // Clean white paper sheet with faint typographic specimen guide rules
+  c.fillStyle = BRAND.paper;
+  c.fillRect(0, 0, W, H);
+
+  // Architectural specimen guide rules
+  c.save();
+  c.strokeStyle = BRAND.line;
+  c.lineWidth = 1.5;
+  c.beginPath();
+  // Header specimen lines
+  c.moveTo(90, 180); c.lineTo(990, 180);
+  c.moveTo(90, 1740); c.lineTo(990, 1740);
+  // Baselines for words
+  c.moveTo(110, 890); c.lineTo(970, 890);
+  c.moveTo(110, 1040); c.lineTo(970, 1040);
+  c.stroke();
+  c.restore();
+
+  // Editorial sheet labels
+  mono(c, "CALLISTRA TYPOGRAPHIC SPECIMEN", 100, 140, { size: 24, ls: 6, alpha: 0.65 });
+  mono(c, "PLATE NO. 01 / LIVE ASSEMBLY", 980, 140, { size: 22, ls: 3, align: 'right', alpha: 0.65 });
+  mono(c, "1080 × 1920 PX", 100, 1780, { size: 22, ls: 4, alpha: 0.55 });
+  mono(c, "ALL TYPE IS SHAPE", 980, 1780, { size: 22, ls: 4, align: 'right', alpha: 0.55 });
+
+  // Draw background specimen letters (they remain neatly distributed)
+  SPECIMEN_CHARS.forEach(item => {
+    c.save();
+    c.translate(item.x, item.y);
+    c.rotate(item.rot);
+    c.font = item.font;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillStyle = BRAND.ink;
+    c.globalAlpha = item.alpha * (1 - prog(t, 3.8, 0.4));
+    c.fillText(item.char, 0, 0);
+    c.restore();
   });
 
-  /* bridge */
-  whoosh(B0,.35,{g:.2,f0:400,f1:4200});
-  masonryZip(B0+.25,.3,.06);thud(B0+.55,.65);boom(B0+.55,.3);
-  for(let i=0;i<5;i++)tick(B0+.7+i*.05,900+i*140,.06,0);
+  // Ink trajectory tether line drawn by the pen
+  const penTip = getPenTipAt(t);
+  c.save();
+  c.strokeStyle = 'rgba(18,18,18,0.22)';
+  c.lineWidth = 2.5;
+  c.setLineDash([4, 6]);
+  c.beginPath();
+  const stepCount = Math.floor(t * 30);
+  for (let i = 0; i <= stepCount; i++) {
+    const pt = getPenTipAt((i / 30));
+    if (i === 0) c.moveTo(pt[0], pt[1]);
+    else c.lineTo(pt[0], pt[1]);
+  }
+  c.lineTo(penTip[0], penTip[1]);
+  c.stroke();
+  c.restore();
 
-  /* bar wipe in/out */
-  whoosh(W1_IN-.03,.5,{g:.3});thud(W1_COVER,.35);whoosh(W1_COVER+.02,.45,{g:.2,up:false});
+  // Reveal words as pen reaches & transports each word
+  PICKUPS.forEach(p => {
+    if (t < p.tPick) return;
 
-  /* UI walkthrough */
-  click(R(.8));
-  CH_T.forEach((ct,i)=>key(ct,i));
-  click(R(1.9),.3);sliderTicks(t=>kf(t,CELLV),R(1.95),R(3.3),1,900,.05);click(R(3.35),.22);
-  click(R(3.8),.3);sliderTicks(t=>kf(t,SPACEV),R(3.85),R(5.15),1,900,.05);click(R(5.2),.22);
-  click(R(5.65),.3);sliderTicks(t=>kf(t,OFFV),R(5.7),R(7.05),3,900,.05);click(R(7.1),.22);
-  click(R(7.55));whoosh(R(7.55),.3,{g:.08,f0:800,f1:2400});
-  click(R(8.3),.3);sliderTicks(t=>kf(t,SIZEV),R(8.35),R(9.45),5,700,.05);click(R(9.5),.22);
-  click(R(9.85));glide(R(9.85),.5,330,990,.07);
-  click(R(10.35));tick(R(10.45),1500,.1);
-  click(R(11.0));
-  for(let k=0;k<9;k++)tick(R(11.05)+k*.05,1600+k*60,.07,0);
-  whoosh(R(11.4),.3,{g:.1,f0:600,f1:3000});chime(R(11.45));
+    let wx, wy, wScale = 1, wAlpha = 1;
+    if (t < p.tArrive) {
+      const u = prog(t, p.tPick, p.tArrive - p.tPick, 'io3');
+      wx = lerp(p.sx, p.tx, u);
+      wy = lerp(p.sy, p.ty, u);
+      wScale = 1 + 0.18 * Math.sin(u * Math.PI);
+      wAlpha = clamp(u * 2, 0.3, 1);
+    } else {
+      wx = p.tx;
+      wy = p.ty;
+      // Settling snap
+      const q = t - p.tArrive;
+      if (q < 0.25) {
+        wScale = 1 + 0.12 * Math.exp(-q * 16) * Math.cos(q * 40);
+      }
+    }
 
-  /* wipe to outro */
-  whoosh(W2_IN-.03,.5,{g:.3});thud(W2_COVER,.4);whoosh(W2_COVER+.02,.45,{g:.2,up:false});
+    c.save();
+    c.translate(wx, wy);
+    c.scale(wScale, wScale);
+    c.font = p.font;
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillStyle = BRAND.ink;
+    c.globalAlpha = wAlpha;
+    c.fillText(p.word, 0, 0);
+    c.restore();
+  });
 
-  /* outro */
-  whoosh(Dr(.15),.4,{g:.14});masonryZip(Dr(.2),.55,.05);
-  thud(Dr(.75),.8);boom(Dr(.75),.4);
-  for(let i=0;i<4;i++)tick(Dr(1.2)+i*.05,1000+i*180,.05,0);
-  glide(Dr(1.6),.4,600,2600,.05,'triangle');
-  chime(Dr(2.0));
+  // Dynamic ink ripples when pen picks a letter up
+  PICKUPS.forEach(p => {
+    const dt = t - p.tPick;
+    if (dt >= 0 && dt <= 0.4) {
+      const pr = dt / 0.4;
+      c.save();
+      c.strokeStyle = BRAND.ink;
+      c.lineWidth = 3 * (1 - pr);
+      c.globalAlpha = 0.5 * (1 - pr);
+      c.beginPath();
+      c.arc(p.sx, p.sy, 12 + 60 * EASE.o3(pr), 0, Math.PI * 2);
+      c.stroke();
+      c.restore();
+    }
+  });
+
+  // Draw continuous moving fountain pen
+  if (t < 4.4) {
+    const ptPrev = getPenTipAt(Math.max(0, t - 0.03));
+    const angle = Math.atan2(penTip[1] - ptPrev[1], penTip[0] - ptPrev[0]) - Math.PI / 2;
+    drawPen(c, penTip[0], penTip[1], angle);
+  }
+
+  // Final sentence hold & typographic impact emphasis (3.8s - 4.5s)
+  if (t >= 3.8) {
+    const slamP = prog(t, 3.8, 0.25, 'oexp');
+    c.save();
+    c.strokeStyle = BRAND.accent;
+    c.lineWidth = 4;
+    c.beginPath();
+    c.moveTo(540 - 360 * slamP, 1070);
+    c.lineTo(540 + 360 * slamP, 1070);
+    c.stroke();
+    c.restore();
+
+    mono(c, "NOW WATCH IT BECOME INTERACTIVE", 540, 1140, {
+      size: 28, ls: 8, align: 'center', alpha: prog(t, 3.95, 0.25, 'oexp'), color: BRAND.accent, weight: 700
+    });
+  }
+}
+
+/* =====================================================================
+   PART 2: THE 5 TEXT EFFECT MAKERS (REAL ALGORITHMS)
+   Showcasing:
+     1. Glitch Slice
+     2. Stamp Wear
+     3. Yarn Loop
+     4. Kinetic Flowfield
+     5. Impact Matrix
+   ===================================================================== */
+
+// --- 1. Glitch Slice Canvas generator ---
+function renderGlitchSlice(text, fringe = 4, shear = 36, chaos = 0.35, color = '#121212') {
+  const w = 800, h = 400, cv = mkCanvas(w, h), ctx = cv.getContext('2d');
+  const off = mkCanvas(w, h), octx = off.getContext('2d');
+  octx.font = `900 130px ${COND}`;
+  octx.textAlign = 'center'; octx.textBaseline = 'middle'; octx.fillStyle = color;
+  octx.fillText(text, w / 2, h / 2);
+
+  const src = new Uint32Array(octx.getImageData(0, 0, w, h).data.buffer);
+  const img = ctx.createImageData(w, h);
+  const dst = new Uint32Array(img.data.buffer);
+
+  for (let dy = 0; dy < h; dy++) {
+    const band = Math.floor(dy / fringe);
+    const dir = (band % 2 === 0) ? 1 : -1;
+    const wave = Math.sin(band * 0.4) * shear;
+    const noise = Math.sin(dy * 12.9898 + band * 78.233) * 43758.5453;
+    const chaotic = dir * (noise - Math.floor(noise)) * shear * 1.5;
+    const shift = Math.round((wave * (1 - chaos)) + (chaotic * chaos));
+    const rOff = dy * w;
+    for (let dx = 0; dx < w; dx++) {
+      const sx = dx - shift;
+      if (sx >= 0 && sx < w) {
+        const p = src[rOff + sx];
+        if (p !== 0) dst[rOff + dx] = p;
+      }
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return cv;
+}
+
+// --- 2. Stamp Wear Canvas generator ---
+function renderStampWear(text, erosion = 0.5, edge = 0.65, color = '#121212') {
+  const w = 800, h = 400, cv = mkCanvas(w, h), ctx = cv.getContext('2d');
+  const off = mkCanvas(w, h), octx = off.getContext('2d');
+  octx.font = `900 130px ${COND}`;
+  octx.textAlign = 'center'; octx.textBaseline = 'middle'; octx.fillStyle = color;
+  octx.fillText(text, w / 2, h / 2);
+
+  const src = new Uint32Array(octx.getImageData(0, 0, w, h).data.buffer);
+  const img = ctx.createImageData(w, h);
+  const dst = new Uint32Array(img.data.buffer);
+
+  const R = 3;
+  const em = new Float32Array(w * h);
+  for (let y = 0; y < h; y += 2) {
+    const r = y * w;
+    for (let x = 0; x < w; x += 2) {
+      if (src[r + x] === 0) continue;
+      let md = R + 1;
+      for (let dy = -R; dy <= R; dy += 2) {
+        const ny = y + dy; if (ny < 0 || ny >= h) continue;
+        const nr = ny * w;
+        for (let dx = -R; dx <= R; dx += 2) {
+          const nx = x + dx;
+          if (nx < 0 || nx >= w || src[nr + nx] === 0) {
+            const d = Math.hypot(dx, dy); if (d < md) md = d;
+          }
+        }
+      }
+      em[r + x] = Math.min(1, md / R);
+    }
+  }
+
+  const innerT = 1 - erosion * 0.7, edgeT = 1 - edge * 0.95;
+  for (let y = 0; y < h; y++) {
+    const r = y * w;
+    for (let x = 0; x < w; x++) {
+      const p = src[r + x];
+      if (p === 0) continue;
+      const n = (Math.sin(x * 12.98 + y * 78.23) * 43758.545) % 1;
+      const ef = em[r + (x & ~1)] || 0.5;
+      if (Math.abs(n) < (ef * innerT + (1 - ef) * edgeT)) dst[r + x] = p;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  return cv;
+}
+
+// --- 3. Yarn Loop Canvas generator ---
+function renderYarnLoop(text, grid = 6, loop = 7, fuzz = 0.45, color = '#121212') {
+  const w = 800, h = 400, cv = mkCanvas(w, h), ctx = cv.getContext('2d');
+  const off = mkCanvas(w, h), octx = off.getContext('2d');
+  octx.font = `400 130px ${SERIF}`;
+  octx.textAlign = 'center'; octx.textBaseline = 'middle'; octx.fillStyle = '#000';
+  octx.fillText(text, w / 2, h / 2);
+
+  const buf = new Uint32Array(octx.getImageData(0, 0, w, h).data.buffer);
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+
+  for (let by = 0; by < h; by += grid) {
+    const ro = by * w;
+    for (let bx = 0; bx < w; bx += grid) {
+      if (buf[ro + bx] === 0) continue;
+      const n = Math.sin(bx * 12.98 + by * 78.23) * 43758.545;
+      const rS = n - Math.floor(n);
+      const fx = (rS - 0.5) * (loop * 0.8 * fuzz);
+      const cx = bx + fx, cy = by;
+      ctx.beginPath(); ctx.arc(cx, cy - loop * 0.3, loop, 0.2 * Math.PI, 0.8 * Math.PI, true); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx - loop * 0.4, cy + loop * 0.2, loop * 0.6, 1.2 * Math.PI, 1.8 * Math.PI, false); ctx.stroke();
+    }
+  }
+  return cv;
+}
+
+// --- 4. Kinetic Flowfield generator ---
+function renderKineticFlowfield(text, turbulence = 22, strength = 24, color = '#121212') {
+  const w = 800, h = 400, cv = mkCanvas(w, h), ctx = cv.getContext('2d');
+  const off = mkCanvas(w, h), octx = off.getContext('2d');
+  octx.font = `900 130px ${COND}`;
+  octx.textAlign = 'center'; octx.textBaseline = 'middle'; octx.fillStyle = '#000';
+  octx.fillText(text, w / 2, h / 2);
+
+  const buf = new Uint32Array(octx.getImageData(0, 0, w, h).data.buffer);
+  ctx.fillStyle = color;
+  const step = 4, dotRadius = 1.6;
+
+  for (let y = 0; y < h; y += step) {
+    const ro = y * w;
+    for (let x = 0; x < w; x += step) {
+      if (buf[ro + x] !== 0) {
+        let px = x, py = y;
+        const steps = 6, dist = strength / steps;
+        for (let s = 0; s < steps; s++) {
+          const ang = (Math.sin(px * 0.015 * (turbulence / 20) + py * 0.015) * 0.5 + 0.5) * Math.PI * 4;
+          px += Math.cos(ang) * dist;
+          py += Math.sin(ang) * dist;
+        }
+        ctx.beginPath(); ctx.arc(px, py, dotRadius, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  }
+  return cv;
+}
+
+// --- 5. Impact Matrix generator ---
+function renderImpactMatrix(text, jitter = 10, bleed = 0.55, color = '#121212') {
+  const w = 800, h = 400, cv = mkCanvas(w, h), ctx = cv.getContext('2d');
+  const off = mkCanvas(w, h), octx = off.getContext('2d');
+  octx.font = `900 130px ${COND}`;
+  octx.textAlign = 'center'; octx.textBaseline = 'middle'; octx.fillStyle = '#000';
+  octx.fillText(text, w / 2, h / 2);
+
+  const mask = new Uint32Array(octx.getImageData(0, 0, w, h).data.buffer);
+  ctx.fillStyle = color;
+  const step = 5, baseR = 1.8;
+
+  for (let y = 0; y < h; y += step) {
+    const row = y / step;
+    const wave = Math.sin(row * 0.5) * (jitter * 0.5);
+    const n = Math.sin(row * 127.1) * 43758.5;
+    const shiftX = Math.round(wave + ((n - Math.floor(n)) - 0.5) * jitter);
+
+    for (let x = 0; x < w; x += step) {
+      const sx = x - shiftX;
+      if (sx >= 0 && sx < w) {
+        if (mask[y * w + sx] !== 0) {
+          const rSeed = (Math.sin(x * 12.9 + y * 78.2) * 43758.5) % 1;
+          const r = (Math.abs(rSeed) < bleed) ? baseR * 1.5 : baseR;
+          ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+    }
+  }
+  return cv;
+}
+
+// Pre-render tool previews so the 30 fps render pipeline is blazingly fast and deterministic
+const TOOL_SHOWCASE = [
+  {
+    num: "01",
+    name: "GLITCH SLICE",
+    slider1: { label: "Slice Thickness", val: "3px" },
+    slider2: { label: "Shear Offset", val: "38px" },
+    render: () => renderGlitchSlice("SIGNAL", 3, 38, 0.4, BRAND.ink)
+  },
+  {
+    num: "02",
+    name: "STAMP WEAR",
+    slider1: { label: "Erosion Level", val: "48%" },
+    slider2: { label: "Edge Wear", val: "65%" },
+    render: () => renderStampWear("STAMPED", 0.48, 0.65, BRAND.ink)
+  },
+  {
+    num: "03",
+    name: "YARN LOOP",
+    slider1: { label: "Stitch Grid Size", val: "6px" },
+    slider2: { label: "Loop Radius", val: "7px" },
+    render: () => renderYarnLoop("WOVEN", 6, 7, 0.45, BRAND.ink)
+  },
+  {
+    num: "04",
+    name: "KINETIC FLOWFIELD",
+    slider1: { label: "Turbulence", val: "24%" },
+    slider2: { label: "Current Strength", val: "22px" },
+    render: () => renderKineticFlowfield("KINETIC", 24, 22, BRAND.ink)
+  },
+  {
+    num: "05",
+    name: "IMPACT MATRIX",
+    slider1: { label: "Feed Jitter", val: "12px" },
+    slider2: { label: "Strike Bleed", val: "60%" },
+    render: () => renderImpactMatrix("RECEIPT", 12, 0.6, BRAND.ink)
+  }
+];
+
+let toolCanvases = [];
+function prepareToolCanvases() {
+  toolCanvases = TOOL_SHOWCASE.map(t => t.render());
+}
+
+/* =====================================================================
+   PART 3: DRAW FAST 5-TOOL SHOWCASE GLANCES (4.5s – 7.1s)
+   ===================================================================== */
+const SHOWCASE_T0 = 4.5;
+const SHOWCASE_DUR = 0.52; // ~0.5s per tool: ultra fast, hypnotic, glance-recording style
+
+function drawToolGlance(c, t) {
+  const elapsed = t - SHOWCASE_T0;
+  const index = clamp(Math.floor(elapsed / SHOWCASE_DUR), 0, TOOL_SHOWCASE.length - 1);
+  const tool = TOOL_SHOWCASE[index];
+  const tLocal = elapsed - index * SHOWCASE_DUR;
+  const cv = toolCanvases[index];
+
+  // Screen background
+  c.fillStyle = BRAND.bg;
+  c.fillRect(0, 0, W, H);
+
+  // Hard cut pulse / camera punch
+  const punch = Math.exp(-tLocal * 24) * 12;
+  c.save();
+  c.translate(0, punch);
+
+  // Top header status bar
+  mono(c, "CALLISTRA.DESIGN", 100, 240, { size: 26, ls: 4, alpha: 0.75, weight: 700 });
+  mono(c, `[ 0${index + 1} / 05 ]`, 980, 240, { size: 24, ls: 3, align: 'right', alpha: 0.75 });
+
+  // Big headline for the tool
+  c.save();
+  c.font = `900 86px ${COND}`;
+  c.fillStyle = BRAND.ink;
+  c.fillText(tool.name, 100, 340);
+  c.restore();
+
+  // Draw UI frame container
+  const uiX = 100, uiY = 410, uiW = 880, uiH = 1180;
+  c.save();
+  c.fillStyle = '#ffffff';
+  c.strokeStyle = BRAND.line;
+  c.lineWidth = 2;
+  c.beginPath();
+  c.roundRect(uiX, uiY, uiW, uiH, 8);
+  c.fill();
+  c.stroke();
+  c.restore();
+
+  // Canvas preview box with checkerboard
+  const cvX = uiX + 40, cvY = uiY + 40, cvW = uiW - 80, cvH = 440;
+  c.save();
+  c.beginPath();
+  c.rect(cvX, cvY, cvW, cvH);
+  c.clip();
+
+  // Checkerboard
+  const chkSize = 22;
+  for (let cy = cvY; cy < cvY + cvH; cy += chkSize) {
+    for (let cx = cvX; cx < cvX + cvW; cx += chkSize) {
+      c.fillStyle = ((cx / chkSize + cy / chkSize) % 2 === 0) ? '#efece6' : '#ffffff';
+      c.fillRect(cx, cy, chkSize, chkSize);
+    }
+  }
+  // Draw the actual live tool effect canvas
+  c.drawImage(cv, cvX, cvY, cvW, cvH);
+  c.strokeStyle = BRAND.line;
+  c.lineWidth = 2;
+  c.strokeRect(cvX, cvY, cvW, cvH);
+  c.restore();
+
+  // Input row
+  const inpY = cvY + cvH + 50;
+  mono(c, "TYPE SOMETHING...", cvX, inpY + 10, { size: 36, alpha: 0.85, weight: 700 });
+  c.save();
+  c.strokeStyle = BRAND.ink;
+  c.lineWidth = 2.5;
+  c.beginPath();
+  c.moveTo(cvX, inpY + 45);
+  c.lineTo(cvX + cvW, inpY + 45);
+  c.stroke();
+  c.restore();
+
+  // Slider 1 (animated slightly with time)
+  const sl1Y = inpY + 100;
+  mono(c, tool.slider1.label.toUpperCase(), cvX, sl1Y, { size: 22, ls: 3, color: BRAND.muted });
+  mono(c, tool.slider1.val, cvX + cvW, sl1Y, { size: 24, align: 'right', weight: 700 });
+  c.save();
+  c.strokeStyle = BRAND.line;
+  c.lineWidth = 3;
+  c.beginPath();
+  c.moveTo(cvX, sl1Y + 35);
+  c.lineTo(cvX + cvW, sl1Y + 35);
+  c.stroke();
+  const thumb1P = 0.35 + 0.3 * Math.sin(tLocal * 12);
+  c.fillStyle = BRAND.ink;
+  c.beginPath();
+  c.arc(cvX + cvW * thumb1P, sl1Y + 35, 12, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
+
+  // Slider 2
+  const sl2Y = sl1Y + 110;
+  mono(c, tool.slider2.label.toUpperCase(), cvX, sl2Y, { size: 22, ls: 3, color: BRAND.muted });
+  mono(c, tool.slider2.val, cvX + cvW, sl2Y, { size: 24, align: 'right', weight: 700 });
+  c.save();
+  c.strokeStyle = BRAND.line;
+  c.lineWidth = 3;
+  c.beginPath();
+  c.moveTo(cvX, sl2Y + 35);
+  c.lineTo(cvX + cvW, sl2Y + 35);
+  c.stroke();
+  const thumb2P = 0.60 + 0.25 * Math.cos(tLocal * 10);
+  c.fillStyle = BRAND.ink;
+  c.beginPath();
+  c.arc(cvX + cvW * thumb2P, sl2Y + 35, 12, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
+
+  // Mock Color & Size accordion
+  const advY = sl2Y + 100;
+  c.save();
+  c.strokeStyle = BRAND.line;
+  c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(cvX, advY);
+  c.lineTo(cvX + cvW, advY);
+  c.stroke();
+  c.restore();
+  mono(c, "COLOR AND SIZE", cvX, advY + 35, { size: 22, ls: 3, color: BRAND.muted });
+  mono(c, "＋", cvX + cvW, advY + 35, { size: 26, align: 'right', color: BRAND.muted });
+
+  // Download Button CTA inside the app
+  const btnY = uiY + uiH - 120;
+  c.save();
+  c.fillStyle = (tLocal > SHOWCASE_DUR - 0.12) ? BRAND.accent : BRAND.ink;
+  c.beginPath();
+  c.roundRect(cvX, btnY, cvW, 80, 4);
+  c.fill();
+  c.restore();
+
+  mono(c, (tLocal > SHOWCASE_DUR - 0.12) ? "EXPORTING PNG..." : "DOWNLOAD PNG", cvX + cvW / 2, btnY + 40, {
+    size: 24, ls: 4, align: 'center', color: '#ffffff', weight: 700
+  });
+
+  // Simulated rapid operating cursor
+  const curX = cvX + cvW * (0.3 + 0.4 * Math.sin(tLocal * 9));
+  const curY = sl1Y + 35 + 80 * Math.cos(tLocal * 8);
+  c.save();
+  c.translate(curX, curY);
+  c.fillStyle = '#ffffff';
+  c.strokeStyle = '#121212';
+  c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(0, 0); c.lineTo(0, 26); c.lineTo(7, 20); c.lineTo(16, 29); c.lineTo(21, 26); c.lineTo(12, 17); c.lineTo(22, 17);
+  c.closePath();
+  c.fill();
+  c.stroke();
+  c.restore();
+
+  c.restore(); // end camera punch
+
+  // Quick 1-frame cut flash
+  flash(c, 0.15 * Math.exp(-tLocal * 28), '#000');
+}
+
+/* =====================================================================
+   PART 4: OUTRO (7.1s – 8.0s)
+   ===================================================================== */
+function drawOutro(c, t) {
+  const u = t - 7.1;
+  c.fillStyle = BRAND.darkBg;
+  c.fillRect(0, 0, W, H);
+
+  const ps = prog(u, 0.05, 0.45, 'oexp');
+  c.save();
+  c.translate(540, 780);
+  c.scale(ps, ps);
+  c.font = `italic 400 130px ${SERIF}`;
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillStyle = BRAND.darkInk;
+  c.fillText("Create Yours.", 0, 0);
+  c.restore();
+
+  const p2 = prog(u, 0.25, 0.4, 'oexp');
+  mono(c, "CALLISTRA.DESIGN", 540, 960, {
+    size: 52, ls: 6, align: 'center', color: BRAND.darkInk, alpha: p2, weight: 700
+  });
+
+  const pLine = prog(u, 0.35, 0.4, 'oexp');
+  c.save();
+  c.strokeStyle = BRAND.accent;
+  c.lineWidth = 5;
+  c.beginPath();
+  c.moveTo(540 - 280 * pLine, 1020);
+  c.lineTo(540 + 280 * pLine, 1020);
+  c.stroke();
+  c.restore();
+
+  mono(c, "ALL TEXT EFFECT MAKERS LIVE IN BROWSER", 540, 1080, {
+    size: 26, ls: 6, align: 'center', color: '#a29d93', alpha: prog(u, 0.45, 0.35)
+  });
+
+  mono(c, "LINK IN BIO", 540, 1150, {
+    size: 32, ls: 8, align: 'center', color: BRAND.darkInk, alpha: prog(u, 0.55, 0.3), weight: 700
+  });
+
+  // Soft fade to black at the very end
+  const fo = prog(t, REEL.duration - 0.3, 0.3);
+  if (fo > 0) {
+    c.fillStyle = '#000';
+    c.globalAlpha = fo;
+    c.fillRect(0, 0, W, H);
+    c.globalAlpha = 1;
+  }
+}
+
+/* =====================================================================
+   MAIN RENDER FUNCTION (PURE FUNCTION OF t)
+   ===================================================================== */
+const stage = $('stage'), sc = stage.getContext('2d');
+const grain = $('grain'), gc = grain.getContext('2d');
+let grainTile = null;
+
+function buildGrainTile() {
+  const rnd = mulberry32(13);
+  grainTile = mkCanvas(512, 512);
+  const g = grainTile.getContext('2d'), id = g.createImageData(512, 512);
+  for (let i = 0; i < 512 * 512; i++) {
+    const v = rnd() * 255;
+    id.data[i * 4] = id.data[i * 4 + 1] = id.data[i * 4 + 2] = v;
+    id.data[i * 4 + 3] = 255;
+  }
+  g.putImageData(id, 0, 0);
+}
+
+function renderFrame(t) {
+  t = clamp(t, 0, REEL.duration);
+  sc.setTransform(1, 0, 0, 1, 0, 0);
+  sc.clearRect(0, 0, W, H);
+
+  if (t < SHOWCASE_T0) {
+    drawSpecimenScene(sc, t);
+  } else if (t < 7.1) {
+    drawToolGlance(sc, t);
+  } else {
+    drawOutro(sc, t);
+  }
+
+  // Draw procedural animated film grain
+  const f = Math.floor(t * REEL.fps + 0.001);
+  const ox = (f * 97) % 512, oy = (f * 57) % 512;
+  gc.clearRect(0, 0, W, H);
+  for (let x = -ox; x < W; x += 512) {
+    for (let y = -oy; y < H; y += 512) {
+      gc.drawImage(grainTile, x, y);
+    }
+  }
+}
+window.renderFrame = renderFrame;
+
+/* =====================================================================
+   SOUNDTRACK (SYNTHESIZED OFFLINE VIA WEB AUDIO API)
+   ===================================================================== */
+async function buildAudio() {
+  const SR = 44100, DUR = REEL.duration;
+  const oc = new OfflineAudioContext(2, Math.ceil(SR * DUR), SR);
+  const rand = mulberry32(42);
+
+  // Noise buffer
+  const nb = oc.createBuffer(1, SR * 3, SR);
+  const nd = nb.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = rand() * 2 - 1;
+
+  // Master bus
+  const master = oc.createGain();
+  master.gain.setValueAtTime(0.78, 0);
+  master.gain.setValueAtTime(0.78, DUR - 0.4);
+  master.gain.linearRampToValueAtTime(0, DUR - 0.02);
+
+  const comp = oc.createDynamicsCompressor();
+  comp.threshold.value = -12; comp.knee.value = 10; comp.ratio.value = 8;
+  comp.attack.value = 0.002; comp.release.value = 0.12;
+  master.connect(comp);
+  comp.connect(oc.destination);
+
+  // Subtle algorithmic room reverb
+  const rl = Math.floor(SR * 1.5), ir = oc.createBuffer(2, rl, SR);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = ir.getChannelData(ch);
+    for (let i = 0; i < rl; i++) d[i] = (rand() * 2 - 1) * Math.pow(1 - i / rl, 3.5);
+  }
+  const conv = oc.createConvolver(); conv.buffer = ir;
+  const revIn = oc.createGain(), revOut = oc.createGain();
+  revOut.gain.value = 0.35;
+  revIn.connect(conv); conv.connect(revOut); revOut.connect(master);
+
+  const out = (g, o = {}) => {
+    let n = g;
+    if (o.pan) { const p = oc.createStereoPanner(); p.pan.value = o.pan; n.connect(p); n = p; }
+    n.connect(master);
+    if (o.rev > 0) { const s = oc.createGain(); s.gain.value = o.rev; n.connect(s); s.connect(revIn); }
+  };
+
+  const env = (p, t, peak, a, d) => {
+    p.setValueAtTime(0.0001, t);
+    p.linearRampToValueAtTime(peak, t + a);
+    p.exponentialRampToValueAtTime(0.0001, t + a + d);
+  };
+  const nsrc = (t, dur, seed) => {
+    const s = oc.createBufferSource(); s.buffer = nb; s.loop = true;
+    s.start(t, (Math.abs(seed) * 0.37) % 2, undefined); s.stop(t + dur); return s;
+  };
+  const flt = (type, f, q = 1) => {
+    const b = oc.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; return b;
+  };
+  const osc = (type, f, t, dur) => {
+    const o = oc.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t);
+    o.start(t); o.stop(t + dur); return o;
+  };
+
+  // Sound primitives
+  const penScratch = (t, dur = 0.35, pan = 0) => {
+    const n = nsrc(t, dur, t * 19.1), bp = flt('bandpass', 3200, 1.8), g = oc.createGain();
+    env(g.gain, t, 0.08, 0.02, dur - 0.02);
+    n.connect(bp); bp.connect(g); out(g, { pan, rev: 0.1 });
+  };
+  const wordSnap = (t, pitch = 880) => {
+    const o = osc('triangle', pitch, t, 0.09), gn = oc.createGain();
+    env(gn.gain, t, 0.32, 0.001, 0.08);
+    o.connect(gn); out(gn, { rev: 0.15 });
+    const n = nsrc(t, 0.04, t * 7.3), hp = flt('highpass', 4500), ng = oc.createGain();
+    env(ng.gain, t, 0.25, 0.0008, 0.02);
+    n.connect(hp); hp.connect(ng); out(ng);
+  };
+  const thud = (t, g = 0.7) => {
+    const o = osc('sine', 160, t, 0.45);
+    o.frequency.exponentialRampToValueAtTime(42, t + 0.22);
+    const og = oc.createGain(); env(og.gain, t, g, 0.003, 0.35);
+    o.connect(og); out(og, { rev: 0.25 });
+    const n = nsrc(t, 0.12, 5.1), bp = flt('bandpass', 850, 1.0), ng = oc.createGain();
+    env(ng.gain, t, g * 0.6, 0.001, 0.08);
+    n.connect(bp); bp.connect(ng); out(ng);
+  };
+  const shutterCut = (t, pitch = 1400) => {
+    const o = osc('square', pitch, t, 0.05), gn = oc.createGain();
+    env(gn.gain, t, 0.2, 0.001, 0.04);
+    o.connect(gn); out(gn);
+    const n = nsrc(t, 0.03, t * 3.7), hp = flt('highpass', 2400), ng = oc.createGain();
+    env(ng.gain, t, 0.3, 0.0005, 0.025);
+    n.connect(hp); hp.connect(ng); out(ng);
+  };
+  const chime = (t) => {
+    [[659.25, 0], [987.77, 0.08], [1318.51, 0.16]].forEach(([f, d]) => {
+      const o = osc('sine', f, t + d, 1.4), g = oc.createGain();
+      env(g.gain, t + d, 0.22, 0.003, 1.1);
+      o.connect(g); out(g, { rev: 0.5 });
+    });
+  };
+
+  // 1. Pen glide sounds and word pick-up snaps
+  PICKUPS.forEach((p, i) => {
+    penScratch(p.tPick - 0.25, 0.28, (i % 2 === 0) ? -0.2 : 0.2);
+    wordSnap(p.tArrive, 740 + i * 110);
+  });
+
+  // 2. Big typographic slam on "Your text is your design."
+  thud(3.8, 0.85);
+
+  // 3. Fast shutter sound on every tool glance cut
+  for (let i = 0; i < 5; i++) {
+    const tc = SHOWCASE_T0 + i * SHOWCASE_DUR;
+    shutterCut(tc, 1100 + i * 160);
+    // Click of slider
+    penScratch(tc + 0.15, 0.18, 0);
+  }
+
+  // 4. Outro boom & chime
+  thud(7.1, 0.8);
+  chime(7.2);
+
   return oc.startRendering();
 }
 
-let audioP=null;
-const getAudio=()=>audioP||(audioP=buildAudio());
-function toWavB64(buf){
-  const ch=buf.numberOfChannels,n=buf.length,sr=buf.sampleRate;
-  const data=[];let peak=0;
-  for(let c=0;c<ch;c++){const d=buf.getChannelData(c);data.push(d);for(let i=0;i<n;i++){const a=Math.abs(d[i]);if(a>peak)peak=a;}}
-  const gain=peak>.89?.89/peak:1;
-  const ab=new ArrayBuffer(44+n*ch*2),v=new DataView(ab);
-  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
-  ws(0,'RIFF');v.setUint32(4,36+n*ch*2,true);ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,ch,true);
-  v.setUint32(24,sr,true);v.setUint32(28,sr*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,n*ch*2,true);
-  let o=44;
-  for(let i=0;i<n;i++)for(let c=0;c<ch;c++){v.setInt16(o,Math.round(clamp(data[c][i]*gain,-1,1)*32767),true);o+=2;}
-  const bytes=new Uint8Array(ab);let s='';
-  for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
+let audioP = null;
+const getAudio = () => audioP || (audioP = buildAudio());
+
+function toWavB64(buf) {
+  const ch = buf.numberOfChannels, n = buf.length, sr = buf.sampleRate;
+  const data = []; let peak = 0;
+  for (let c = 0; c < ch; c++) {
+    const d = buf.getChannelData(c); data.push(d);
+    for (let i = 0; i < n; i++) { const a = Math.abs(d[i]); if (a > peak) peak = a; }
+  }
+  const gain = peak > 0.89 ? 0.89 / peak : 1;
+  const ab = new ArrayBuffer(44 + n * ch * 2), v = new DataView(ab);
+  const ws = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  ws(0, 'RIFF'); v.setUint32(4, 36 + n * ch * 2, true); ws(8, 'WAVE');
+  ws(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, ch, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * ch * 2, true); v.setUint16(32, ch * 2, true);
+  v.setUint16(34, 16, true); ws(36, 'data'); v.setUint32(40, n * ch * 2, true);
+  let o = 44;
+  for (let i = 0; i < n; i++) {
+    for (let c = 0; c < ch; c++) {
+      v.setInt16(o, Math.round(clamp(data[c][i] * gain, -1, 1) * 32767), true);
+      o += 2;
+    }
+  }
+  const bytes = new Uint8Array(ab); let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
   return btoa(s);
 }
-window.renderAudio=async()=>toWavB64(await getAudio());
+window.renderAudio = async () => toWavB64(await getAudio());
 
 /* =====================================================================
-   PREVIEW PLAYER (normal browser only) + BOOT
+   PREVIEW PLAYER & BOOTSTRAP
    ===================================================================== */
-function initPreview(){
-  const vp=$('viewport'),pl=$('player'),btn=$('pBtn'),rg=$('pRange'),tm=$('pTime');
-  pl.hidden=false;rg.max=REEL.duration;
-  const fit=()=>{const s=Math.min(innerWidth/W,(innerHeight-64)/H);vp.style.transform=`scale(${s})`;vp.style.left=((innerWidth-W*s)/2)+'px';};
-  addEventListener('resize',fit);fit();
-  let playing=false,base=0,started=0,cur=0,actx=null,srcN=null,buf=null;
-  const stopAudio=()=>{if(srcN){try{srcN.stop();}catch(e){}srcN=null;}};
-  const show=t=>{renderFrame(t);rg.value=t;tm.textContent=t.toFixed(1)+'s';};
-  function loop(){
-    if(!playing)return;
-    cur=base+(performance.now()-started)/1000;
-    if(cur>=REEL.duration){cur=REEL.duration;show(cur);pause();btn.textContent='REPLAY';cur=0;return;}
-    show(cur);requestAnimationFrame(loop);
+function initPreview() {
+  const vp = $('viewport'), pl = $('player'), btn = $('pBtn'), rg = $('pRange'), tm = $('pTime');
+  pl.hidden = false; rg.max = REEL.duration;
+  const fit = () => {
+    const s = Math.min(innerWidth / W, (innerHeight - 64) / H);
+    vp.style.transform = `scale(${s})`;
+    vp.style.left = ((innerWidth - W * s) / 2) + 'px';
+  };
+  addEventListener('resize', fit); fit();
+
+  let playing = false, base = 0, started = 0, cur = 0, actx = null, srcN = null, buf = null;
+  const stopAudio = () => { if (srcN) { try { srcN.stop(); } catch(e) {} srcN = null; } };
+  const show = t => { renderFrame(t); rg.value = t; tm.textContent = t.toFixed(1) + 's'; };
+
+  function loop() {
+    if (!playing) return;
+    cur = base + (performance.now() - started) / 1000;
+    if (cur >= REEL.duration) {
+      cur = REEL.duration; show(cur); pause(); btn.textContent = 'REPLAY'; cur = 0; return;
+    }
+    show(cur);
+    requestAnimationFrame(loop);
   }
-  function pause(){playing=false;stopAudio();if(btn.textContent==='PAUSE')btn.textContent='PLAY';}
-  async function play(){
-    btn.textContent='PREPARING SOUND…';
-    if(!buf)buf=await getAudio();
-    if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();
-    if(actx.state==='suspended')await actx.resume();
-    stopAudio();srcN=actx.createBufferSource();srcN.buffer=buf;srcN.connect(actx.destination);srcN.start(0,cur);
-    base=cur;started=performance.now();playing=true;btn.textContent='PAUSE';loop();
+  function pause() {
+    playing = false; stopAudio(); if (btn.textContent === 'PAUSE') btn.textContent = 'PLAY';
   }
-  btn.onclick=()=>{playing?pause():play();};
-  rg.oninput=()=>{const was=playing;pause();cur=parseFloat(rg.value);show(cur);if(was)play();};
+  async function play() {
+    btn.textContent = 'PREPARING SOUND…';
+    if (!buf) buf = await getAudio();
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') await actx.resume();
+    stopAudio();
+    srcN = actx.createBufferSource();
+    srcN.buffer = buf;
+    srcN.connect(actx.destination);
+    srcN.start(0, cur);
+    base = cur; started = performance.now(); playing = true; btn.textContent = 'PAUSE'; loop();
+  }
+  btn.onclick = () => { playing ? pause() : play(); };
+  rg.oninput = () => {
+    const was = playing; pause(); cur = parseFloat(rg.value); show(cur); if (was) play();
+  };
   show(0);
 }
 
-async function boot(){
-  try{
-    const lat="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.?'’&, ";
+async function boot() {
+  try {
+    const lat = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.?'’&, ";
     await Promise.all([
-      document.fonts.load('900 100px "Barlow Semi Condensed"',lat),
-      document.fonts.load('700 100px "Barlow Semi Condensed"',lat),
-      document.fonts.load('500 30px "JetBrains Mono"','ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,/·▾＋－’%'),
-      document.fonts.load('700 30px "JetBrains Mono"','ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,-%')
-    ]).catch(()=>{});
+      document.fonts.load('400 100px "Instrument Serif"', lat),
+      document.fonts.load('italic 400 100px "Instrument Serif"', lat),
+      document.fonts.load('900 100px "Barlow Condensed"', lat),
+      document.fonts.load('500 30px "JetBrains Mono"', lat),
+      document.fonts.load('700 30px "JetBrains Mono"', lat)
+    ]).catch(() => {});
     await document.fonts.ready;
-    buildAssets();
-    ui.style.display='block';measure();ui.style.display='none';buildSeg();
-    if(!RENDER)initPreview();
-    window.__reelReady=true;
-  }catch(e){window.__reelError=String(e&&e.stack||e);console.error(e);}
+
+    buildGrainTile();
+    initSpecimenSheet();
+    prepareToolCanvases();
+
+    if (!RENDER) initPreview();
+    window.__reelReady = true;
+  } catch(e) {
+    window.__reelError = String(e && e.stack || e);
+    console.error(e);
+  }
 }
-window.addEventListener('load',boot);
+window.addEventListener('load', boot);
+
 })();
 </script>
 </body>
