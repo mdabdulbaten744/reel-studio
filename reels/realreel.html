@@ -9,17 +9,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#f7f5f0;
-  --paper:#faf8f5;
-  --ink:#121212;
+  --bg:#f8f6f0;
+  --paper:#faf8f4;
+  --ink:#141414;
   --muted:#736e65;
-  --line:rgba(18,18,18,.14);
+  --line:rgba(20,20,20,.12);
   --accent:#C23A1E;
-  --chk1:#efece6;
-  --chk2:#ffffff;
-  --serif:'Instrument Serif',serif;
+  --serif:'Instrument Serif',Georgia,serif;
   --cond:'Barlow Condensed',sans-serif;
-  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --mono:'JetBrains Mono',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 [hidden]{display:none!important}
@@ -27,10 +25,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;-webkit-font-sm
 #viewport{position:absolute;left:0;top:0;width:1080px;height:1920px;overflow:hidden;background:var(--bg);transform-origin:0 0;isolation:isolate}
 #stage,#grain{position:absolute;left:0;top:0;width:1080px;height:1920px}
 #stage{z-index:2}
-#grain{z-index:3;mix-blend-mode:overlay;opacity:.085;pointer-events:none}
-#vig{position:absolute;left:0;top:0;width:1080px;height:1920px;z-index:4;pointer-events:none;background:radial-gradient(120% 85% at 50% 50%,rgba(0,0,0,0) 60%,rgba(0,0,0,.14) 100%)}
+#grain{z-index:3;mix-blend-mode:overlay;opacity:.075;pointer-events:none}
+#vig{position:absolute;left:0;top:0;width:1080px;height:1920px;z-index:4;pointer-events:none;background:radial-gradient(130% 90% at 50% 50%,rgba(0,0,0,0) 65%,rgba(0,0,0,.15) 100%)}
 
-/* Preview bar (browser preview only) */
+/* Interactive preview bar (browser preview only) */
 #player{position:fixed;left:0;right:0;bottom:0;height:64px;background:#111;color:#eee;display:flex;align-items:center;gap:12px;padding:0 14px;font:500 13px var(--mono);z-index:99}
 #player button{background:#eee;color:#111;border:0;border-radius:4px;padding:10px 14px;font:700 13px var(--mono);letter-spacing:.06em;cursor:pointer}
 #player input{flex:1}
@@ -42,16 +40,16 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;-webkit-font-sm
   <canvas id="grain" width="1080" height="1920"></canvas>
   <div id="vig"></div>
 </div>
-<div id="player" hidden><button id="pBtn">PLAY</button><input id="pRange" type="range" min="0" max="8" step="0.01" value="0"><span id="pTime">0.0s</span></div>
+<div id="player" hidden><button id="pBtn">PLAY</button><input id="pRange" type="range" min="0" max="7.8" step="0.01" value="0"><span id="pTime">0.0s</span></div>
 
 <script>
 (function(){
 'use strict';
 
 /* =====================================================================
-   ENGINE & SYSTEM CONTRACT
+   SYSTEM & ENGINE CONFIGURATION
    ===================================================================== */
-const REEL = { width: 1080, height: 1920, fps: 30, duration: 8.0, poster: 4.3 };
+const REEL = { width: 1080, height: 1920, fps: 30, duration: 7.8, poster: 4.1 };
 window.REEL = REEL;
 const RENDER = /[?&]render=1/.test(location.search);
 const $ = id => document.getElementById(id);
@@ -67,8 +65,7 @@ const EASE = {
   o3: p => 1 - Math.pow(1 - p, 3),
   io2: p => p < .5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2,
   io3: p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2,
-  oexp: p => p >= 1 ? 1 : 1 - Math.pow(2, -10 * p),
-  oback: p => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); }
+  oexp: p => p >= 1 ? 1 : 1 - Math.pow(2, -10 * p)
 };
 const prog = (t, s, d, e = 'lin') => EASE[e](clamp((t - s) / d));
 
@@ -84,19 +81,19 @@ function mulberry32(a) {
 const mkCanvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 
 const BRAND = {
-  bg: '#f7f5f0',
-  paper: '#faf8f5',
-  ink: '#121212',
+  bg: '#f8f6f0',
+  paper: '#faf8f4',
+  ink: '#141414',
   muted: '#736e65',
-  line: 'rgba(18,18,18,.14)',
+  line: 'rgba(20,20,20,.12)',
   accent: '#C23A1E',
-  darkBg: '#0d0d0d',
-  darkInk: '#f0eee9'
+  darkBg: '#0e0e0e',
+  darkInk: '#f2f0ec'
 };
 
 const SERIF = '"Instrument Serif", Georgia, serif';
-const COND = '"Barlow Condensed", "Arial Narrow", sans-serif';
-const MONO = '"JetBrains Mono", ui-monospace, monospace';
+const COND = '"Barlow Condensed", sans-serif';
+const MONO = '"JetBrains Mono", monospace';
 
 function mono(c, txt, x, y, o = {}) {
   const { size = 26, ls = 0, align = 'left', color = BRAND.ink, alpha = 1, weight = 500 } = o;
@@ -126,111 +123,163 @@ function flash(c, a, col = '#000') {
 }
 
 /* =====================================================================
-   PART 1: SPECIMEN SHEET & PEN PATH ("YOUR TEXT IS YOUR DESIGN")
+   PART 1: IMPERFECT LINE-BASED CIRCLES AROUND SPECIMEN LETTERS
+   The 5 words to assemble:
+     1. "Your"   ('Y', 'o', 'u', 'r')
+     2. "text"   ('t', 'e', 'x', 't')
+     3. "is"     ('i', 's')
+     4. "your"   ('y', 'o', 'u', 'r')
+     5. "design."('d', 'e', 's', 'i', 'g', 'n', '.')
    ===================================================================== */
-// Target arrangement of the final phrase in the safe area center
-const TARGET_WORDS = [
-  { word: "Your",   targetY: 830,  targetX: 540 - 240, font: `italic 400 136px ${SERIF}`,  cap: false },
-  { word: "text",   targetY: 830,  targetX: 540 + 200, font: `900 142px ${COND}`,          cap: true },
-  { word: "is",     targetY: 980,  targetX: 540 - 290, font: `italic 400 120px ${SERIF}`,  cap: false },
-  { word: "your",   targetY: 980,  targetX: 540 - 70,  font: `500 100px ${MONO}`,          cap: true },
-  { word: "design.",targetY: 980,  targetX: 540 + 250, font: `italic 400 144px ${SERIF}`,  cap: false }
+
+// Scattered placement of the target letters across the sheet
+const TARGET_LETTERS = [
+  // 1. "Your" (0.00s – 0.85s)
+  { wordIdx: 0, char: 'Y', x: 260, y: 460, rx: 62, ry: 70, font: `italic 400 136px ${SERIF}`,  t0: 0.05, t1: 0.22, seed: 11 },
+  { wordIdx: 0, char: 'o', x: 440, y: 520, rx: 56, ry: 58, font: `500 112px ${MONO}`,          t0: 0.25, t1: 0.42, seed: 19 },
+  { wordIdx: 0, char: 'u', x: 620, y: 465, rx: 58, ry: 64, font: `900 120px ${COND}`,          t0: 0.45, t1: 0.62, seed: 27 },
+  { wordIdx: 0, char: 'r', x: 800, y: 515, rx: 56, ry: 62, font: `italic 400 124px ${SERIF}`,  t0: 0.65, t1: 0.84, seed: 35 },
+
+  // 2. "text" (0.90s – 1.70s)
+  { wordIdx: 1, char: 't', x: 280, y: 735, rx: 56, ry: 66, font: `900 130px ${COND}`,          t0: 0.92, t1: 1.08, seed: 43 },
+  { wordIdx: 1, char: 'e', x: 460, y: 690, rx: 54, ry: 58, font: `italic 400 126px ${SERIF}`,  t0: 1.12, t1: 1.28, seed: 51 },
+  { wordIdx: 1, char: 'x', x: 630, y: 750, rx: 58, ry: 62, font: `700 114px ${MONO}`,          t0: 1.32, t1: 1.48, seed: 59 },
+  { wordIdx: 1, char: 't', x: 800, y: 705, rx: 56, ry: 66, font: `900 130px ${COND}`,          t0: 1.52, t1: 1.68, seed: 67 },
+
+  // 3. "is" (1.75s – 2.25s)
+  { wordIdx: 2, char: 'i', x: 450, y: 955, rx: 50, ry: 64, font: `400 128px ${SERIF}`,         t0: 1.78, t1: 1.98, seed: 73 },
+  { wordIdx: 2, char: 's', x: 630, y: 935, rx: 56, ry: 62, font: `italic 400 128px ${SERIF}`,  t0: 2.02, t1: 2.22, seed: 81 },
+
+  // 4. "your" (2.30s – 3.05s)
+  { wordIdx: 3, char: 'y', x: 280, y: 1190, rx: 58, ry: 68, font: `700 118px ${MONO}`,         t0: 2.32, t1: 2.48, seed: 89 },
+  { wordIdx: 3, char: 'o', x: 460, y: 1150, rx: 56, ry: 60, font: `900 126px ${COND}`,         t0: 2.52, t1: 2.68, seed: 97 },
+  { wordIdx: 3, char: 'u', x: 630, y: 1205, rx: 58, ry: 64, font: `italic 400 128px ${SERIF}`, t0: 2.72, t1: 2.86, seed: 103 },
+  { wordIdx: 3, char: 'r', x: 800, y: 1165, rx: 56, ry: 62, font: `500 116px ${MONO}`,         t0: 2.90, t1: 3.04, seed: 109 },
+
+  // 5. "design." (3.10s – 3.90s)
+  { wordIdx: 4, char: 'd', x: 180, y: 1425, rx: 56, ry: 66, font: `900 124px ${COND}`,         t0: 3.12, t1: 3.22, seed: 115 },
+  { wordIdx: 4, char: 'e', x: 300, y: 1390, rx: 52, ry: 58, font: `italic 400 126px ${SERIF}`, t0: 3.24, t1: 3.34, seed: 121 },
+  { wordIdx: 4, char: 's', x: 420, y: 1435, rx: 54, ry: 60, font: `700 112px ${MONO}`,         t0: 3.36, t1: 3.46, seed: 127 },
+  { wordIdx: 4, char: 'i', x: 540, y: 1395, rx: 48, ry: 64, font: `400 128px ${SERIF}`,        t0: 3.48, t1: 3.56, seed: 131 },
+  { wordIdx: 4, char: 'g', x: 660, y: 1440, rx: 56, ry: 68, font: `italic 400 128px ${SERIF}`, t0: 3.58, t1: 3.68, seed: 137 },
+  { wordIdx: 4, char: 'n', x: 780, y: 1400, rx: 56, ry: 62, font: `900 124px ${COND}`,         t0: 3.70, t1: 3.80, seed: 143 },
+  { wordIdx: 4, char: '.', x: 885, y: 1430, rx: 40, ry: 40, font: `900 124px ${COND}`,         t0: 3.82, t1: 3.90, seed: 149 }
 ];
 
-// Scatter typography specimens across the sheet background
-const SPECIMEN_CHARS = [];
-const SPECIMEN_FONTS = [
-  `900 78px ${COND}`,
-  `italic 400 84px ${SERIF}`,
-  `400 90px ${SERIF}`,
-  `500 68px ${MONO}`,
-  `700 72px ${MONO}`,
-  `900 102px ${COND}`,
-  `italic 400 108px ${SERIF}`
-];
-
-// Target pickup positions and timings for the 5 words (0.0s - 3.8s)
-const PICKUPS = [
-  { word: "Your",    tPick: 0.70, tArrive: 1.05, sx: 240,  sy: 480,  tx: 300, ty: 830, font: `italic 400 136px ${SERIF}` },
-  { word: "text",    tPick: 1.40, tArrive: 1.75, sx: 820,  sy: 560,  tx: 740, ty: 830, font: `900 142px ${COND}` },
-  { word: "is",      tPick: 2.10, tArrive: 2.45, sx: 320,  sy: 1280, tx: 250, ty: 980, font: `italic 400 120px ${SERIF}` },
-  { word: "your",    tPick: 2.75, tArrive: 3.05, sx: 760,  sy: 1220, tx: 470, ty: 980, font: `500 100px ${MONO}` },
-  { word: "design.", tPick: 3.35, tArrive: 3.75, sx: 540,  sy: 1420, tx: 790, ty: 980, font: `italic 400 144px ${SERIF}` }
-];
-
-function initSpecimenSheet() {
-  const rnd = mulberry32(101);
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz&?!*0123456789";
-  for (let row = 0; row < 10; row++) {
-    for (let col = 0; col < 6; col++) {
-      const char = alphabet[Math.floor(rnd() * alphabet.length)];
-      const bx = 110 + col * 165 + (rnd() - 0.5) * 45;
-      const by = 260 + row * 155 + (rnd() - 0.5) * 45;
-      const f = SPECIMEN_FONTS[Math.floor(rnd() * SPECIMEN_FONTS.length)];
-      const rot = (rnd() - 0.5) * 0.16;
-      SPECIMEN_CHARS.push({ char, x: bx, y: by, font: f, rot, alpha: 0.18 + rnd() * 0.14 });
-    }
-  }
-}
-
-// Compute continuous pen tip path
-function getPenTipAt(t) {
-  // Waypoints connecting the words
-  const pts = [
-    { t: 0.00, x: 180, y: 380 },
-    { t: 0.70, x: PICKUPS[0].sx, y: PICKUPS[0].sy },
-    { t: 1.05, x: PICKUPS[0].tx, y: PICKUPS[0].ty },
-    { t: 1.40, x: PICKUPS[1].sx, y: PICKUPS[1].sy },
-    { t: 1.75, x: PICKUPS[1].tx, y: PICKUPS[1].ty },
-    { t: 2.10, x: PICKUPS[2].sx, y: PICKUPS[2].sy },
-    { t: 2.45, x: PICKUPS[2].tx, y: PICKUPS[2].ty },
-    { t: 2.75, x: PICKUPS[3].sx, y: PICKUPS[3].sy },
-    { t: 3.05, x: PICKUPS[3].tx, y: PICKUPS[3].ty },
-    { t: 3.35, x: PICKUPS[4].sx, y: PICKUPS[4].sy },
-    { t: 3.75, x: PICKUPS[4].tx + 30, y: PICKUPS[4].ty },
-    { t: 4.40, x: 920, y: 1040 }
+// Aesthetic background specimen letters scattered in the margins (no header/footer bars!)
+const BG_SPECIMENS = [];
+function initBgSpecimens() {
+  const rnd = mulberry32(888);
+  const pool = "ABCDEFGHIJKLMOPQRSTUVWXYZabcdefghjklmpqrtuvwxz0123456789&?";
+  const fonts = [
+    `italic 400 88px ${SERIF}`,
+    `900 96px ${COND}`,
+    `500 78px ${MONO}`,
+    `400 92px ${SERIF}`,
+    `700 80px ${MONO}`
   ];
-
-  if (t <= pts[0].t) return [pts[0].x, pts[0].y];
-  if (t >= pts[pts.length - 1].t) return [pts[pts.length - 1].x, pts[pts.length - 1].y];
-
-  for (let i = 1; i < pts.length; i++) {
-    if (t <= pts[i].t) {
-      const p0 = pts[i - 1], p1 = pts[i];
-      const p = (t - p0.t) / (p1.t - p0.t);
-      const ep = EASE.io3(p);
-      // Gentle curve deviation
-      const dx = p1.x - p0.x, dy = p1.y - p0.y;
-      const arch = Math.sin(p * Math.PI) * 40 * ((i % 2 === 0) ? 1 : -1);
-      return [p0.x + dx * ep - (dy / (Math.hypot(dx, dy) || 1)) * arch,
-              p0.y + dy * ep + (dx / (Math.hypot(dx, dy) || 1)) * arch];
+  // Scatter around without overlapping the target letters
+  for (let gy = 260; gy <= 1640; gy += 150) {
+    for (let gx = 100; gx <= 980; gx += 175) {
+      const rx = gx + (rnd() - 0.5) * 55;
+      const ry = gy + (rnd() - 0.5) * 55;
+      // Check distance to target letters
+      let tooClose = false;
+      for (let t of TARGET_LETTERS) {
+        if (Math.hypot(rx - t.x, ry - t.y) < 115) { tooClose = true; break; }
+      }
+      if (!tooClose) {
+        const char = pool[Math.floor(rnd() * pool.length)];
+        const font = fonts[Math.floor(rnd() * fonts.length)];
+        const rot = (rnd() - 0.5) * 0.14;
+        BG_SPECIMENS.push({ char, x: rx, y: ry, font, rot, alpha: 0.22 + rnd() * 0.1 });
+      }
     }
   }
-  return [pts[pts.length - 1].x, pts[pts.length - 1].y];
 }
 
-/* Draws real luxury drafting fountain pen */
+// Compute organic, imperfect hand-drawn loop point at angle a
+function getLoopPoint(l, a) {
+  // Harmonic wobble for authentic imperfect hand-drawn line
+  const s = l.seed;
+  const w1 = Math.sin(a * 2 + s) * 0.08;
+  const w2 = Math.cos(a * 3 + s * 1.5) * 0.05;
+  const rMult = 1 + w1 + w2;
+  const px = l.x + Math.cos(a) * l.rx * rMult;
+  const py = l.y + Math.sin(a) * l.ry * rMult;
+  return [px, py];
+}
+
+// Compute pen position at time t
+function getPenPosAt(t) {
+  // Before first letter
+  if (t <= TARGET_LETTERS[0].t0) {
+    const ptStart = getLoopPoint(TARGET_LETTERS[0], -Math.PI * 0.6);
+    return [lerp(TARGET_LETTERS[0].x - 80, ptStart[0], clamp(t / TARGET_LETTERS[0].t0)),
+            lerp(TARGET_LETTERS[0].y - 80, ptStart[1], clamp(t / TARGET_LETTERS[0].t0))];
+  }
+  // After all letters: pen rests under the final period
+  const last = TARGET_LETTERS[TARGET_LETTERS.length - 1];
+  if (t >= last.t1) {
+    const pEnd = getLoopPoint(last, Math.PI * 1.6);
+    const pWait = [last.x + 40, last.y + 40];
+    const u = clamp((t - last.t1) / 0.2);
+    return [lerp(pEnd[0], pWait[0], u), lerp(pEnd[1], pWait[1], u)];
+  }
+
+  // Find active letter or flight between letters
+  for (let i = 0; i < TARGET_LETTERS.length; i++) {
+    const cur = TARGET_LETTERS[i];
+    // Inside active circling
+    if (t >= cur.t0 && t <= cur.t1) {
+      const u = (t - cur.t0) / (cur.t1 - cur.t0);
+      const startAngle = -Math.PI * 0.6;
+      const totalSweep = Math.PI * 2.25; // 360 deg + slight overlap
+      const ang = startAngle + u * totalSweep;
+      return getLoopPoint(cur, ang);
+    }
+    // Transition between cur and next letter
+    if (i < TARGET_LETTERS.length - 1) {
+      const next = TARGET_LETTERS[i + 1];
+      if (t > cur.t1 && t < next.t0) {
+        const u = (t - cur.t1) / (next.t0 - cur.t1);
+        const p1 = getLoopPoint(cur, -Math.PI * 0.6 + Math.PI * 2.25);
+        const p2 = getLoopPoint(next, -Math.PI * 0.6);
+        // Subtle natural arc flight
+        const mx = (p1[0] + p2[0]) / 2;
+        const my = Math.min(p1[1], p2[1]) - 25;
+        const eu = EASE.io3(u);
+        const qx = (1 - eu) * (1 - eu) * p1[0] + 2 * (1 - eu) * eu * mx + eu * eu * p2[0];
+        const qy = (1 - eu) * (1 - eu) * p1[1] + 2 * (1 - eu) * eu * my + eu * eu * p2[1];
+        return [qx, qy];
+      }
+    }
+  }
+  return [TARGET_LETTERS[0].x, TARGET_LETTERS[0].y];
+}
+
+/* Draws authentic drafting pen */
 function drawPen(c, x, y, angle = -Math.PI / 4) {
   c.save();
   c.translate(x, y);
   c.rotate(angle);
 
-  // Soft contact drop shadow
+  // Soft nib contact drop shadow
   c.save();
   c.fillStyle = 'rgba(0,0,0,0.22)';
   c.beginPath();
-  c.ellipse(10, 16, 24, 7, Math.PI / 6, 0, Math.PI * 2);
+  c.ellipse(12, 18, 26, 8, Math.PI / 6, 0, Math.PI * 2);
   c.filter = 'blur(8px)';
   c.fill();
   c.restore();
 
-  // Fine ink contact point
+  // Ink contact point
   c.fillStyle = BRAND.ink;
   c.beginPath();
   c.arc(0, 0, 3.5, 0, Math.PI * 2);
   c.fill();
 
-  // Nib: polished iridium steel tip
+  // Nib: polished iridium tip
   c.beginPath();
   c.moveTo(0, 0);
   c.lineTo(-12, -45);
@@ -256,7 +305,7 @@ function drawPen(c, x, y, angle = -Math.PI / 4) {
   c.fillStyle = '#e6c86e';
   c.fill();
 
-  // Pen grip section (matte black with gold trim)
+  // Pen grip section (matte black with gold ring)
   c.fillStyle = '#222';
   c.fillRect(-20, -180, 40, 90);
   c.fillStyle = '#d4af37';
@@ -272,7 +321,7 @@ function drawPen(c, x, y, angle = -Math.PI / 4) {
   c.closePath();
   c.fill();
 
-  // Pen barrel specular highlight
+  // Barrel specular reflection
   c.strokeStyle = 'rgba(255,255,255,0.22)';
   c.lineWidth = 4;
   c.beginPath();
@@ -284,32 +333,13 @@ function drawPen(c, x, y, angle = -Math.PI / 4) {
 }
 
 function drawSpecimenScene(c, t) {
-  // Clean white paper sheet with faint typographic specimen guide rules
+  // Clean white paper sheet — NO horizontal header/footer bars, pure typography
   c.fillStyle = BRAND.paper;
   c.fillRect(0, 0, W, H);
 
-  // Architectural specimen guide rules
-  c.save();
-  c.strokeStyle = BRAND.line;
-  c.lineWidth = 1.5;
-  c.beginPath();
-  // Header specimen lines
-  c.moveTo(90, 180); c.lineTo(990, 180);
-  c.moveTo(90, 1740); c.lineTo(990, 1740);
-  // Baselines for words
-  c.moveTo(110, 890); c.lineTo(970, 890);
-  c.moveTo(110, 1040); c.lineTo(970, 1040);
-  c.stroke();
-  c.restore();
-
-  // Editorial sheet labels
-  mono(c, "CALLISTRA TYPOGRAPHIC SPECIMEN", 100, 140, { size: 24, ls: 6, alpha: 0.65 });
-  mono(c, "PLATE NO. 01 / LIVE ASSEMBLY", 980, 140, { size: 22, ls: 3, align: 'right', alpha: 0.65 });
-  mono(c, "1080 × 1920 PX", 100, 1780, { size: 22, ls: 4, alpha: 0.55 });
-  mono(c, "ALL TYPE IS SHAPE", 980, 1780, { size: 22, ls: 4, align: 'right', alpha: 0.55 });
-
-  // Draw background specimen letters (they remain neatly distributed)
-  SPECIMEN_CHARS.forEach(item => {
+  // Background specimen letters (dim smoothly when all words are circled at 3.9s)
+  const bgDim = 1 - 0.7 * prog(t, 3.85, 0.35);
+  BG_SPECIMENS.forEach(item => {
     c.save();
     c.translate(item.x, item.y);
     c.rotate(item.rot);
@@ -317,117 +347,135 @@ function drawSpecimenScene(c, t) {
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.fillStyle = BRAND.ink;
-    c.globalAlpha = item.alpha * (1 - prog(t, 3.8, 0.4));
+    c.globalAlpha = item.alpha * bgDim;
     c.fillText(item.char, 0, 0);
     c.restore();
   });
 
-  // Ink trajectory tether line drawn by the pen
-  const penTip = getPenTipAt(t);
-  c.save();
-  c.strokeStyle = 'rgba(18,18,18,0.22)';
-  c.lineWidth = 2.5;
-  c.setLineDash([4, 6]);
-  c.beginPath();
-  const stepCount = Math.floor(t * 30);
-  for (let i = 0; i <= stepCount; i++) {
-    const pt = getPenTipAt((i / 30));
-    if (i === 0) c.moveTo(pt[0], pt[1]);
-    else c.lineTo(pt[0], pt[1]);
-  }
-  c.lineTo(penTip[0], penTip[1]);
-  c.stroke();
-  c.restore();
-
-  // Reveal words as pen reaches & transports each word
-  PICKUPS.forEach(p => {
-    if (t < p.tPick) return;
-
-    let wx, wy, wScale = 1, wAlpha = 1;
-    if (t < p.tArrive) {
-      const u = prog(t, p.tPick, p.tArrive - p.tPick, 'io3');
-      wx = lerp(p.sx, p.tx, u);
-      wy = lerp(p.sy, p.ty, u);
-      wScale = 1 + 0.18 * Math.sin(u * Math.PI);
-      wAlpha = clamp(u * 2, 0.3, 1);
-    } else {
-      wx = p.tx;
-      wy = p.ty;
-      // Settling snap
-      const q = t - p.tArrive;
-      if (q < 0.25) {
-        wScale = 1 + 0.12 * Math.exp(-q * 16) * Math.cos(q * 40);
-      }
+  // Draw target letters
+  TARGET_LETTERS.forEach(l => {
+    const isCircled = t >= l.t1;
+    const isCircling = (t >= l.t0 && t < l.t1);
+    let a = 0.32;
+    let scale = 1.0;
+    if (isCircling) {
+      const u = (t - l.t0) / (l.t1 - l.t0);
+      a = lerp(0.32, 1.0, u);
+      scale = 1.0 + 0.12 * Math.sin(u * Math.PI);
+    } else if (isCircled) {
+      a = 1.0;
+      // Settling punch
+      const dt = t - l.t1;
+      if (dt < 0.25) scale = 1.0 + 0.1 * Math.exp(-dt * 14) * Math.cos(dt * 30);
     }
 
     c.save();
-    c.translate(wx, wy);
-    c.scale(wScale, wScale);
-    c.font = p.font;
+    c.translate(l.x, l.y);
+    c.scale(scale, scale);
+    c.font = l.font;
     c.textAlign = 'center';
     c.textBaseline = 'middle';
     c.fillStyle = BRAND.ink;
-    c.globalAlpha = wAlpha;
-    c.fillText(p.word, 0, 0);
+    c.globalAlpha = a;
+    c.fillText(l.char, 0, 0);
     c.restore();
   });
 
-  // Dynamic ink ripples when pen picks a letter up
-  PICKUPS.forEach(p => {
-    const dt = t - p.tPick;
-    if (dt >= 0 && dt <= 0.4) {
-      const pr = dt / 0.4;
-      c.save();
-      c.strokeStyle = BRAND.ink;
-      c.lineWidth = 3 * (1 - pr);
-      c.globalAlpha = 0.5 * (1 - pr);
-      c.beginPath();
-      c.arc(p.sx, p.sy, 12 + 60 * EASE.o3(pr), 0, Math.PI * 2);
-      c.stroke();
-      c.restore();
+  // Draw imperfect hand-drawn ink loop around each letter
+  TARGET_LETTERS.forEach(l => {
+    if (t < l.t0) return;
+    const startAngle = -Math.PI * 0.6;
+    const totalSweep = Math.PI * 2.25;
+    let endAngle;
+    if (t >= l.t1) {
+      endAngle = startAngle + totalSweep;
+    } else {
+      const u = (t - l.t0) / (l.t1 - l.t0);
+      endAngle = startAngle + u * totalSweep;
     }
+
+    c.save();
+    c.strokeStyle = BRAND.ink;
+    c.lineWidth = 3.8;
+    c.lineCap = 'round';
+    c.lineJoin = 'round';
+    c.beginPath();
+
+    const steps = 48;
+    const stepAngle = (endAngle - startAngle) / steps;
+    for (let i = 0; i <= steps; i++) {
+      const a = startAngle + i * stepAngle;
+      const pt = getLoopPoint(l, a);
+      if (i === 0) c.moveTo(pt[0], pt[1]);
+      else c.lineTo(pt[0], pt[1]);
+    }
+    c.stroke();
+    c.restore();
   });
 
-  // Draw continuous moving fountain pen
-  if (t < 4.4) {
-    const ptPrev = getPenTipAt(Math.max(0, t - 0.03));
-    const angle = Math.atan2(penTip[1] - ptPrev[1], penTip[0] - ptPrev[0]) - Math.PI / 2;
-    drawPen(c, penTip[0], penTip[1], angle);
+  // Faint pen connection trajectory
+  c.save();
+  c.strokeStyle = 'rgba(20,20,20,0.18)';
+  c.lineWidth = 1.8;
+  c.setLineDash([3, 5]);
+  c.beginPath();
+  const currentPen = getPenPosAt(t);
+  const sampleFrames = Math.floor(t * 30);
+  for (let f = 0; f <= sampleFrames; f++) {
+    const pt = getPenPosAt(f / 30);
+    if (f === 0) c.moveTo(pt[0], pt[1]);
+    else c.lineTo(pt[0], pt[1]);
+  }
+  c.lineTo(currentPen[0], currentPen[1]);
+  c.stroke();
+  c.restore();
+
+  // Draw the moving pen
+  if (t < 4.35) {
+    const ptPrev = getPenPosAt(Math.max(0, t - 0.025));
+    const angle = Math.atan2(currentPen[1] - ptPrev[1], currentPen[0] - ptPrev[0]) - Math.PI / 2;
+    drawPen(c, currentPen[0], currentPen[1], angle);
   }
 
-  // Final sentence hold & typographic impact emphasis (3.8s - 4.5s)
-  if (t >= 3.8) {
-    const slamP = prog(t, 3.8, 0.25, 'oexp');
+  // 3.9s - 4.4s: Hold the reveal of "Your text is your design."
+  if (t >= 3.9) {
+    const slamP = prog(t, 3.9, 0.22, 'oexp');
     c.save();
     c.strokeStyle = BRAND.accent;
-    c.lineWidth = 4;
+    c.lineWidth = 4.5;
     c.beginPath();
-    c.moveTo(540 - 360 * slamP, 1070);
-    c.lineTo(540 + 360 * slamP, 1070);
+    c.moveTo(540 - 380 * slamP, 1540);
+    c.lineTo(540 + 380 * slamP, 1540);
     c.stroke();
     c.restore();
 
-    mono(c, "NOW WATCH IT BECOME INTERACTIVE", 540, 1140, {
-      size: 28, ls: 8, align: 'center', alpha: prog(t, 3.95, 0.25, 'oexp'), color: BRAND.accent, weight: 700
+    mono(c, "YOUR TEXT IS YOUR DESIGN", 540, 1600, {
+      size: 32, ls: 8, align: 'center', alpha: prog(t, 4.0, 0.22, 'oexp'), color: BRAND.accent, weight: 700
     });
   }
 }
 
 /* =====================================================================
    PART 2: THE 5 TEXT EFFECT MAKERS (REAL ALGORITHMS)
-   Showcasing:
-     1. Glitch Slice
-     2. Stamp Wear
-     3. Yarn Loop
-     4. Kinetic Flowfield
-     5. Impact Matrix
+   SHOWCASING:
+     1. Glitch Slice      (019-glitch-slice)
+     2. Stamp Wear        (010-stamp-wear)
+     3. Yarn Loop         (011-yarn-loop)
+     4. Kinetic Flowfield (001-kinetic-flowfield)
+     5. Impact Matrix     (002-impact-matrix)
+
+   REQUIREMENT:
+   "your slider dragging animation should go from random values
+    to my app's default values. I mean the mouse cursor should
+    tweak the sliders to set the final output as same as my
+    app's default values."
    ===================================================================== */
 
-// --- 1. Glitch Slice Canvas generator ---
-function renderGlitchSlice(text, fringe = 4, shear = 36, chaos = 0.35, color = '#121212') {
-  const w = 800, h = 400, cv = mkCanvas(w, h), ctx = cv.getContext('2d');
+// 1. Glitch Slice
+function renderGlitchSlice(text, fringe, shear, chaos = 0.35, color = '#141414') {
+  const w = 840, h = 420, cv = mkCanvas(w, h), ctx = cv.getContext('2d');
   const off = mkCanvas(w, h), octx = off.getContext('2d');
-  octx.font = `900 130px ${COND}`;
+  octx.font = `900 132px ${COND}`;
   octx.textAlign = 'center'; octx.textBaseline = 'middle'; octx.fillStyle = color;
   octx.fillText(text, w / 2, h / 2);
 
@@ -438,7 +486,7 @@ function renderGlitchSlice(text, fringe = 4, shear = 36, chaos = 0.35, color = '
   for (let dy = 0; dy < h; dy++) {
     const band = Math.floor(dy / fringe);
     const dir = (band % 2 === 0) ? 1 : -1;
-    const wave = Math.sin(band * 0.4) * shear;
+    const wave = Math.sin(band * 0.45) * shear;
     const noise = Math.sin(dy * 12.9898 + band * 78.233) * 43758.5453;
     const chaotic = dir * (noise - Math.floor(noise)) * shear * 1.5;
     const shift = Math.round((wave * (1 - chaos)) + (chaotic * chaos));
@@ -455,11 +503,11 @@ function renderGlitchSlice(text, fringe = 4, shear = 36, chaos = 0.35, color = '
   return cv;
 }
 
-// --- 2. Stamp Wear Canvas generator ---
-function renderStampWear(text, erosion = 0.5, edge = 0.65, color = '#121212') {
-  const w = 800, h = 400, cv = mkCanvas(w, h), ctx = cv.getContext('2d');
+// 2. Stamp Wear
+function renderStampWear(text, erosion, edge = 0.65, color = '#141414') {
+  const w = 840, h = 420, cv = mkCanvas(w, h), ctx = cv.getContext('2d');
   const off = mkCanvas(w, h), octx = off.getContext('2d');
-  octx.font = `900 130px ${COND}`;
+  octx.font = `900 132px ${COND}`;
   octx.textAlign = 'center'; octx.textBaseline = 'middle'; octx.fillStyle = color;
   octx.fillText(text, w / 2, h / 2);
 
@@ -503,11 +551,11 @@ function renderStampWear(text, erosion = 0.5, edge = 0.65, color = '#121212') {
   return cv;
 }
 
-// --- 3. Yarn Loop Canvas generator ---
-function renderYarnLoop(text, grid = 6, loop = 7, fuzz = 0.45, color = '#121212') {
-  const w = 800, h = 400, cv = mkCanvas(w, h), ctx = cv.getContext('2d');
+// 3. Yarn Loop
+function renderYarnLoop(text, loopR, grid = 6, fuzz = 0.45, color = '#141414') {
+  const w = 840, h = 420, cv = mkCanvas(w, h), ctx = cv.getContext('2d');
   const off = mkCanvas(w, h), octx = off.getContext('2d');
-  octx.font = `400 130px ${SERIF}`;
+  octx.font = `italic 400 132px ${SERIF}`;
   octx.textAlign = 'center'; octx.textBaseline = 'middle'; octx.fillStyle = '#000';
   octx.fillText(text, w / 2, h / 2);
 
@@ -520,20 +568,20 @@ function renderYarnLoop(text, grid = 6, loop = 7, fuzz = 0.45, color = '#121212'
       if (buf[ro + bx] === 0) continue;
       const n = Math.sin(bx * 12.98 + by * 78.23) * 43758.545;
       const rS = n - Math.floor(n);
-      const fx = (rS - 0.5) * (loop * 0.8 * fuzz);
+      const fx = (rS - 0.5) * (loopR * 0.8 * fuzz);
       const cx = bx + fx, cy = by;
-      ctx.beginPath(); ctx.arc(cx, cy - loop * 0.3, loop, 0.2 * Math.PI, 0.8 * Math.PI, true); ctx.stroke();
-      ctx.beginPath(); ctx.arc(cx - loop * 0.4, cy + loop * 0.2, loop * 0.6, 1.2 * Math.PI, 1.8 * Math.PI, false); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy - loopR * 0.3, loopR, 0.2 * Math.PI, 0.8 * Math.PI, true); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx - loopR * 0.4, cy + loopR * 0.2, loopR * 0.6, 1.2 * Math.PI, 1.8 * Math.PI, false); ctx.stroke();
     }
   }
   return cv;
 }
 
-// --- 4. Kinetic Flowfield generator ---
-function renderKineticFlowfield(text, turbulence = 22, strength = 24, color = '#121212') {
-  const w = 800, h = 400, cv = mkCanvas(w, h), ctx = cv.getContext('2d');
+// 4. Kinetic Flowfield
+function renderKineticFlowfield(text, strength, turbulence = 22, color = '#141414') {
+  const w = 840, h = 420, cv = mkCanvas(w, h), ctx = cv.getContext('2d');
   const off = mkCanvas(w, h), octx = off.getContext('2d');
-  octx.font = `900 130px ${COND}`;
+  octx.font = `900 132px ${COND}`;
   octx.textAlign = 'center'; octx.textBaseline = 'middle'; octx.fillStyle = '#000';
   octx.fillText(text, w / 2, h / 2);
 
@@ -559,11 +607,11 @@ function renderKineticFlowfield(text, turbulence = 22, strength = 24, color = '#
   return cv;
 }
 
-// --- 5. Impact Matrix generator ---
-function renderImpactMatrix(text, jitter = 10, bleed = 0.55, color = '#121212') {
-  const w = 800, h = 400, cv = mkCanvas(w, h), ctx = cv.getContext('2d');
+// 5. Impact Matrix
+function renderImpactMatrix(text, jitter, bleed = 0.55, color = '#141414') {
+  const w = 840, h = 420, cv = mkCanvas(w, h), ctx = cv.getContext('2d');
   const off = mkCanvas(w, h), octx = off.getContext('2d');
-  octx.font = `900 130px ${COND}`;
+  octx.font = `900 132px ${COND}`;
   octx.textAlign = 'center'; octx.textBaseline = 'middle'; octx.fillStyle = '#000';
   octx.fillText(text, w / 2, h / 2);
 
@@ -591,85 +639,116 @@ function renderImpactMatrix(text, jitter = 10, bleed = 0.55, color = '#121212') 
   return cv;
 }
 
-// Pre-render tool previews so the 30 fps render pipeline is blazingly fast and deterministic
+/* =====================================================================
+   TOOL SHOWCASE METADATA WITH RANDOM-TO-DEFAULT SLIDER TWEAKING
+   ===================================================================== */
 const TOOL_SHOWCASE = [
   {
     num: "01",
     name: "GLITCH SLICE",
-    slider1: { label: "Slice Thickness", val: "3px" },
-    slider2: { label: "Shear Offset", val: "38px" },
-    render: () => renderGlitchSlice("SIGNAL", 3, 38, 0.4, BRAND.ink)
+    word: "SIGNAL",
+    slider1: { label: "Shear Offset", startVal: 82, defaultVal: 36, unit: "px", min: 0, max: 100 },
+    slider2: { label: "Slice Thickness", defaultVal: 3, unit: "px", min: 1, max: 20 },
+    getCanvas: (u) => {
+      // u from 0 (start random) to 1 (app default)
+      const shear = lerp(82, 36, u);
+      return renderGlitchSlice("SIGNAL", 3, shear, 0.35, BRAND.ink);
+    }
   },
   {
     num: "02",
     name: "STAMP WEAR",
-    slider1: { label: "Erosion Level", val: "48%" },
-    slider2: { label: "Edge Wear", val: "65%" },
-    render: () => renderStampWear("STAMPED", 0.48, 0.65, BRAND.ink)
+    word: "STAMPED",
+    slider1: { label: "Erosion Level", startVal: 82, defaultVal: 48, unit: "%", min: 0, max: 100 },
+    slider2: { label: "Edge Wear", defaultVal: 65, unit: "%", min: 0, max: 100 },
+    getCanvas: (u) => {
+      const er = lerp(0.82, 0.48, u);
+      return renderStampWear("STAMPED", er, 0.65, BRAND.ink);
+    }
   },
   {
     num: "03",
     name: "YARN LOOP",
-    slider1: { label: "Stitch Grid Size", val: "6px" },
-    slider2: { label: "Loop Radius", val: "7px" },
-    render: () => renderYarnLoop("WOVEN", 6, 7, 0.45, BRAND.ink)
+    word: "WOVEN",
+    slider1: { label: "Loop Radius", startVal: 15, defaultVal: 7, unit: "px", min: 2, max: 20 },
+    slider2: { label: "Stitch Grid", defaultVal: 6, unit: "px", min: 3, max: 16 },
+    getCanvas: (u) => {
+      const loop = lerp(15, 7, u);
+      return renderYarnLoop("WOVEN", loop, 6, 0.45, BRAND.ink);
+    }
   },
   {
     num: "04",
     name: "KINETIC FLOWFIELD",
-    slider1: { label: "Turbulence", val: "24%" },
-    slider2: { label: "Current Strength", val: "22px" },
-    render: () => renderKineticFlowfield("KINETIC", 24, 22, BRAND.ink)
+    word: "KINETIC",
+    slider1: { label: "Current Strength", startVal: 60, defaultVal: 24, unit: "px", min: 2, max: 80 },
+    slider2: { label: "Turbulence", defaultVal: 25, unit: "%", min: 0, max: 100 },
+    getCanvas: (u) => {
+      const st = lerp(60, 24, u);
+      return renderKineticFlowfield("KINETIC", st, 25, BRAND.ink);
+    }
   },
   {
     num: "05",
     name: "IMPACT MATRIX",
-    slider1: { label: "Feed Jitter", val: "12px" },
-    slider2: { label: "Strike Bleed", val: "60%" },
-    render: () => renderImpactMatrix("RECEIPT", 12, 0.6, BRAND.ink)
+    word: "RECEIPT",
+    slider1: { label: "Feed Jitter", startVal: 32, defaultVal: 10, unit: "px", min: 0, max: 40 },
+    slider2: { label: "Strike Bleed", defaultVal: 55, unit: "%", min: 0, max: 100 },
+    getCanvas: (u) => {
+      const jit = lerp(32, 10, u);
+      return renderImpactMatrix("RECEIPT", jit, 0.55, BRAND.ink);
+    }
   }
 ];
 
-let toolCanvases = [];
-function prepareToolCanvases() {
-  toolCanvases = TOOL_SHOWCASE.map(t => t.render());
+// Pre-render discrete stepped states for 60fps determinism
+const TOOL_FRAMES = [];
+function prepareToolFrames() {
+  TOOL_SHOWCASE.forEach((tool, tIdx) => {
+    const steps = 7;
+    const list = [];
+    for (let s = 0; s < steps; s++) {
+      const u = s / (steps - 1);
+      list.push(tool.getCanvas(u));
+    }
+    TOOL_FRAMES.push(list);
+  });
 }
 
 /* =====================================================================
-   PART 3: DRAW FAST 5-TOOL SHOWCASE GLANCES (4.5s – 7.1s)
+   PART 3: DRAW FAST 5-TOOL SHOWCASE GLANCES (4.4s – 7.0s)
    ===================================================================== */
-const SHOWCASE_T0 = 4.5;
-const SHOWCASE_DUR = 0.52; // ~0.5s per tool: ultra fast, hypnotic, glance-recording style
+const SHOWCASE_T0 = 4.40;
+const SHOWCASE_DUR = 0.52; // 5 tools × ~0.52s = 2.60s
 
 function drawToolGlance(c, t) {
   const elapsed = t - SHOWCASE_T0;
   const index = clamp(Math.floor(elapsed / SHOWCASE_DUR), 0, TOOL_SHOWCASE.length - 1);
   const tool = TOOL_SHOWCASE[index];
   const tLocal = elapsed - index * SHOWCASE_DUR;
-  const cv = toolCanvases[index];
 
   // Screen background
   c.fillStyle = BRAND.bg;
   c.fillRect(0, 0, W, H);
 
-  // Hard cut pulse / camera punch
-  const punch = Math.exp(-tLocal * 24) * 12;
+  // Hard cut pulse / punch
+  const punch = Math.exp(-tLocal * 26) * 10;
   c.save();
   c.translate(0, punch);
 
   // Top header status bar
-  mono(c, "CALLISTRA.DESIGN", 100, 240, { size: 26, ls: 4, alpha: 0.75, weight: 700 });
-  mono(c, `[ 0${index + 1} / 05 ]`, 980, 240, { size: 24, ls: 3, align: 'right', alpha: 0.75 });
+  mono(c, "CALLISTRA.DESIGN", 100, 220, { size: 26, ls: 4, alpha: 0.75, weight: 700 });
+  mono(c, `[ 0${index + 1} / 05 ]`, 980, 220, { size: 24, ls: 3, align: 'right', alpha: 0.75 });
 
   // Big headline for the tool
   c.save();
-  c.font = `900 86px ${COND}`;
+  c.font = `900 88px ${COND}`;
   c.fillStyle = BRAND.ink;
-  c.fillText(tool.name, 100, 340);
+  c.fillText(tool.name, 100, 320);
   c.restore();
 
   // Draw UI frame container
-  const uiX = 100, uiY = 410, uiW = 880, uiH = 1180;
+  const uiX = 100, uiY = 380, uiW = 880, uiH = 1240;
   c.save();
   c.fillStyle = '#ffffff';
   c.strokeStyle = BRAND.line;
@@ -681,7 +760,7 @@ function drawToolGlance(c, t) {
   c.restore();
 
   // Canvas preview box with checkerboard
-  const cvX = uiX + 40, cvY = uiY + 40, cvW = uiW - 80, cvH = 440;
+  const cvX = uiX + 40, cvY = uiY + 40, cvW = uiW - 80, cvH = 460;
   c.save();
   c.beginPath();
   c.rect(cvX, cvY, cvW, cvH);
@@ -695,8 +774,13 @@ function drawToolGlance(c, t) {
       c.fillRect(cx, cy, chkSize, chkSize);
     }
   }
-  // Draw the actual live tool effect canvas
-  c.drawImage(cv, cvX, cvY, cvW, cvH);
+
+  // TWEAK SLIDER ANIMATION: from random value to app's default value
+  // Drag runs from tLocal = 0.08s to 0.36s
+  const dragProg = prog(tLocal, 0.08, 0.28, 'io3');
+  const frameIdx = clamp(Math.round(dragProg * 6), 0, 6);
+  const activeCanvas = TOOL_FRAMES[index][frameIdx];
+  c.drawImage(activeCanvas, cvX, cvY, cvW, cvH);
   c.strokeStyle = BRAND.line;
   c.lineWidth = 2;
   c.strokeRect(cvX, cvY, cvW, cvH);
@@ -704,7 +788,7 @@ function drawToolGlance(c, t) {
 
   // Input row
   const inpY = cvY + cvH + 50;
-  mono(c, "TYPE SOMETHING...", cvX, inpY + 10, { size: 36, alpha: 0.85, weight: 700 });
+  mono(c, tool.word, cvX, inpY + 12, { size: 36, alpha: 0.9, weight: 700 });
   c.save();
   c.strokeStyle = BRAND.ink;
   c.lineWidth = 2.5;
@@ -714,44 +798,57 @@ function drawToolGlance(c, t) {
   c.stroke();
   c.restore();
 
-  // Slider 1 (animated slightly with time)
-  const sl1Y = inpY + 100;
-  mono(c, tool.slider1.label.toUpperCase(), cvX, sl1Y, { size: 22, ls: 3, color: BRAND.muted });
-  mono(c, tool.slider1.val, cvX + cvW, sl1Y, { size: 24, align: 'right', weight: 700 });
+  // Slider 1: Tweaked by mouse cursor from startVal to defaultVal!
+  const sl1 = tool.slider1;
+  const sl1Y = inpY + 105;
+  const currentVal1 = Math.round(lerp(sl1.startVal, sl1.defaultVal, dragProg));
+  const isAtDefault = dragProg >= 0.98;
+
+  mono(c, sl1.label.toUpperCase(), cvX, sl1Y, { size: 22, ls: 3, color: BRAND.muted });
+  mono(c, `${currentVal1}${sl1.unit}${isAtDefault ? " (DEFAULT)" : ""}`, cvX + cvW, sl1Y, {
+    size: 24, align: 'right', weight: 700, color: isAtDefault ? BRAND.accent : BRAND.ink
+  });
+
+  // Slider 1 track & knob
   c.save();
   c.strokeStyle = BRAND.line;
-  c.lineWidth = 3;
+  c.lineWidth = 3.5;
   c.beginPath();
   c.moveTo(cvX, sl1Y + 35);
   c.lineTo(cvX + cvW, sl1Y + 35);
   c.stroke();
-  const thumb1P = 0.35 + 0.3 * Math.sin(tLocal * 12);
-  c.fillStyle = BRAND.ink;
+
+  const sl1Norm = (currentVal1 - sl1.min) / (sl1.max - sl1.min);
+  const thumb1X = cvX + cvW * sl1Norm;
+  c.fillStyle = isAtDefault ? BRAND.accent : BRAND.ink;
   c.beginPath();
-  c.arc(cvX + cvW * thumb1P, sl1Y + 35, 12, 0, Math.PI * 2);
+  c.arc(thumb1X, sl1Y + 35, 13, 0, Math.PI * 2);
   c.fill();
   c.restore();
 
-  // Slider 2
-  const sl2Y = sl1Y + 110;
-  mono(c, tool.slider2.label.toUpperCase(), cvX, sl2Y, { size: 22, ls: 3, color: BRAND.muted });
-  mono(c, tool.slider2.val, cvX + cvW, sl2Y, { size: 24, align: 'right', weight: 700 });
+  // Slider 2 (Secondary parameter at default)
+  const sl2 = tool.slider2;
+  const sl2Y = sl1Y + 115;
+  mono(c, sl2.label.toUpperCase(), cvX, sl2Y, { size: 22, ls: 3, color: BRAND.muted });
+  mono(c, `${sl2.defaultVal}${sl2.unit} (DEFAULT)`, cvX + cvW, sl2Y, { size: 24, align: 'right', weight: 700 });
+
   c.save();
   c.strokeStyle = BRAND.line;
-  c.lineWidth = 3;
+  c.lineWidth = 3.5;
   c.beginPath();
   c.moveTo(cvX, sl2Y + 35);
   c.lineTo(cvX + cvW, sl2Y + 35);
   c.stroke();
-  const thumb2P = 0.60 + 0.25 * Math.cos(tLocal * 10);
+
+  const sl2Norm = (sl2.defaultVal - sl2.min) / (sl2.max - sl2.min);
   c.fillStyle = BRAND.ink;
   c.beginPath();
-  c.arc(cvX + cvW * thumb2P, sl2Y + 35, 12, 0, Math.PI * 2);
+  c.arc(cvX + cvW * sl2Norm, sl2Y + 35, 12, 0, Math.PI * 2);
   c.fill();
   c.restore();
 
-  // Mock Color & Size accordion
-  const advY = sl2Y + 100;
+  // Accordion bar: COLOR & CANVAS SIZE
+  const advY = sl2Y + 105;
   c.save();
   c.strokeStyle = BRAND.line;
   c.lineWidth = 2;
@@ -763,22 +860,35 @@ function drawToolGlance(c, t) {
   mono(c, "COLOR AND SIZE", cvX, advY + 35, { size: 22, ls: 3, color: BRAND.muted });
   mono(c, "＋", cvX + cvW, advY + 35, { size: 26, align: 'right', color: BRAND.muted });
 
-  // Download Button CTA inside the app
-  const btnY = uiY + uiH - 120;
+  // Download Button CTA
+  const btnY = uiY + uiH - 125;
+  const isExporting = tLocal > 0.40;
   c.save();
-  c.fillStyle = (tLocal > SHOWCASE_DUR - 0.12) ? BRAND.accent : BRAND.ink;
+  c.fillStyle = isExporting ? BRAND.accent : BRAND.ink;
   c.beginPath();
-  c.roundRect(cvX, btnY, cvW, 80, 4);
+  c.roundRect(cvX, btnY, cvW, 82, 4);
   c.fill();
   c.restore();
 
-  mono(c, (tLocal > SHOWCASE_DUR - 0.12) ? "EXPORTING PNG..." : "DOWNLOAD PNG", cvX + cvW / 2, btnY + 40, {
+  mono(c, isExporting ? "EXPORTING PNG..." : "DOWNLOAD PNG", cvX + cvW / 2, btnY + 41, {
     size: 24, ls: 4, align: 'center', color: '#ffffff', weight: 700
   });
 
-  // Simulated rapid operating cursor
-  const curX = cvX + cvW * (0.3 + 0.4 * Math.sin(tLocal * 9));
-  const curY = sl1Y + 35 + 80 * Math.cos(tLocal * 8);
+  // MOUSE CURSOR: Moves to knob, drags it to default, then moves down to Download button
+  let curX = thumb1X, curY = sl1Y + 35;
+  if (tLocal < 0.08) {
+    const uIn = tLocal / 0.08;
+    curX = lerp(cvX + 60, thumb1X, uIn);
+    curY = lerp(cvY + 300, sl1Y + 35, uIn);
+  } else if (tLocal <= 0.36) {
+    curX = thumb1X;
+    curY = sl1Y + 35;
+  } else {
+    const uOut = clamp((tLocal - 0.36) / 0.12);
+    curX = lerp(thumb1X, cvX + cvW / 2, uOut);
+    curY = lerp(sl1Y + 35, btnY + 41, uOut);
+  }
+
   c.save();
   c.translate(curX, curY);
   c.fillStyle = '#ffffff';
@@ -793,19 +903,19 @@ function drawToolGlance(c, t) {
 
   c.restore(); // end camera punch
 
-  // Quick 1-frame cut flash
-  flash(c, 0.15 * Math.exp(-tLocal * 28), '#000');
+  // Quick 1-frame cut flash between tools
+  flash(c, 0.14 * Math.exp(-tLocal * 26), '#000');
 }
 
 /* =====================================================================
-   PART 4: OUTRO (7.1s – 8.0s)
+   PART 4: OUTRO (7.0s – 7.8s)
    ===================================================================== */
 function drawOutro(c, t) {
-  const u = t - 7.1;
+  const u = t - 7.0;
   c.fillStyle = BRAND.darkBg;
   c.fillRect(0, 0, W, H);
 
-  const ps = prog(u, 0.05, 0.45, 'oexp');
+  const ps = prog(u, 0.02, 0.38, 'oexp');
   c.save();
   c.translate(540, 780);
   c.scale(ps, ps);
@@ -816,12 +926,12 @@ function drawOutro(c, t) {
   c.fillText("Create Yours.", 0, 0);
   c.restore();
 
-  const p2 = prog(u, 0.25, 0.4, 'oexp');
+  const p2 = prog(u, 0.18, 0.35, 'oexp');
   mono(c, "CALLISTRA.DESIGN", 540, 960, {
     size: 52, ls: 6, align: 'center', color: BRAND.darkInk, alpha: p2, weight: 700
   });
 
-  const pLine = prog(u, 0.35, 0.4, 'oexp');
+  const pLine = prog(u, 0.26, 0.35, 'oexp');
   c.save();
   c.strokeStyle = BRAND.accent;
   c.lineWidth = 5;
@@ -832,15 +942,15 @@ function drawOutro(c, t) {
   c.restore();
 
   mono(c, "ALL TEXT EFFECT MAKERS LIVE IN BROWSER", 540, 1080, {
-    size: 26, ls: 6, align: 'center', color: '#a29d93', alpha: prog(u, 0.45, 0.35)
+    size: 26, ls: 6, align: 'center', color: '#a29d93', alpha: prog(u, 0.34, 0.3)
   });
 
   mono(c, "LINK IN BIO", 540, 1150, {
-    size: 32, ls: 8, align: 'center', color: BRAND.darkInk, alpha: prog(u, 0.55, 0.3), weight: 700
+    size: 32, ls: 8, align: 'center', color: BRAND.darkInk, alpha: prog(u, 0.42, 0.28), weight: 700
   });
 
-  // Soft fade to black at the very end
-  const fo = prog(t, REEL.duration - 0.3, 0.3);
+  // Soft fade to black at the end
+  const fo = prog(t, REEL.duration - 0.25, 0.25);
   if (fo > 0) {
     c.fillStyle = '#000';
     c.globalAlpha = fo;
@@ -875,13 +985,13 @@ function renderFrame(t) {
 
   if (t < SHOWCASE_T0) {
     drawSpecimenScene(sc, t);
-  } else if (t < 7.1) {
+  } else if (t < 7.00) {
     drawToolGlance(sc, t);
   } else {
     drawOutro(sc, t);
   }
 
-  // Draw procedural animated film grain
+  // Animated subtle film grain
   const f = Math.floor(t * REEL.fps + 0.001);
   const ox = (f * 97) % 512, oy = (f * 57) % 512;
   gc.clearRect(0, 0, W, H);
@@ -894,22 +1004,20 @@ function renderFrame(t) {
 window.renderFrame = renderFrame;
 
 /* =====================================================================
-   SOUNDTRACK (SYNTHESIZED OFFLINE VIA WEB AUDIO API)
+   OFFLINE AUDIO SYNTHESIZER
    ===================================================================== */
 async function buildAudio() {
   const SR = 44100, DUR = REEL.duration;
   const oc = new OfflineAudioContext(2, Math.ceil(SR * DUR), SR);
   const rand = mulberry32(42);
 
-  // Noise buffer
   const nb = oc.createBuffer(1, SR * 3, SR);
   const nd = nb.getChannelData(0);
   for (let i = 0; i < nd.length; i++) nd[i] = rand() * 2 - 1;
 
-  // Master bus
   const master = oc.createGain();
   master.gain.setValueAtTime(0.78, 0);
-  master.gain.setValueAtTime(0.78, DUR - 0.4);
+  master.gain.setValueAtTime(0.78, DUR - 0.35);
   master.gain.linearRampToValueAtTime(0, DUR - 0.02);
 
   const comp = oc.createDynamicsCompressor();
@@ -918,7 +1026,6 @@ async function buildAudio() {
   master.connect(comp);
   comp.connect(oc.destination);
 
-  // Subtle algorithmic room reverb
   const rl = Math.floor(SR * 1.5), ir = oc.createBuffer(2, rl, SR);
   for (let ch = 0; ch < 2; ch++) {
     const d = ir.getChannelData(ch);
@@ -953,28 +1060,21 @@ async function buildAudio() {
     o.start(t); o.stop(t + dur); return o;
   };
 
-  // Sound primitives
-  const penScratch = (t, dur = 0.35, pan = 0) => {
-    const n = nsrc(t, dur, t * 19.1), bp = flt('bandpass', 3200, 1.8), g = oc.createGain();
-    env(g.gain, t, 0.08, 0.02, dur - 0.02);
+  const penScratch = (t, dur = 0.16, pan = 0) => {
+    const n = nsrc(t, dur, t * 19.1), bp = flt('bandpass', 3400, 2.2), g = oc.createGain();
+    env(g.gain, t, 0.09, 0.015, dur - 0.015);
     n.connect(bp); bp.connect(g); out(g, { pan, rev: 0.1 });
   };
-  const wordSnap = (t, pitch = 880) => {
-    const o = osc('triangle', pitch, t, 0.09), gn = oc.createGain();
-    env(gn.gain, t, 0.32, 0.001, 0.08);
-    o.connect(gn); out(gn, { rev: 0.15 });
-    const n = nsrc(t, 0.04, t * 7.3), hp = flt('highpass', 4500), ng = oc.createGain();
-    env(ng.gain, t, 0.25, 0.0008, 0.02);
-    n.connect(hp); hp.connect(ng); out(ng);
+  const letterSnap = (t, pitch = 820) => {
+    const o = osc('triangle', pitch, t, 0.06), gn = oc.createGain();
+    env(gn.gain, t, 0.22, 0.001, 0.05);
+    o.connect(gn); out(gn, { rev: 0.12 });
   };
   const thud = (t, g = 0.7) => {
     const o = osc('sine', 160, t, 0.45);
-    o.frequency.exponentialRampToValueAtTime(42, t + 0.22);
+    o.frequency.exponentialRampToValueAtTime(40, t + 0.22);
     const og = oc.createGain(); env(og.gain, t, g, 0.003, 0.35);
     o.connect(og); out(og, { rev: 0.25 });
-    const n = nsrc(t, 0.12, 5.1), bp = flt('bandpass', 850, 1.0), ng = oc.createGain();
-    env(ng.gain, t, g * 0.6, 0.001, 0.08);
-    n.connect(bp); bp.connect(ng); out(ng);
   };
   const shutterCut = (t, pitch = 1400) => {
     const o = osc('square', pitch, t, 0.05), gn = oc.createGain();
@@ -992,26 +1092,27 @@ async function buildAudio() {
     });
   };
 
-  // 1. Pen glide sounds and word pick-up snaps
-  PICKUPS.forEach((p, i) => {
-    penScratch(p.tPick - 0.25, 0.28, (i % 2 === 0) ? -0.2 : 0.2);
-    wordSnap(p.tArrive, 740 + i * 110);
+  // 1. Circling friction & snap for each letter
+  TARGET_LETTERS.forEach((l, idx) => {
+    penScratch(l.t0, l.t1 - l.t0, (idx % 2 === 0) ? -0.2 : 0.2);
+    letterSnap(l.t1, 680 + (idx % 7) * 90);
   });
 
   // 2. Big typographic slam on "Your text is your design."
-  thud(3.8, 0.85);
+  thud(3.9, 0.85);
 
-  // 3. Fast shutter sound on every tool glance cut
+  // 3. Fast shutter sound + slider ratchet on every tool glance cut
   for (let i = 0; i < 5; i++) {
     const tc = SHOWCASE_T0 + i * SHOWCASE_DUR;
     shutterCut(tc, 1100 + i * 160);
-    // Click of slider
-    penScratch(tc + 0.15, 0.18, 0);
+    // Slider tweak zip
+    penScratch(tc + 0.10, 0.22, 0.1);
+    letterSnap(tc + 0.36, 1200);
   }
 
   // 4. Outro boom & chime
-  thud(7.1, 0.8);
-  chime(7.2);
+  thud(7.0, 0.8);
+  chime(7.1);
 
   return oc.startRendering();
 }
@@ -1049,7 +1150,7 @@ function toWavB64(buf) {
 window.renderAudio = async () => toWavB64(await getAudio());
 
 /* =====================================================================
-   PREVIEW PLAYER & BOOTSTRAP
+   PREVIEW PLAYER & INITIALIZATION
    ===================================================================== */
 function initPreview() {
   const vp = $('viewport'), pl = $('player'), btn = $('pBtn'), rg = $('pRange'), tm = $('pTime');
@@ -1109,8 +1210,8 @@ async function boot() {
     await document.fonts.ready;
 
     buildGrainTile();
-    initSpecimenSheet();
-    prepareToolCanvases();
+    initBgSpecimens();
+    prepareToolFrames();
 
     if (!RENDER) initPreview();
     window.__reelReady = true;
