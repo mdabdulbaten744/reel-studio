@@ -3,2196 +3,251 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Your Text Is Your Design — Reel</title>
+<title>Pause Challenge — Haze Elevation — Reel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Anton&family=Archivo+Black&family=Barlow+Condensed:wght@900&family=Barlow+Semi+Condensed:wght@900&family=Caveat:wght@700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;700&family=Playfair+Display:wght@900&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f7f5f0;--ink:#121212;--muted:#736e65;--line:rgba(18,18,18,.15);--chk1:#efece6;--chk2:#ffffff;--serif:'Instrument Serif',serif;--mono:'JetBrains Mono',ui-monospace,monospace}
 *{box-sizing:border-box;margin:0;padding:0}
 [hidden]{display:none!important}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;-webkit-font-smoothing:antialiased}
-#viewport{position:absolute;left:0;top:0;width:1080px;height:1920px;overflow:hidden;background:#fcfbf8;transform-origin:0 0;isolation:isolate}
-#viewport>*{position:absolute;left:0;top:0}
-#ui{width:1080px;height:1920px;background:var(--bg);display:none;z-index:1;overflow:hidden;font-family:var(--mono);color:var(--ink)}
-#stage,#grain{width:1080px;height:1920px}
-#stage{z-index:2}
-#grain{z-index:3;mix-blend-mode:overlay;opacity:.10;pointer-events:none}
-#vig{z-index:4;width:1080px;height:1920px;pointer-events:none;background:radial-gradient(120% 85% at 50% 46%,rgba(0,0,0,0) 62%,rgba(0,0,0,.10) 100%)}
-
-/* ---- maker scenes: mirror the apps' own markup + styling, scaled up for a phone ---- */
-.scene{position:absolute;left:0;top:0;width:1080px;height:1920px;display:none;overflow:hidden;background:var(--bg)}
-.cam{position:absolute;left:0;top:0;width:1080px;height:1920px;transform-origin:540px 340px}
-.inner{position:absolute;left:110px;top:0;width:800px;padding-top:340px}
-.canvas-container{position:relative;width:800px;height:400px;background-color:#fff;background-image:conic-gradient(var(--chk1) .25turn,var(--chk2) .25turn .5turn,var(--chk1) .5turn .75turn,var(--chk2) .75turn);background-size:24px 24px;border-radius:3px;overflow:hidden}
-.canvas-container canvas{width:100%;height:100%;display:block}
-.text-input{margin-top:24px;height:100px;border-bottom:2px solid var(--ink);font-weight:400;font-size:84px;line-height:1.1;letter-spacing:.01em;white-space:nowrap;display:flex;align-items:center}
-.row{margin-top:24px}
-.row-h{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:22px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.lab{display:flex;align-items:center;gap:12px}
-.lab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.5;opacity:.85;flex-shrink:0}
-.val{color:var(--ink);font-size:24px;letter-spacing:0;border-bottom:2px dashed var(--muted);min-width:56px;text-align:right}
-.track{position:relative;height:3px;background:var(--line);margin:26px 0 8px}
-.thumb{position:absolute;top:50%;left:0;width:24px;height:24px;border-radius:50%;background:var(--ink);transform:translate(-50%,-50%)}
-.adv{margin-top:30px;border-top:2px solid var(--line);padding-top:20px}
-.sum{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:22px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.btn{margin-top:30px;height:88px;background:var(--ink);color:var(--bg);display:flex;align-items:center;justify-content:center;gap:16px;font-family:var(--mono);font-weight:500;font-size:23px;letter-spacing:.12em;border-radius:2px}
-.btn svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.5}
-.cursor{position:absolute;left:0;top:0;width:60px;height:60px;z-index:50;pointer-events:none;transform-origin:10px 5px;filter:drop-shadow(0 5px 6px rgba(0,0,0,.28))}
-.ripple{position:absolute;width:96px;height:96px;border:4px solid var(--ink);border-radius:50%;opacity:0;z-index:49;pointer-events:none}
-.capmask{position:absolute;left:0;top:0;width:1080px;height:336px;background:var(--bg);z-index:5}
-.cap{position:absolute;left:110px;top:236px;width:800px;height:92px;overflow:hidden}
-.capl{position:absolute;left:0;top:0;width:800px;height:92px;display:flex;align-items:center;gap:22px;font-family:var(--serif);font-style:italic;font-weight:400;font-size:64px;line-height:92px;white-space:nowrap}
-.capl b{font-family:var(--mono);font-style:normal;font-weight:500;font-size:26px;color:var(--muted);letter-spacing:.1em}
-.capl i{margin-left:auto;font-family:var(--mono);font-style:normal;font-weight:500;font-size:17px;letter-spacing:.12em;color:var(--muted)}
-
-/* ---- preview player (normal browser only; never part of the video) ---- */
-#player{position:fixed;left:0;right:0;bottom:0;height:64px;background:#111;color:#eee;display:flex;align-items:center;gap:12px;padding:0 14px;font:500 13px var(--mono);z-index:99}
-#player button{background:#eee;color:#111;border:0;border-radius:4px;padding:10px 14px;font:700 13px var(--mono);letter-spacing:.06em}
+#viewport{position:absolute;left:0;top:0;width:1080px;height:1920px;overflow:hidden;background:#f7f5f0;transform-origin:0 0;isolation:isolate}
+#stage{position:absolute;left:0;top:0;width:1080px;height:1920px}
+/* preview player (normal browser only; never part of the video) */
+#player{position:fixed;left:0;right:0;bottom:0;height:64px;background:#111;color:#eee;display:flex;align-items:center;gap:12px;padding:0 14px;font:500 13px 'JetBrains Mono',monospace;z-index:99}
+#player button{background:#eee;color:#111;border:0;border-radius:4px;padding:10px 14px;font:700 13px 'JetBrains Mono',monospace;letter-spacing:.06em}
 #player input{flex:1}
 </style>
 </head>
 <body>
-<div id="viewport">
-  <div id="ui"></div>
-  <canvas id="stage" width="1080" height="1920"></canvas>
-  <canvas id="grain" width="1080" height="1920"></canvas>
-  <div id="vig"></div>
-</div>
-<div id="player" hidden><button id="pBtn">PLAY</button><input id="pRange" type="range" min="0" max="7" step="0.01" value="0"><span id="pTime">0.0s</span></div>
+<div id="viewport"><canvas id="stage" width="1080" height="1920"></canvas></div>
+<div id="player" hidden><button id="pBtn">PLAY</button><input id="pRange" type="range" min="0" max="3" step="0.0333333" value="0"><span id="pTime">f0</span></div>
 
 <script>
 (function(){
 'use strict';
 
 /* =====================================================================
-   ENGINE  (reusable)
+   ENGINE  (same contract as the other reels)
    ===================================================================== */
+const FPS=30, FRAMES=90;                      // exactly 3 seconds
+const HOLD=3;                                 // last 3 frames sit on 100 %  (≈0.1 s window to catch it)
+const RAMP_END=FRAMES-HOLD;                   // frame index that first reaches 100 %  (87)
+const REEL={width:1080,height:1920,fps:FPS,duration:FRAMES/FPS,poster:(FRAMES-1)/FPS};
+window.REEL=REEL;
 const RENDER=/[?&]render=1/.test(location.search);
+const ALLOW_FALLBACK=/[?&]allowfallback=1/.test(location.search);   // local testing only
 const $=id=>document.getElementById(id);
 const W=1080,H=1920;
 const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 const lerp=(a,b,p)=>a+(b-a)*p;
-const EASE={
-  lin:p=>p,i2:p=>p*p,i3:p=>p*p*p,o2:p=>1-(1-p)*(1-p),o3:p=>1-Math.pow(1-p,3),
-  io2:p=>p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2,
-  io3:p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2,
-  oexp:p=>p>=1?1:1-Math.pow(2,-10*p),
-  oback:p=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(p-1,3)+c1*Math.pow(p-1,2);}
-};
-const prog=(t,s,d,e='lin')=>EASE[e](clamp((t-s)/d));
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 const mkCanvas=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
-const BRAND={bg:'#f7f5f0',ink:'#121212',muted:'#736e65',paper:'#fcfbf8'};
 
 /* =====================================================================
-   TIMELINE (seconds) — visuals and sound read the same numbers.
-   To slow the pen down, lengthen the WORDS windows; everything else follows.
+   DESIGN
    ===================================================================== */
-const HOOK_END=3.8;                  // typography hook ends, maker showcase starts
-const SD=.54;                        // one maker glance
-const SHOW_T0=k=>HOOK_END+k*SD;
-const NMAKERS=5;
-const DUR=HOOK_END+NMAKERS*SD+.2;    // 6.7 s (last glance holds on the finished defaults)
-/* pen windows: [draw start, draw end] per word, with a short lifted travel between */
-const WORDS=[[0,.62],[.76,1.36],[1.50,1.84],[1.98,2.58],[2.72,3.38]];
-const PEN_EXIT=[3.40,3.76];
-const FILL_DIM=[3.40,3.72];
+const BG='#f7f5f0', INK='#121212', MUTED='#736e65', RED='#F0261C';
+const DISPLAY='"Barlow Condensed","Oswald","Arial Narrow",Impact,sans-serif';
+const MONO='"JetBrains Mono",ui-monospace,monospace';
+
+/* the word, and the app's own Haze Elevation settings (only Elevation is pushed to 100 %) */
+const WORD='MIST';
+const FX={drift:35,dissolve:22,fontSize:150,color:'#000000'};     // app defaults
+const TEXT_W=800;                 // on-screen width of the word itself (before the haze drifts)
+const CX=540, CY=880;             // where the FINAL effect (text + haze) is centred — inside the safe zone
 
 /* =====================================================================
-   HOOK — alphabet specimen sheet, pen circles the five words
+   HAZE ELEVATION — the app's real algorithm (same fit, same fog factor,
+   same drift, same scatter, same creep), run at an enlarged scale
    ===================================================================== */
-const CELL=120,COLS=9,ROWS=16;
-const FONTS=[
-  {f:'Abril Fatface',w:400,s:'normal',k:1.00},
-  {f:'Instrument Serif',w:400,s:'normal',k:1.15},
-  {f:'Playfair Display',w:900,s:'normal',k:.98},
-  {f:'Anton',w:400,s:'normal',k:1.00},
-  {f:'Space Grotesk',w:700,s:'normal',k:1.00},
-  {f:'Archivo Black',w:400,s:'normal',k:.92},
-  {f:'Barlow Condensed',w:900,s:'normal',k:1.18},
-  {f:'JetBrains Mono',w:700,s:'normal',k:.96},
-  {f:'Caveat',w:700,s:'normal',k:1.28},
-  {f:'Instrument Serif',w:400,s:'italic',k:1.15}
-];
-/* the five words, placed on purpose: across, down, across, diagonal, across */
-const SENT=[
-  {cells:[[1,2],[2,2],[3,2],[4,2]],ch:'Your',fn:[0,8,4,2],dir:1,th:-2.3,seed:3},
-  {cells:[[6,3],[6,4],[6,5],[6,6]],ch:'text',fn:[3,9,5,8],dir:-1,th:-2.0,seed:11},
-  {cells:[[2,5],[3,5]],ch:'is',fn:[6,7],dir:1,th:-2.5,seed:5},
-  {cells:[[1,7],[2,8],[3,9],[4,10]],ch:'your',fn:[2,5,1,3],dir:-1,th:-2.2,seed:17},
-  {cells:[[1,12],[2,12],[3,12],[4,12],[5,12],[6,12],[7,12]],ch:'design.',fn:[4,0,8,2,1,6,7],dir:1,th:-2.4,seed:23}
-];
-let LET=[],LOOPS=[],hookReady=false;
-function buildHook(){
-  const rnd=mulberry32(2024),cx=document.createElement('canvas').getContext('2d');
-  const used={};
-  SENT.forEach((w,wi)=>[...w.ch].forEach((ch,i)=>{used[w.cells[i][0]+','+w.cells[i][1]]={w:wi,i,ch,fn:w.fn[i]};}));
-  const pool='abcdefghijklmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZabdeghkmnqrstuw';
-  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-    const u=used[c+','+r];
-    let ch,fi,size,rot,jx,jy,alpha;
-    if(u){ch=u.ch;fi=u.fn;const F=FONTS[fi];size=100*F.k*(ch==='.'?1.5:1);rot=(rnd()-.5)*.09;jx=(rnd()-.5)*8;jy=(rnd()-.5)*8;}
-    else{ch=pool[Math.floor(rnd()*pool.length)];fi=Math.floor(rnd()*FONTS.length);const F=FONTS[fi];size=(54+rnd()*54)*F.k;rot=(rnd()-.5)*.34;jx=(rnd()-.5)*26;jy=(rnd()-.5)*26;}
-    const F=FONTS[fi];cx.font=`${F.s} ${F.w} ${size}px "${F.f}"`;
-    const m=cx.measureText(ch);
-    LET.push({ch,fi,size,rot,x:c*CELL+CELL/2+jx,y:r*CELL+CELL/2+jy,w:u?u.w:-1,i:u?u.i:-1,
-      dy:(m.actualBoundingBoxAscent-m.actualBoundingBoxDescent)/2});
-  }
-  /* hand-drawn loops: imperfect ellipses that overshoot and never quite meet */
-  SENT.forEach((w,wi)=>{
-    const a0=w.cells[0],a1=w.cells[w.cells.length-1];
-    const p0=[a0[0]*CELL+CELL/2,a0[1]*CELL+CELL/2],p1=[a1[0]*CELL+CELL/2,a1[1]*CELL+CELL/2];
-    const span=Math.hypot(p1[0]-p0[0],p1[1]-p0[1]);
-    const r2=mulberry32(w.seed*77);
-    LOOPS.push({cx:(p0[0]+p1[0])/2+(r2()-.5)*10,cy:(p0[1]+p1[1])/2+(r2()-.5)*10,
-      phi:Math.atan2(p1[1]-p0[1],p1[0]-p0[0]),a:span/2+104,b:92+r2()*10,
-      th:w.th,dir:w.dir,turns:1.1+r2()*.05,p1:r2()*6.28,p2:r2()*6.28,p3:r2()*6.28,drift:.08+r2()*.04,
-      s0:wi===0?.07:0});
-  });
-  hookReady=true;
+function getSpatialRandom(x,y){const n=Math.sin(x*12.9898+y*78.233)*43758.5453;return n-Math.floor(n);}
+
+const FXS={};   // effect state
+function buildEffect(){
+  /* scale so the word is TEXT_W px wide; everything (drift, dissolve, canvas) scales with it, exactly like the app's export scale */
+  const probe=mkCanvas(8,8).getContext('2d');
+  probe.font=`900 ${FX.fontSize}px ${DISPLAY}`;
+  const w150=probe.measureText(WORD).width;
+  const S=TEXT_W/w150;
+  const WW=Math.round(800*S), WH=Math.round(400*S);      // the app's 800x400 canvas, scaled
+  const drift=FX.drift*S, dis=FX.dissolve;
+  const off=mkCanvas(WW,WH),o=off.getContext('2d',{willReadFrequently:true});
+  o.font=`900 ${FX.fontSize*S}px ${DISPLAY}`;o.textAlign='center';o.textBaseline='middle';o.fillStyle=FX.color;
+  o.fillText(WORD,WW/2,WH/2);                              // one line: startY = centre, as in the app
+  const src=new Uint32Array(o.getImageData(0,0,WW,WH).data.buffer);
+  let minY=WH,maxY=0,has=false;
+  for(let y=0;y<WH;y++){const r=y*WW;for(let x=0;x<WW;x++)if(src[r+x]!==0){if(y<minY)minY=y;if(y>maxY)maxY=y;has=true;}}
+  if(!has)throw new Error('effect source is empty (font missing?)');
+  Object.assign(FXS,{S,WW,WH,drift,dis,src,minY,maxY,bh:maxY-minY+1,
+    cv:mkCanvas(WW,WH),img:null,buf:null});
+  FXS.cx=FXS.cv.getContext('2d');
+  FXS.img=FXS.cx.createImageData(WW,WH);FXS.buf=new Uint32Array(FXS.img.data.buffer);
 }
-function loopPt(L,s){
-  const th=L.th+L.dir*Math.PI*2*L.turns*s;
-  const r=1+.035*Math.sin(2*th+L.p1)+.028*Math.sin(3*th+L.p2)+.015*Math.sin(5*th+L.p3)+L.drift*s;
-  const x=L.a*r*Math.cos(th),y=L.b*r*Math.sin(th),c=Math.cos(L.phi),sn=Math.sin(L.phi);
-  return[L.cx+x*c-y*sn,L.cy+x*sn+y*c];
-}
-/* draw progress of word i at time t (0..1 along its loop) */
-function wordS(i,t){
-  const[a,b]=WORDS[i];if(t<a)return i===0?LOOPS[0].s0:0;
-  const u=clamp((t-a)/(b-a));
-  const e=i===0?EASE.o2(u):EASE.io2(u);
-  return lerp(LOOPS[i].s0,1,e);
-}
-function wordDone(i,t){return t>=WORDS[i][1]-.04;}
-/* pen tip position, lift (0 drawing … 1 travelling) */
-function penState(t){
-  for(let i=0;i<WORDS.length;i++){
-    const[a,b]=WORDS[i];
-    if(t<=b){
-      if(t>=a||i===0){const s=wordS(i,t);return{p:loopPt(LOOPS[i],s),lift:0,i};}
-      /* travelling from word i-1 end to word i start */
-      const pb=WORDS[i-1][1],u=EASE.io3(clamp((t-pb)/(a-pb)));
-      const A=loopPt(LOOPS[i-1],1),B=loopPt(LOOPS[i],LOOPS[i].s0);
-      const mx=(A[0]+B[0])/2,my=(A[1]+B[1])/2,dx=B[0]-A[0],dy=B[1]-A[1],d=Math.hypot(dx,dy)||1;
-      const cxp=mx-dy/d*d*.16,cyp=my+dx/d*d*.16;
-      const x=(1-u)*(1-u)*A[0]+2*(1-u)*u*cxp+u*u*B[0],y=(1-u)*(1-u)*A[1]+2*(1-u)*u*cyp+u*u*B[1];
-      return{p:[x,y],lift:Math.sin(Math.PI*u),i:i-.5};
+/* e = Haze Elevation 0..1.  e=0 → plain text.  e=1 → the finished effect. */
+function fogFill(e){
+  const{WW,WH,drift,dis,src,minY,maxY,bh,buf,S}=FXS;
+  buf.fill(0);
+  const transitionY=minY+bh*(1-e);
+  const hs=Math.round;
+  for(let sy=minY;sy<=maxY;sy++){
+    const sRow=sy*WW;
+    let fog=0;if(sy>transitionY)fog=Math.min(1,(sy-transitionY)/Math.max(1,WH-transitionY));
+    if(fog===0){for(let sx=0;sx<WW;sx++){const p=src[sRow+sx];if(p!==0)buf[sRow+sx]=p;}continue;}
+    const hOff=hs(fog*drift);
+    for(let sx=0;sx<WW;sx++){
+      const p=src[sRow+sx];if(p===0)continue;
+      const r1=getSpatialRandom(sx,sy),r2=getSpatialRandom(sx+50,sy+50);
+      const dx=hs(sx+hOff+(r1-.5)*(fog*dis*2.5*S));
+      const stretch=hs(r2*fog*(dis*.8)*S);
+      if(r1>fog*.4&&dx>=0&&dx<WW){
+        for(let k=0;k<=stretch;k++){const dy=sy+k;if(dy<WH)buf[dy*WW+dx]=p;}
+      }
     }
   }
-  /* after the sentence: the pen lifts and slides away to the upper right */
-  const last=loopPt(LOOPS[WORDS.length-1],1),u=EASE.io3(clamp((t-PEN_EXIT[0])/(PEN_EXIT[1]-PEN_EXIT[0])));
-  return{p:[last[0]+u*620,last[1]-u*980],lift:Math.min(1,u*3),i:99};
 }
-function strokeLoop(c,L,s,alpha=1){
-  if(s<=0)return;
-  const N=Math.max(2,Math.ceil(170*s));
-  c.save();c.lineCap='round';c.lineJoin='round';c.strokeStyle='#101011';c.globalAlpha=alpha;
-  let prev=loopPt(L,0);
-  for(let k=1;k<=N;k++){
-    const q=s*k/N,p=loopPt(L,q);
-    const wd=6.6*(.55+.45*Math.min(1,q/.07))*(1-.55*clamp((q-.9)/.1))*(1+.12*Math.sin(q*31+L.p1));
-    c.lineWidth=wd;c.beginPath();c.moveTo(prev[0],prev[1]);c.lineTo(p[0],p[1]);c.stroke();prev=p;
-  }
-  c.restore();
-}
-/* the pen, seen from above. tip at (x,y); body runs to the upper right and out of frame */
-function drawPen(c,x,y,ang,lift){
-  c.save();c.translate(x,y);c.rotate(ang);c.scale(1,1.32);
-  const L=1500,tipL=96;
-  const body=(g)=>{
-    c.beginPath();
-    c.moveTo(0,0);c.lineTo(tipL,-12);c.lineTo(tipL+16,-12.5);c.lineTo(tipL+16,-15);c.lineTo(340,-18.5);c.lineTo(L,-19);
-    c.lineTo(L,19);c.lineTo(340,18.5);c.lineTo(tipL+16,15);c.lineTo(tipL+16,12.5);c.lineTo(tipL,12);c.closePath();
+function fogDraw(e){fogFill(e);FXS.cx.putImageData(FXS.img,0,0);return FXS.cv;}
+
+/* ---- the red target: a hollow outline of the FINISHED effect (e = 1) ---- */
+function dilate(m,w,h,r){
+  const hwOf=dy=>Math.floor(Math.sqrt(r*r-dy*dy)+.5);
+  const maps={};
+  const horiz=hw=>{
+    const out=new Uint8Array(w*h),pre=new Int32Array(w+1);
+    for(let y=0;y<h;y++){
+      const ro=y*w;pre[0]=0;for(let x=0;x<w;x++)pre[x+1]=pre[x]+m[ro+x];
+      for(let x=0;x<w;x++){const a=Math.max(0,x-hw),b=Math.min(w,x+hw+1);out[ro+x]=pre[b]-pre[a]>0?1:0;}
+    }return out;
   };
-  /* soft shadow, bigger and further when the pen is lifted */
-  c.save();c.shadowColor='rgba(0,0,0,.30)';c.shadowBlur=18+lift*26;c.shadowOffsetX=22+lift*26;c.shadowOffsetY=34+lift*30;
-  /* (canvas shadow offsets ignore the transform, so the shadow always falls to the lower right) */
-  c.fillStyle='#0a0a0a';body();c.fill();c.restore();
-  /* barrel */
-  let g=c.createLinearGradient(0,-19,0,19);
-  g.addColorStop(0,'#050505');g.addColorStop(.28,'#34343a');g.addColorStop(.42,'#17171a');g.addColorStop(1,'#030303');
-  c.fillStyle=g;body();c.fill();
-  /* metal tip section */
-  g=c.createLinearGradient(0,-13,0,13);g.addColorStop(0,'#6a6a70');g.addColorStop(.35,'#e7e7ea');g.addColorStop(.6,'#9b9ba2');g.addColorStop(1,'#4b4b50');
-  c.fillStyle=g;c.beginPath();c.moveTo(7,-1.6);c.lineTo(tipL,-12);c.lineTo(tipL+16,-12.5);c.lineTo(tipL+16,12.5);c.lineTo(tipL,12);c.lineTo(7,1.6);c.closePath();c.fill();
-  c.fillStyle='#0b0b0c';c.beginPath();c.moveTo(0,0);c.lineTo(10,-2);c.lineTo(10,2);c.closePath();c.fill();
-  /* grip ring + clip + gloss */
-  c.fillStyle='rgba(255,255,255,.22)';c.fillRect(tipL+36,-3.5,L,3);
-  g=c.createLinearGradient(0,-19,0,19);g.addColorStop(0,'#55555b');g.addColorStop(.4,'#d9d9dd');g.addColorStop(1,'#6a6a70');
-  c.fillStyle=g;c.fillRect(tipL+16,-16,12,32);c.fillRect(560,-26,330,9);
-  c.restore();
-}
-function drawLetter(c,l,alpha,color,scale){
-  const F=FONTS[l.fi];
-  c.save();c.translate(l.x,l.y);c.rotate(l.rot);c.scale(scale,scale);
-  c.font=`${F.s} ${F.w} ${l.size}px "${F.f}"`;c.textAlign='center';c.textBaseline='alphabetic';
-  c.fillStyle=color;c.globalAlpha=alpha;c.fillText(l.ch,0,l.dy);c.restore();
-}
-function drawHook(c,t){
-  c.fillStyle=BRAND.paper;c.fillRect(0,0,W,H);
-  const zoom=1+.03*prog(t,0,HOOK_END,'io2');
-  c.save();c.translate(540,900);c.scale(zoom,zoom);c.translate(-540,-900);
-  const dim=prog(t,FILL_DIM[0],FILL_DIM[1]-FILL_DIM[0],'io2');
-  const fillA=lerp(.62,.2,dim);
-  /* fillers */
-  for(const l of LET)if(l.w<0)drawLetter(c,l,fillA,'#141414',1);
-  /* sentence letters: stay quiet until their loop closes, then pop to full ink */
-  for(const l of LET)if(l.w>=0){
-    const done=WORDS[l.w][1]-.06,q=t-done-l.i*.035;
-    let a=fillA*1.0,col='#141414',sc=1;
-    if(q>=0){a=lerp(fillA,1,clamp(q/.08));sc=1+.16*Math.sin(Math.PI*clamp(q/.28))*Math.exp(-q*3);}
-    drawLetter(c,l,a,col,sc);
+  const res=new Uint8Array(w*h);
+  for(let dy=-r;dy<=r;dy++){
+    const hw=hwOf(dy);if(!maps[hw])maps[hw]=horiz(hw);const H1=maps[hw];
+    for(let y=0;y<h;y++){const sy=y-dy;if(sy<0||sy>=h)continue;const ro=y*w,so=sy*w;for(let x=0;x<w;x++)if(H1[so+x])res[ro+x]=1;}
   }
-  /* loops */
-  for(let i=0;i<WORDS.length;i++){const s=wordS(i,t);if(t>=WORDS[i][0]||i===0)strokeLoop(c,LOOPS[i],s);}
-  /* pen */
-  const ps=penState(t),dt=1/120,pn=penState(t+dt),pv=penState(Math.max(0,t-dt));
-  const vx=(pn.p[0]-pv.p[0])/(2*dt);
-  const ang=-1.22+clamp(vx/9000,-.12,.12)+.02*Math.sin(t*3.1);
-  drawPen(c,ps.p[0],ps.p[1],ang,ps.lift);
-  c.restore();
+  return res;
+}
+const invert=m=>{const o=new Uint8Array(m.length);for(let i=0;i<m.length;i++)o[i]=m[i]?0:1;return o;};
+const CLOSE_R=7;    // merges pinholes and the finest dust so the outline reads as one clean silhouette
+const RING_W=7;     // outline thickness in px — sits just OUTSIDE the effect, so the effect fits inside it
+const ALPHA_MIN=96; // pixels fainter than this are anti-aliasing fuzz, not shape
+
+function buildTarget(){
+  fogFill(1);
+  const{WW,WH,buf}=FXS;
+  let x0=WW,x1=0,y0=WH,y1=0;
+  for(let y=0;y<WH;y++){const r=y*WW;for(let x=0;x<WW;x++){if((buf[r+x]>>>24)>=ALPHA_MIN){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}}}
+  /* centre the finished composition (word + haze) on CX,CY */
+  FXS.ox=Math.round(CX-(x0+x1)/2);FXS.oy=Math.round(CY-(y0+y1)/2);
+  const PAD=CLOSE_R+RING_W+6,w=x1-x0+1+PAD*2,h=y1-y0+1+PAD*2;
+  let m=new Uint8Array(w*h);
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if((buf[y*WW+x]>>>24)>=ALPHA_MIN)m[(y-y0+PAD)*w+(x-x0+PAD)]=1;
+  const closed=invert(dilate(invert(dilate(m,w,h,CLOSE_R)),w,h,CLOSE_R));
+  const grown=dilate(closed,w,h,RING_W);
+  const cv=mkCanvas(w,h),c=cv.getContext('2d'),id=c.createImageData(w,h),d=id.data;
+  const rr=parseInt(RED.substr(1,2),16),rg=parseInt(RED.substr(3,2),16),rb=parseInt(RED.substr(5,2),16);
+  for(let i=0;i<w*h;i++)if(grown[i]&&!closed[i]){d[i*4]=rr;d[i*4+1]=rg;d[i*4+2]=rb;d[i*4+3]=255;}
+  c.putImageData(id,0,0);
+  FXS.ring=cv;FXS.ringX=FXS.ox+x0-PAD;FXS.ringY=FXS.oy+y0-PAD;
+  FXS.bbox={x:FXS.ox+x0,y:FXS.oy+y0,w:x1-x0+1,h:y1-y0+1};
 }
 
 /* =====================================================================
-   THE FIVE MAKERS — each one runs the app's own render code
+   COPY
    ===================================================================== */
-const TOOLS=[{"file": "019-glitch-slice", "name": "Glitch Slice", "text": "SIGNAL", "font": "\"Instrument Serif\", serif", "sliders": [{"id": "fringe", "min": 1, "max": 40, "step": 1, "value": 2, "svg": "<path d=\"M3 6h18M3 12h18M3 18h18\"/>", "label": "Slice Thickness"}, {"id": "shear", "min": 0, "max": 200, "step": 1, "value": 9, "svg": "<path d=\"M18 8l4 4-4 4M6 16l-4-4 4-4M2 12h20\"/>", "label": "Shear Offset"}, {"id": "chaos", "min": 0, "max": 100, "step": 1, "value": 30, "svg": "<path d=\"M2 12h4l3-8 4 16 3-8h6\"/>", "label": "Signal Chaos"}, {"id": "fontSize", "min": 30, "max": 250, "step": 1, "value": 140, "svg": "<path d=\"M4 7V4h16v3M9 20h6M12 4v16\"/>", "label": "Size"}]}, {"file": "010-stamp-wear", "name": "Stamp Wear", "text": "STAMPED", "font": "\"Barlow Semi Condensed\", sans-serif", "sliders": [{"id": "erosion", "min": 0, "max": 100, "step": 1, "value": 45, "svg": "<path d=\"M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z\"/><circle cx=\"8\" cy=\"9\" r=\"1.5\"/><circle cx=\"15\" cy=\"14\" r=\"1\"/><circle cx=\"14\" cy=\"8\" r=\"1\"/>", "label": "Erosion Level"}, {"id": "edgeWear", "min": 0, "max": 100, "step": 1, "value": 60, "svg": "<path d=\"M4 4h16v16H4z\" stroke-dasharray=\"3 3\"/><path d=\"M9 3v2M15 3v2M3 9h2M3 15h2M21 9h-2M21 15h-2M9 21v-2M15 21v-2\"/>", "label": "Edge Wear"}, {"id": "fontSize", "min": 30, "max": 250, "step": 1, "value": 140, "svg": "<path d=\"M4 7V4h16v3M9 20h6M12 4v16\"/>", "label": "Size"}]}, {"file": "011-yarn-loop", "name": "Yarn Loop", "text": "WOVEN", "font": "\"Instrument Serif\", serif", "sliders": [{"id": "stitchDensity", "min": 3, "max": 8, "step": 1, "value": 6, "svg": "<path d=\"M4 6h16M4 12h16M4 18h16\"/><circle cx=\"8\" cy=\"6\" r=\"1\"/><circle cx=\"16\" cy=\"12\" r=\"1\"/><circle cx=\"10\" cy=\"18\" r=\"1\"/>", "label": "Stitch Grid Size"}, {"id": "loopSize", "min": 3, "max": 8, "step": 1, "value": 7, "svg": "<path d=\"M12 2a5 5 0 0 1 5 5c0 5-5 9-5 15C12 16 7 12 7 7a5 5 0 0 1 5-5z\"/>", "label": "Loop Radius"}, {"id": "threadFuzz", "min": 0, "max": 100, "step": 1, "value": 45, "svg": "<path d=\"M2 12h4l2-3 3 6 3-6 2 3h6\"/>", "label": "Fiber Fuzz"}, {"id": "fontSize", "min": 30, "max": 250, "step": 1, "value": 140, "svg": "<path d=\"M4 7V4h16v3M9 20h6M12 4v16\"/>", "label": "Size"}]}, {"file": "001-kinetic-flowfield", "name": "Kinetic Flowfield", "text": "FLOW", "font": "\"Instrument Serif\", serif", "sliders": [{"id": "turbulence", "min": 1, "max": 26, "step": 1, "value": 26, "svg": "<path d=\"M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0\"/>", "label": "Turbulence"}, {"id": "strength", "min": 0, "max": 26, "step": 1, "value": 26, "svg": "<path d=\"M5 12h14M12 5l7 7-7 7\"/>", "label": "Current Strength"}, {"id": "fontSize", "min": 30, "max": 250, "step": 1, "value": 140, "svg": "<path d=\"M4 7V4h16v3M9 20h6M12 4v16\"/>", "label": "Size"}]}, {"file": "002-impact-matrix", "name": "Impact Matrix", "text": "RECEIPT", "font": "\"Instrument Serif\", serif", "sliders": [{"id": "feedJitter", "min": 0, "max": 20, "step": 1, "value": 12, "svg": "<path d=\"M18 8l4 4-4 4M6 16l-4-4 4-4M2 12h20\"/>", "label": "Feed Jitter"}, {"id": "strikeBleed", "min": 0, "max": 100, "step": 1, "value": 60, "svg": "<path d=\"M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>", "label": "Strike Bleed"}, {"id": "fontSize", "min": 30, "max": 250, "step": 1, "value": 140, "svg": "<path d=\"M4 7V4h16v3M9 20h6M12 4v16\"/>", "label": "Size"}]}];
-const TOOL_FNS=[
-function(document,window){
-
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let customFontFamily = '"Instrument Serif", serif';
-
-        function initThemeColor() {
-            const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const defaultColor = isDark ? '#FFFFFF' : '#000000';
-            const textColorInput = document.getElementById('textColor');
-            const colorSpan = document.getElementById('v_color');
-            if (textColorInput && colorSpan) {
-                textColorInput.value = defaultColor;
-                colorSpan.innerText = defaultColor;
-            }
-        }
-
-        function handleFontUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const fontName = 'CustomFont_' + Date.now();
-                const font = new FontFace(fontName, e.target.result);
-                font.load().then(function(loadedFont) {
-                    document.fonts.add(loadedFont);
-                    customFontFamily = `"${fontName}", "Instrument Serif", serif`;
-                    const label = document.getElementById('fontLabel');
-                    if (label) label.innerText = file.name;
-                    draw();
-                }).catch(function(err) {
-                    console.error("Error loading custom font:", err);
-                    alert("Could not load custom font file.");
-                });
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function updateColorLabel(colorVal) {
-            const span = document.getElementById('v_color');
-            if (document.activeElement !== span) {
-                span.innerText = colorVal.toUpperCase();
-            }
-            draw();
-        }
-
-        function updateFromColorText() {
-            const span = document.getElementById('v_color');
-            const input = document.getElementById('textColor');
-            let val = span.innerText.trim();
-            if (!val.startsWith('#')) {
-                val = '#' + val;
-            }
-            if (/^#([0-9A-Fa-f]{3})$/.test(val)) {
-                val = '#' + val[1] + val[1] + val[2] + val[2] + val[3] + val[3];
-            }
-            if (/^#([0-9A-Fa-f]{6})$/.test(val)) {
-                input.value = val;
-                draw();
-            }
-        }
-
-        function handleColorBlur() {
-            const span = document.getElementById('v_color');
-            const input = document.getElementById('textColor');
-            span.innerText = input.value.toUpperCase();
-        }
-
-        function updateFromText(id) {
-            const span = document.getElementById('v_' + id);
-            const input = document.getElementById(id);
-            let val = parseInt(span.innerText.replace(/[^0-9-]/g, ''));
-            if (!isNaN(val)) {
-                input.value = val;
-                draw();
-            }
-        }
-        
-        function handleBlur(id, suffix = 'px') {
-            const span = document.getElementById('v_' + id);
-            const input = document.getElementById(id);
-            span.innerText = input.value + suffix;
-        }
-
-        function getSpatialRandom(x, y) {
-            let n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
-            return n - Math.floor(n);
-        }
-
-        let renderPending = false;
-
-        function draw() {
-            if (!renderPending) {
-                renderPending = true;
-                requestAnimationFrame(() => {
-                    try {
-                        performDraw();
-                    } finally {
-                        renderPending = false;
-                    }
-                });
-            }
-        }
-
-        function performDraw() {
-            renderToCanvas(ctx, canvas.width, canvas.height, 1);
-        }
-
-        function renderToCanvas(targetCtx, targetWidth, targetHeight, scale) {
-            const text = document.getElementById('textInput').value;
-            
-            let origFringe = parseInt(document.getElementById('fringe').value);
-            if (isNaN(origFringe) || origFringe < 1) origFringe = 1;
-            
-            const origShear = parseInt(document.getElementById('shear').value);
-            const origChaos = parseInt(document.getElementById('chaos').value) / 100;
-            const origFontSize = parseInt(document.getElementById('fontSize').value);
-            const textColor = document.getElementById('textColor').value;
-
-            if (scale === 1) {
-                if (document.activeElement !== document.getElementById('v_fringe')) {
-                    document.getElementById('v_fringe').innerText = origFringe + 'px';
-                }
-                if (document.activeElement !== document.getElementById('v_shear')) {
-                    document.getElementById('v_shear').innerText = origShear + 'px';
-                }
-                if (document.activeElement !== document.getElementById('v_chaos')) {
-                    document.getElementById('v_chaos').innerText = (origChaos * 100) + '%';
-                }
-                if (document.activeElement !== document.getElementById('v_fontSize')) {
-                    document.getElementById('v_fontSize').innerText = origFontSize + 'px';
-                }
-                if (document.activeElement !== document.getElementById('v_color')) {
-                    document.getElementById('v_color').innerText = textColor.toUpperCase();
-                }
-            }
-
-            targetCtx.clearRect(0, 0, targetWidth, targetHeight);
-            
-            if (!text) return null;
-
-            const offscreen = document.createElement('canvas');
-            offscreen.width = targetWidth; 
-            offscreen.height = targetHeight;
-            const octx = offscreen.getContext('2d');
-            
-            const lines = text.split('\n');
-            const scaledShear = origShear * scale;
-            const padding = scaledShear + (40 * scale); 
-
-            const refSize = 100 * scale;
-            octx.font = `400 ${refSize}px ${customFontFamily}`;
-            let maxRefWidth = 1;
-            lines.forEach(line => {
-                let width = octx.measureText(line).width;
-                if (width > maxRefWidth) maxRefWidth = width;
-            });
-            
-            const refTotalHeight = lines.length * (refSize * 1.1);
-            
-            const availWidth = Math.max(10 * scale, targetWidth - padding);
-            const availHeight = Math.max(10 * scale, targetHeight - padding);
-            
-            const maxFontSizeW = (availWidth * refSize) / maxRefWidth;
-            const maxFontSizeH = (availHeight * refSize) / refTotalHeight;
-            const calculatedMaxFontSize = Math.min(maxFontSizeW, maxFontSizeH);
-            
-            const scaledFontSize = Math.max(10 * scale, Math.min(origFontSize * scale, calculatedMaxFontSize));
-            
-            octx.font = `400 ${scaledFontSize}px ${customFontFamily}`;
-            octx.textAlign = 'center';
-            octx.textBaseline = 'middle';
-            octx.fillStyle = textColor;
-            
-            const lineHeight = scaledFontSize * 1.1; 
-            const totalHeight = lines.length * lineHeight;
-            let startY = (targetHeight / 2) - (totalHeight / 2) + (lineHeight / 2);
-
-            lines.forEach((line, index) => {
-                octx.fillText(line, (targetWidth / 2), startY + (index * lineHeight));
-            });
-
-            const sourceData = octx.getImageData(0, 0, targetWidth, targetHeight);
-            const targetData = targetCtx.createImageData(targetWidth, targetHeight);
-            const sourceBuffer = new Uint32Array(sourceData.data.buffer);
-            const targetBuffer = new Uint32Array(targetData.data.buffer);
-
-            for (let dy = 0; dy < targetHeight; dy++) {
-                const unscaledY = dy / scale;
-                const band = Math.floor(unscaledY / origFringe);
-                const dir = (band % 2 === 0) ? 1 : -1;
-
-                const waveShift = Math.sin(band * 0.4) * origShear;
-                const macroClump = getSpatialRandom(0, Math.floor(band / 3));
-                const microNoise = getSpatialRandom(0, band);
-                const chaosIntensity = (macroClump * 1.5 + microNoise * 0.5);
-                const chaoticShift = dir * chaosIntensity * origShear;
-
-                const shiftAmount = (waveShift * (1 - origChaos)) + (chaoticShift * origChaos);
-                const scaledShiftX = Math.round(shiftAmount * scale);
-
-                const rowOffset = dy * targetWidth;
-                for (let dx = 0; dx < targetWidth; dx++) {
-                    const sx = dx - scaledShiftX;
-                    
-                    if (sx >= 0 && sx < targetWidth) {
-                        const sourcePixel = sourceBuffer[rowOffset + sx];
-                        if (sourcePixel !== 0) {
-                            targetBuffer[rowOffset + dx] = sourcePixel;
-                        }
-                    }
-                }
-            }
-            
-            targetCtx.putImageData(targetData, 0, 0);
-            return targetData;
-        }
-
-        function downloadPNG() {
-            const btn = document.querySelector('.btn-download');
-            const origText = btn.innerHTML;
-            btn.innerText = "RENDERING...";
-            btn.disabled = true;
-
-            setTimeout(() => {
-                try {
-                    const scale = parseInt(document.getElementById('exportScale').value) || 4; 
-                    const targetWidth = 800 * scale; 
-                    const targetHeight = 400 * scale; 
-
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = targetWidth;
-                    tempCanvas.height = targetHeight;
-                    const tempCtx = tempCanvas.getContext('2d');
-
-                    const targetData = renderToCanvas(tempCtx, targetWidth, targetHeight, scale);
-
-                    if (!targetData) {
-                        btn.innerHTML = origText;
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    const buffer = new Uint32Array(targetData.data.buffer);
-                    let minX = targetWidth, minY = targetHeight, maxX = 0, maxY = 0;
-                    let hasPixels = false;
-
-                    for (let y = 0; y < targetHeight; y++) {
-                        const rowOffset = y * targetWidth;
-                        for (let x = 0; x < targetWidth; x++) {
-                            if (buffer[rowOffset + x] !== 0) {
-                                if (x < minX) minX = x;
-                                if (x > maxX) maxX = x;
-                                if (y < minY) minY = y;
-                                if (y > maxY) maxY = y;
-                                hasPixels = true;
-                            }
-                        }
-                    }
-
-                    if (!hasPixels) {
-                        alert("No text to download.");
-                        btn.innerHTML = origText;
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    const cropW = maxX - minX + 1;
-                    const cropH = maxY - minY + 1;
-
-                    const cropCanvas = document.createElement('canvas');
-                    cropCanvas.width = cropW;
-                    cropCanvas.height = cropH;
-                    const cropCtx = cropCanvas.getContext('2d');
-                    
-                    const cropData = cropCtx.createImageData(cropW, cropH);
-                    const cropBuffer = new Uint32Array(cropData.data.buffer);
-                    
-                    for (let y = 0; y < cropH; y++) {
-                        const srcRow = (y + minY) * targetWidth;
-                        const dstRow = y * cropW;
-                        for (let x = 0; x < cropW; x++) {
-                            cropBuffer[dstRow + x] = buffer[srcRow + (x + minX)];
-                        }
-                    }
-                    cropCtx.putImageData(cropData, 0, 0);
-
-                    const link = document.createElement('a');
-                    link.download = `glitch-slice-${scale}x.png`;
-                    link.href = cropCanvas.toDataURL('image/png');
-                    link.click();
-
-                } catch (err) {
-                    console.error("Render failed:", err);
-                    alert("An error occurred during export.");
-                } finally {
-                    btn.innerHTML = origText;
-                    btn.disabled = false;
-                }
-            }, 50);
-        }
-
-        initThemeColor();
-
-        if (window.matchMedia) {
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-                initThemeColor();
-                draw();
-            });
-        }
-
-        document.fonts.ready.then(() => {
-            draw();
-        });
-    
-return {renderToCanvas:renderToCanvas};
-},
-function(document,window){
-
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let customFontFamily = '"Barlow Semi Condensed", sans-serif';
-
-        function initThemeColor() {
-            const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const defaultColor = isDark ? '#FFFFFF' : '#000000';
-            const textColorInput = document.getElementById('textColor');
-            const colorSpan = document.getElementById('v_color');
-            if (textColorInput && colorSpan) {
-                textColorInput.value = defaultColor;
-                colorSpan.innerText = defaultColor;
-            }
-        }
-
-        function handleFontUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const fontName = 'CustomFont_' + Date.now();
-                const font = new FontFace(fontName, e.target.result);
-                font.load().then(function(loadedFont) {
-                    document.fonts.add(loadedFont);
-                    customFontFamily = `"${fontName}", "Barlow Semi Condensed", sans-serif`;
-                    const label = document.getElementById('fontLabel');
-                    if (label) label.innerText = file.name;
-                    draw();
-                }).catch(function(err) {
-                    console.error("Error loading custom font:", err);
-                    alert("Could not load custom font file.");
-                });
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function updateColorLabel(colorVal) {
-            const span = document.getElementById('v_color');
-            if (document.activeElement !== span) {
-                span.innerText = colorVal.toUpperCase();
-            }
-            draw();
-        }
-
-        function updateFromColorText() {
-            const span = document.getElementById('v_color');
-            const input = document.getElementById('textColor');
-            let val = span.innerText.trim();
-            if (!val.startsWith('#')) {
-                val = '#' + val;
-            }
-            if (/^#([0-9A-Fa-f]{3})$/.test(val)) {
-                val = '#' + val[1] + val[1] + val[2] + val[2] + val[3] + val[3];
-            }
-            if (/^#([0-9A-Fa-f]{6})$/.test(val)) {
-                input.value = val;
-                draw();
-            }
-        }
-
-        function handleColorBlur() {
-            const span = document.getElementById('v_color');
-            const input = document.getElementById('textColor');
-            span.innerText = input.value.toUpperCase();
-        }
-
-        function updateFromText(id) {
-            const span = document.getElementById('v_' + id);
-            const input = document.getElementById(id);
-            let val = parseInt(span.innerText.replace(/[^0-9-]/g, ''));
-            if (!isNaN(val)) {
-                input.value = val;
-                draw();
-            }
-        }
-        
-        function handleBlur(id, suffix = 'px') {
-            const span = document.getElementById('v_' + id);
-            const input = document.getElementById(id);
-            span.innerText = input.value + suffix;
-        }
-
-        /* Multi-Octave Noise via Pseudo-Random Hash */
-        function hash2D(x, y) {
-            let n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123;
-            return n - Math.floor(n);
-        }
-
-        function multiOctaveNoise(x, y) {
-            const coarse = hash2D(Math.floor(x / 8.0), Math.floor(y / 8.0));
-            const medium = hash2D(Math.floor(x / 3.0), Math.floor(y / 3.0));
-            const fine = hash2D(x, y);
-            
-            return (coarse * 0.5) + (medium * 0.3) + (fine * 0.2);
-        }
-
-        let renderPending = false;
-
-        function draw() {
-            if (!renderPending) {
-                renderPending = true;
-                requestAnimationFrame(() => {
-                    try {
-                        performDraw();
-                    } finally {
-                        renderPending = false;
-                    }
-                });
-            }
-        }
-
-        function performDraw() {
-            renderToCanvas(ctx, canvas.width, canvas.height, 1);
-        }
-
-        function renderToCanvas(targetCtx, targetWidth, targetHeight, scale) {
-            const text = document.getElementById('textInput').value;
-            
-            const origErosion = parseInt(document.getElementById('erosion').value) / 100;
-            const origEdgeWear = parseInt(document.getElementById('edgeWear').value) / 100;
-            const origFontSize = parseInt(document.getElementById('fontSize').value);
-            const textColor = document.getElementById('textColor').value;
-
-            if (scale === 1) {
-                if (document.activeElement !== document.getElementById('v_erosion')) {
-                    document.getElementById('v_erosion').innerText = Math.round(origErosion * 100) + '%';
-                }
-                if (document.activeElement !== document.getElementById('v_edgeWear')) {
-                    document.getElementById('v_edgeWear').innerText = Math.round(origEdgeWear * 100) + '%';
-                }
-                if (document.activeElement !== document.getElementById('v_fontSize')) {
-                    document.getElementById('v_fontSize').innerText = origFontSize + 'px';
-                }
-                if (document.activeElement !== document.getElementById('v_color')) {
-                    document.getElementById('v_color').innerText = textColor.toUpperCase();
-                }
-            }
-
-            targetCtx.clearRect(0, 0, targetWidth, targetHeight);
-            if (!text) return null;
-
-            // Render base text to offscreen buffer
-            const offscreen = document.createElement('canvas');
-            offscreen.width = targetWidth; 
-            offscreen.height = targetHeight;
-            const octx = offscreen.getContext('2d');
-            
-            const lines = text.split('\n');
-            const padding = 40 * scale; 
-
-            const refSize = 100 * scale;
-            octx.font = `900 ${refSize}px ${customFontFamily}`;
-            let maxRefWidth = 1;
-            lines.forEach(line => {
-                let width = octx.measureText(line).width;
-                if (width > maxRefWidth) maxRefWidth = width;
-            });
-            
-            const refTotalHeight = lines.length * (refSize * 1.1);
-            const availWidth = Math.max(10 * scale, targetWidth - padding);
-            const availHeight = Math.max(10 * scale, targetHeight - padding);
-            
-            const maxFontSizeW = (availWidth * refSize) / maxRefWidth;
-            const maxFontSizeH = (availHeight * refSize) / refTotalHeight;
-            const calculatedMaxFontSize = Math.min(maxFontSizeW, maxFontSizeH);
-            const scaledFontSize = Math.max(10 * scale, Math.min(origFontSize * scale, calculatedMaxFontSize));
-            
-            octx.font = `900 ${scaledFontSize}px ${customFontFamily}`;
-            octx.textAlign = 'center';
-            octx.textBaseline = 'middle';
-            octx.fillStyle = textColor;
-            
-            const lineHeight = scaledFontSize * 1.1; 
-            const totalHeight = lines.length * lineHeight;
-            let startY = (targetHeight / 2) - (totalHeight / 2) + (lineHeight / 2);
-
-            lines.forEach((line, index) => {
-                octx.fillText(line, (targetWidth / 2), startY + (index * lineHeight));
-            });
-
-            const sourceData = octx.getImageData(0, 0, targetWidth, targetHeight);
-            const targetData = targetCtx.createImageData(targetWidth, targetHeight);
-            const sourceBuffer = new Uint32Array(sourceData.data.buffer);
-            const targetBuffer = new Uint32Array(targetData.data.buffer);
-
-            // Edge Proximity Map (Distance to nearest empty pixel within radius)
-            const searchRadius = Math.max(1, Math.round(3 * scale));
-            const edgeMap = new Float32Array(targetWidth * targetHeight);
-
-            for (let y = 0; y < targetHeight; y++) {
-                const row = y * targetWidth;
-                for (let x = 0; x < targetWidth; x++) {
-                    const idx = row + x;
-                    if (sourceBuffer[idx] === 0) continue;
-
-                    let minDistance = searchRadius + 1;
-                    for (let dy = -searchRadius; dy <= searchRadius; dy++) {
-                        const ny = y + dy;
-                        if (ny < 0 || ny >= targetHeight) {
-                            minDistance = Math.min(minDistance, Math.abs(dy));
-                            continue;
-                        }
-                        const nRow = ny * targetWidth;
-                        for (let dx = -searchRadius; dx <= searchRadius; dx++) {
-                            const nx = x + dx;
-                            if (nx < 0 || nx >= targetWidth || sourceBuffer[nRow + nx] === 0) {
-                                const dist = Math.hypot(dx, dy);
-                                if (dist < minDistance) minDistance = dist;
-                            }
-                        }
-                    }
-                    edgeMap[idx] = Math.min(1.0, minDistance / searchRadius);
-                }
-            }
-
-            // Apply Stamp Wear Pixel Algorithm
-            for (let y = 0; y < targetHeight; y++) {
-                const unscaledY = y / scale;
-                const rowOffset = y * targetWidth;
-                for (let x = 0; x < targetWidth; x++) {
-                    const idx = rowOffset + x;
-                    const pixel = sourceBuffer[idx];
-
-                    if (pixel !== 0) {
-                        const unscaledX = x / scale;
-                        const noiseVal = multiOctaveNoise(unscaledX, unscaledY);
-                        const edgeFactor = edgeMap[idx];
-                        
-                        const innerErosionThresh = 1.0 - (origErosion * 0.7);
-                        const edgeErosionThresh = 1.0 - (origEdgeWear * 0.95);
-                        
-                        const effectiveThresh = (edgeFactor * innerErosionThresh) + ((1.0 - edgeFactor) * edgeErosionThresh);
-                        
-                        if (noiseVal < effectiveThresh) {
-                            targetBuffer[idx] = pixel;
-                        }
-                    }
-                }
-            }
-            
-            targetCtx.putImageData(targetData, 0, 0);
-            return targetData;
-        }
-
-        function downloadPNG() {
-            const btn = document.querySelector('.btn-download');
-            const origText = btn.innerHTML;
-            btn.innerText = "RENDERING...";
-            btn.disabled = true;
-
-            setTimeout(() => {
-                try {
-                    const scale = parseInt(document.getElementById('exportScale').value) || 4; 
-                    const targetWidth = 800 * scale; 
-                    const targetHeight = 400 * scale; 
-
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = targetWidth;
-                    tempCanvas.height = targetHeight;
-                    const tempCtx = tempCanvas.getContext('2d');
-
-                    const targetData = renderToCanvas(tempCtx, targetWidth, targetHeight, scale);
-
-                    if (!targetData) {
-                        btn.innerHTML = origText;
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    const buffer = new Uint32Array(targetData.data.buffer);
-                    let minX = targetWidth, minY = targetHeight, maxX = 0, maxY = 0;
-                    let hasPixels = false;
-
-                    for (let y = 0; y < targetHeight; y++) {
-                        const rowOffset = y * targetWidth;
-                        for (let x = 0; x < targetWidth; x++) {
-                            if (buffer[rowOffset + x] !== 0) {
-                                if (x < minX) minX = x;
-                                if (x > maxX) maxX = x;
-                                if (y < minY) minY = y;
-                                if (y > maxY) maxY = y;
-                                hasPixels = true;
-                            }
-                        }
-                    }
-
-                    if (!hasPixels) {
-                        alert("No text to download.");
-                        btn.innerHTML = origText;
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    const cropW = maxX - minX + 1;
-                    const cropH = maxY - minY + 1;
-
-                    const cropCanvas = document.createElement('canvas');
-                    cropCanvas.width = cropW;
-                    cropCanvas.height = cropH;
-                    const cropCtx = cropCanvas.getContext('2d');
-                    
-                    const cropData = cropCtx.createImageData(cropW, cropH);
-                    const cropBuffer = new Uint32Array(cropData.data.buffer);
-                    
-                    for (let y = 0; y < cropH; y++) {
-                        const srcRow = (y + minY) * targetWidth;
-                        const dstRow = y * cropW;
-                        for (let x = 0; x < cropW; x++) {
-                            cropBuffer[dstRow + x] = buffer[srcRow + (x + minX)];
-                        }
-                    }
-                    cropCtx.putImageData(cropData, 0, 0);
-
-                    const link = document.createElement('a');
-                    link.download = `stamp-wear-${scale}x.png`;
-                    link.href = cropCanvas.toDataURL('image/png');
-                    link.click();
-
-                } catch (err) {
-                    console.error("Render failed:", err);
-                    alert("An error occurred during export.");
-                } finally {
-                    btn.innerHTML = origText;
-                    btn.disabled = false;
-                }
-            }, 50);
-        }
-
-        initThemeColor();
-
-        if (window.matchMedia) {
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-                initThemeColor();
-                draw();
-            });
-        }
-
-        document.fonts.ready.then(() => {
-            draw();
-        });
-    
-return {renderToCanvas:renderToCanvas};
-},
-function(document,window){
-
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let customFontFamily = '"Instrument Serif", serif';
-
-        function initThemeColor() {
-            const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const defaultColor = isDark ? '#FFFFFF' : '#000000';
-            const textColorInput = document.getElementById('textColor');
-            const colorSpan = document.getElementById('v_color');
-            if (textColorInput && colorSpan) {
-                textColorInput.value = defaultColor;
-                colorSpan.innerText = defaultColor;
-            }
-        }
-
-        function handleFontUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const fontName = 'CustomFont_' + Date.now();
-                const font = new FontFace(fontName, e.target.result);
-                font.load().then(function(loadedFont) {
-                    document.fonts.add(loadedFont);
-                    customFontFamily = `"${fontName}", "Instrument Serif", serif`;
-                    const label = document.getElementById('fontLabel');
-                    if (label) label.innerText = file.name;
-                    draw();
-                }).catch(function(err) {
-                    console.error("Error loading custom font:", err);
-                    alert("Could not load custom font file.");
-                });
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function updateColorLabel(colorVal) {
-            const span = document.getElementById('v_color');
-            if (document.activeElement !== span) {
-                span.innerText = colorVal.toUpperCase();
-            }
-            draw();
-        }
-
-        function updateFromColorText() {
-            const span = document.getElementById('v_color');
-            const input = document.getElementById('textColor');
-            let val = span.innerText.trim();
-            if (!val.startsWith('#')) {
-                val = '#' + val;
-            }
-            if (/^#([0-9A-Fa-f]{3})$/.test(val)) {
-                val = '#' + val[1] + val[1] + val[2] + val[2] + val[3] + val[3];
-            }
-            if (/^#([0-9A-Fa-f]{6})$/.test(val)) {
-                input.value = val;
-                draw();
-            }
-        }
-
-        function handleColorBlur() {
-            const span = document.getElementById('v_color');
-            const input = document.getElementById('textColor');
-            span.innerText = input.value.toUpperCase();
-        }
-
-        function updateFromText(id) {
-            const span = document.getElementById('v_' + id);
-            const input = document.getElementById(id);
-            let val = parseInt(span.innerText.replace(/[^0-9-]/g, ''));
-            if (!isNaN(val)) {
-                input.value = val;
-                draw();
-            }
-        }
-        
-        function handleBlur(id, suffix = 'px') {
-            const span = document.getElementById('v_' + id);
-            const input = document.getElementById(id);
-            span.innerText = input.value + suffix;
-        }
-
-        function getSpatialRandom(x, y) {
-            let n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
-            return n - Math.floor(n);
-        }
-
-        let renderPending = false;
-
-        function draw() {
-            if (!renderPending) {
-                renderPending = true;
-                requestAnimationFrame(() => {
-                    try {
-                        performDraw();
-                    } finally {
-                        renderPending = false;
-                    }
-                });
-            }
-        }
-
-        function performDraw() {
-            renderToCanvas(ctx, canvas.width, canvas.height, 1);
-        }
-
-        function renderToCanvas(targetCtx, targetWidth, targetHeight, scale) {
-            const text = document.getElementById('textInput').value;
-            
-            let origGrid = parseInt(document.getElementById('stitchDensity').value);
-            if (isNaN(origGrid) || origGrid < 2) origGrid = 2;
-            
-            const origLoop = parseInt(document.getElementById('loopSize').value);
-            const origFuzz = parseInt(document.getElementById('threadFuzz').value) / 100;
-            const origFontSize = parseInt(document.getElementById('fontSize').value);
-            const textColor = document.getElementById('textColor').value;
-
-            if (scale === 1) {
-                if (document.activeElement !== document.getElementById('v_stitchDensity')) {
-                    document.getElementById('v_stitchDensity').innerText = origGrid + 'px';
-                }
-                if (document.activeElement !== document.getElementById('v_loopSize')) {
-                    document.getElementById('v_loopSize').innerText = origLoop + 'px';
-                }
-                if (document.activeElement !== document.getElementById('v_threadFuzz')) {
-                    document.getElementById('v_threadFuzz').innerText = Math.round(origFuzz * 100) + '%';
-                }
-                if (document.activeElement !== document.getElementById('v_fontSize')) {
-                    document.getElementById('v_fontSize').innerText = origFontSize + 'px';
-                }
-                if (document.activeElement !== document.getElementById('v_color')) {
-                    document.getElementById('v_color').innerText = textColor.toUpperCase();
-                }
-            }
-
-            targetCtx.clearRect(0, 0, targetWidth, targetHeight);
-            
-            if (!text) return null;
-
-            const baseWidth = 800;
-            const baseHeight = 400;
-
-            const offscreen = document.createElement('canvas');
-            offscreen.width = baseWidth; 
-            offscreen.height = baseHeight;
-            const octx = offscreen.getContext('2d');
-            
-            const lines = text.split('\n');
-            const padding = 40; 
-
-            const refSize = 100;
-            octx.font = `400 ${refSize}px ${customFontFamily}`;
-            let maxRefWidth = 1;
-            lines.forEach(line => {
-                let width = octx.measureText(line).width;
-                if (width > maxRefWidth) maxRefWidth = width;
-            });
-            
-            const refTotalHeight = lines.length * (refSize * 1.1);
-            
-            const availWidth = Math.max(10, baseWidth - padding);
-            const availHeight = Math.max(10, baseHeight - padding);
-            
-            const maxFontSizeW = (availWidth * refSize) / maxRefWidth;
-            const maxFontSizeH = (availHeight * refSize) / refTotalHeight;
-            const calculatedMaxFontSize = Math.min(maxFontSizeW, maxFontSizeH);
-            
-            const baseFontSize = Math.max(10, Math.min(origFontSize, calculatedMaxFontSize));
-            
-            octx.font = `400 ${baseFontSize}px ${customFontFamily}`;
-            octx.textAlign = 'center';
-            octx.textBaseline = 'middle';
-            octx.fillStyle = '#000000';
-            
-            const lineHeight = baseFontSize * 1.1; 
-            const totalHeight = lines.length * lineHeight;
-            let startY = (baseHeight / 2) - (totalHeight / 2) + (lineHeight / 2);
-
-            lines.forEach((line, index) => {
-                octx.fillText(line, (baseWidth / 2), startY + (index * lineHeight));
-            });
-
-            const sourceData = octx.getImageData(0, 0, baseWidth, baseHeight);
-            const sourceBuffer = new Uint32Array(sourceData.data.buffer);
-
-            const radius = Math.max(1, origLoop * scale);
-            
-            targetCtx.save();
-            targetCtx.strokeStyle = textColor;
-            targetCtx.fillStyle = textColor;
-            targetCtx.lineWidth = Math.max(1.2, 1.8 * scale);
-            targetCtx.lineCap = 'round';
-            targetCtx.lineJoin = 'round';
-
-            for (let by = 0; by < baseHeight; by += origGrid) {
-                const rowOffset = by * baseWidth;
-                for (let bx = 0; bx < baseWidth; bx += origGrid) {
-                    const idx = rowOffset + bx;
-                    
-                    if (sourceBuffer[idx] !== 0) {
-                        const rSeed = getSpatialRandom(bx, by);
-                        const rFuzzX = (getSpatialRandom(bx + 10, by) - 0.5) * (radius * 0.8 * origFuzz);
-                        const rFuzzY = (getSpatialRandom(bx, by + 10) - 0.5) * (radius * 0.8 * origFuzz);
-
-                        const cx = (bx * scale) + rFuzzX;
-                        const cy = (by * scale) + rFuzzY;
-
-                        // Draw interlocking yarn loop (knitted V / arc loop)
-                        targetCtx.beginPath();
-                        targetCtx.arc(cx, cy - radius * 0.3, radius, 0.2 * Math.PI, 0.8 * Math.PI, true);
-                        targetCtx.stroke();
-
-                        targetCtx.beginPath();
-                        targetCtx.arc(cx - radius * 0.4, cy + radius * 0.2, radius * 0.6, 1.2 * Math.PI, 1.8 * Math.PI, false);
-                        targetCtx.stroke();
-
-                        // Stray micro-fibers (fuzz effect)
-                        if (origFuzz > 0.05 && rSeed > 0.4) {
-                            const numFibers = Math.floor(rSeed * 3 * origFuzz) + 1;
-                            for (let f = 0; f < numFibers; f++) {
-                                const fAngle = getSpatialRandom(bx + f * 5, by + f * 7) * Math.PI * 2;
-                                const fLen = radius * (0.4 + getSpatialRandom(bx, by + f) * 0.8 * origFuzz);
-                                
-                                targetCtx.beginPath();
-                                targetCtx.moveTo(cx, cy);
-                                targetCtx.lineTo(cx + Math.cos(fAngle) * fLen, cy + Math.sin(fAngle) * fLen);
-                                targetCtx.globalAlpha = 0.45;
-                                targetCtx.stroke();
-                                targetCtx.globalAlpha = 1.0;
-                            }
-                        }
-                    }
-                }
-            }
-
-            targetCtx.restore();
-            return targetCtx.getImageData(0, 0, targetWidth, targetHeight);
-        }
-
-        function downloadPNG() {
-            const btn = document.querySelector('.btn-download');
-            const origText = btn.innerHTML;
-            btn.innerText = "RENDERING...";
-            btn.disabled = true;
-
-            setTimeout(() => {
-                try {
-                    const scale = parseInt(document.getElementById('exportScale').value) || 4; 
-                    const targetWidth = 800 * scale; 
-                    const targetHeight = 400 * scale; 
-
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = targetWidth;
-                    tempCanvas.height = targetHeight;
-                    const tempCtx = tempCanvas.getContext('2d');
-
-                    const targetData = renderToCanvas(tempCtx, targetWidth, targetHeight, scale);
-
-                    if (!targetData) {
-                        btn.innerHTML = origText;
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    const buffer = new Uint32Array(targetData.data.buffer);
-                    let minX = targetWidth, minY = targetHeight, maxX = 0, maxY = 0;
-                    let hasPixels = false;
-
-                    for (let y = 0; y < targetHeight; y++) {
-                        const rowOffset = y * targetWidth;
-                        for (let x = 0; x < targetWidth; x++) {
-                            if (buffer[rowOffset + x] !== 0) {
-                                if (x < minX) minX = x;
-                                if (x > maxX) maxX = x;
-                                if (y < minY) minY = y;
-                                if (y > maxY) maxY = y;
-                                hasPixels = true;
-                            }
-                        }
-                    }
-
-                    if (!hasPixels) {
-                        alert("No text to download.");
-                        btn.innerHTML = origText;
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    const cropW = maxX - minX + 1;
-                    const cropH = maxY - minY + 1;
-
-                    const cropCanvas = document.createElement('canvas');
-                    cropCanvas.width = cropW;
-                    cropCanvas.height = cropH;
-                    const cropCtx = cropCanvas.getContext('2d');
-                    
-                    const cropData = cropCtx.createImageData(cropW, cropH);
-                    const cropBuffer = new Uint32Array(cropData.data.buffer);
-                    
-                    for (let y = 0; y < cropH; y++) {
-                        const srcRow = (y + minY) * targetWidth;
-                        const dstRow = y * cropW;
-                        for (let x = 0; x < cropW; x++) {
-                            cropBuffer[dstRow + x] = buffer[srcRow + (x + minX)];
-                        }
-                    }
-                    cropCtx.putImageData(cropData, 0, 0);
-
-                    const link = document.createElement('a');
-                    link.download = `yarn-loop-${scale}x.png`;
-                    link.href = cropCanvas.toDataURL('image/png');
-                    link.click();
-
-                } catch (err) {
-                    console.error("Render failed:", err);
-                    alert("An error occurred during export.");
-                } finally {
-                    btn.innerHTML = origText;
-                    btn.disabled = false;
-                }
-            }, 50);
-        }
-
-        initThemeColor();
-
-        if (window.matchMedia) {
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-                initThemeColor();
-                draw();
-            });
-        }
-
-        document.fonts.ready.then(() => {
-            draw();
-        });
-    
-return {renderToCanvas:renderToCanvas};
-},
-function(document,window){
-
-        // --- Perlin Noise Implementation ---
-        const Perlin = {
-            p: new Uint8Array(512),
-            init: function() {
-                const permutation = [151,160,137,91,90,15,
-                131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
-                190, 6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,
-                88,237,149,56,87,174,20,125,136,171,168, 68,175,74,165,71,134,139,48,27,166,
-                77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,
-                102,143,54,65,25,63,161, 1,216,80,73,209,76,132,187,208, 89,18,169,200,196,
-                135,130,116,188,159,86,164,100,109,198,173,186, 3,64,52,217,226,250,124,123,
-                5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,
-                223,183,170,213,119,248,152, 2,44,145,31,179,228,165,55,110,178,224,183,225,
-                40,242,172,239,249,14,236,97,21,50,45,127,4,150,254,138,209,204,184,218,61,
-                84,121,98,223,34,39,176,155,51,193,113,70,213,9,144,3,180,243,108,181,241,
-                251,114,238,205,107,177,157,167,115,195,192,67,69,215,128,1,214,141,93,246,
-                24,185,199,147,22,66,129,222,61,191,101,43,210,106,41,253,153,112,149,154,
-                156,127,152,78,162,171,81,21,120,207,11,104,221,58,18,24,206,24,242,123];
-                for (let i=0; i<256; i++) {
-                    this.p[256+i] = this.p[i] = permutation[i % permutation.length];
-                }
-            },
-            fade: function(t) { return t * t * t * (t * (t * 6 - 15) + 10); },
-            lerp: function(t, a, b) { return a + t * (b - a); },
-            grad: function(hash, x, y) {
-                const h = hash & 7;
-                const u = h < 4 ? x : y;
-                const v = h < 4 ? y : x;
-                return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
-            },
-            noise: function(x, y) {
-                const X = Math.floor(x) & 255;
-                const Y = Math.floor(y) & 255;
-                x -= Math.floor(x);
-                y -= Math.floor(y);
-                const u = this.fade(x);
-                const v = this.fade(y);
-                const A = this.p[X] + Y, B = this.p[X + 1] + Y;
-                return this.lerp(v, this.lerp(u, this.grad(this.p[A], x, y),
-                                                 this.grad(this.p[B], x - 1, y)),
-                                    this.lerp(u, this.grad(this.p[A + 1], x, y - 1),
-                                                 this.grad(this.p[B + 1], x - 1, y - 1)));
-            }
-        };
-        Perlin.init();
-
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let customFontFamily = '"Instrument Serif", serif';
-
-        function initThemeColor() {
-            const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const defaultColor = isDark ? '#FFFFFF' : '#000000';
-            const textColorInput = document.getElementById('textColor');
-            const colorSpan = document.getElementById('v_color');
-            if (textColorInput && colorSpan) {
-                textColorInput.value = defaultColor;
-                colorSpan.innerText = defaultColor;
-            }
-        }
-
-        function handleFontUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const fontName = 'CustomFont_' + Date.now();
-                const font = new FontFace(fontName, e.target.result);
-                font.load().then(function(loadedFont) {
-                    document.fonts.add(loadedFont);
-                    customFontFamily = `"${fontName}", "Instrument Serif", serif`;
-                    const label = document.getElementById('fontLabel');
-                    if (label) label.innerText = file.name;
-                    draw();
-                }).catch(function(err) {
-                    console.error("Error loading custom font:", err);
-                    alert("Could not load custom font file.");
-                });
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function updateColorLabel(colorVal) {
-            const span = document.getElementById('v_color');
-            if (document.activeElement !== span) {
-                span.innerText = colorVal.toUpperCase();
-            }
-            draw();
-        }
-
-        function updateFromColorText() {
-            const span = document.getElementById('v_color');
-            const input = document.getElementById('textColor');
-            let val = span.innerText.trim();
-            if (!val.startsWith('#')) {
-                val = '#' + val;
-            }
-            if (/^#([0-9A-Fa-f]{3})$/.test(val)) {
-                val = '#' + val[1] + val[1] + val[2] + val[2] + val[3] + val[3];
-            }
-            if (/^#([0-9A-Fa-f]{6})$/.test(val)) {
-                input.value = val;
-                draw();
-            }
-        }
-
-        function handleColorBlur() {
-            const span = document.getElementById('v_color');
-            const input = document.getElementById('textColor');
-            span.innerText = input.value.toUpperCase();
-        }
-
-        function updateFromText(id) {
-            const span = document.getElementById('v_' + id);
-            const input = document.getElementById(id);
-            let val = parseInt(span.innerText.replace(/[^0-9-]/g, ''));
-            if (!isNaN(val)) {
-                input.value = val;
-                draw();
-            }
-        }
-        
-        function handleBlur(id, suffix = 'px') {
-            const span = document.getElementById('v_' + id);
-            const input = document.getElementById(id);
-            span.innerText = input.value + suffix;
-        }
-
-        let renderPending = false;
-
-        function draw() {
-            if (!renderPending) {
-                renderPending = true;
-                requestAnimationFrame(() => {
-                    try {
-                        performDraw();
-                    } finally {
-                        renderPending = false;
-                    }
-                });
-            }
-        }
-
-        function performDraw() {
-            renderToCanvas(ctx, canvas.width, canvas.height, 1);
-        }
-
-        function renderToCanvas(targetCtx, targetWidth, targetHeight, scale) {
-            const text = document.getElementById('textInput').value;
-            
-            let origTurbulence = parseInt(document.getElementById('turbulence').value);
-            if (isNaN(origTurbulence) || origTurbulence < 1) origTurbulence = 1;
-            
-            const origStrength = parseInt(document.getElementById('strength').value);
-            const origFontSize = parseInt(document.getElementById('fontSize').value);
-            const textColor = document.getElementById('textColor').value;
-
-            if (scale === 1) {
-                if (document.activeElement !== document.getElementById('v_turbulence')) {
-                    document.getElementById('v_turbulence').innerText = origTurbulence + '%';
-                }
-                if (document.activeElement !== document.getElementById('v_strength')) {
-                    document.getElementById('v_strength').innerText = origStrength + 'px';
-                }
-                if (document.activeElement !== document.getElementById('v_fontSize')) {
-                    document.getElementById('v_fontSize').innerText = origFontSize + 'px';
-                }
-                if (document.activeElement !== document.getElementById('v_color')) {
-                    document.getElementById('v_color').innerText = textColor.toUpperCase();
-                }
-            }
-
-            targetCtx.clearRect(0, 0, targetWidth, targetHeight);
-            
-            if (!text) return null;
-
-            const offscreen = document.createElement('canvas');
-            offscreen.width = targetWidth; 
-            offscreen.height = targetHeight;
-            const octx = offscreen.getContext('2d');
-            
-            const lines = text.split('\n');
-            const scaledStrength = origStrength * scale;
-            const padding = scaledStrength + (40 * scale); 
-
-            const refSize = 100 * scale;
-            octx.font = `400 ${refSize}px ${customFontFamily}`;
-            let maxRefWidth = 1;
-            lines.forEach(line => {
-                let width = octx.measureText(line).width;
-                if (width > maxRefWidth) maxRefWidth = width;
-            });
-            
-            const refTotalHeight = lines.length * (refSize * 1.1);
-            
-            const availWidth = Math.max(10 * scale, targetWidth - padding);
-            const availHeight = Math.max(10 * scale, targetHeight - padding);
-            
-            const maxFontSizeW = (availWidth * refSize) / maxRefWidth;
-            const maxFontSizeH = (availHeight * refSize) / refTotalHeight;
-            const calculatedMaxFontSize = Math.min(maxFontSizeW, maxFontSizeH);
-            
-            const scaledFontSize = Math.max(10 * scale, Math.min(origFontSize * scale, calculatedMaxFontSize));
-            
-            octx.font = `400 ${scaledFontSize}px ${customFontFamily}`;
-            octx.textAlign = 'center';
-            octx.textBaseline = 'middle';
-            octx.fillStyle = textColor;
-            
-            const lineHeight = scaledFontSize * 1.1; 
-            const totalHeight = lines.length * lineHeight;
-            let startY = (targetHeight / 2) - (totalHeight / 2) + (lineHeight / 2);
-
-            lines.forEach((line, index) => {
-                octx.fillText(line, (targetWidth / 2), startY + (index * lineHeight));
-            });
-
-            const sourceData = octx.getImageData(0, 0, targetWidth, targetHeight);
-            const sourceBuffer = new Uint32Array(sourceData.data.buffer);
-
-            // Flowfield Particle Grid Sampling
-            const step = Math.max(2, Math.round(2 * scale));
-            const noiseScale = (0.002 * (origTurbulence / 20)) / scale;
-            const dotRadius = Math.max(0.75, 1.0 * scale);
-
-            targetCtx.fillStyle = textColor;
-
-            for (let y = 0; y < targetHeight; y += step) {
-                const rowOffset = y * targetWidth;
-                for (let x = 0; x < targetWidth; x += step) {
-                    const idx = rowOffset + x;
-                    
-                    // Particle sampling from inside text mask
-                    if (sourceBuffer[idx] !== 0) {
-                        let px = x;
-                        let py = y;
-                        
-                        // Trace particle trajectory along noise field curves
-                        const steps = 8;
-                        const stepDist = scaledStrength / steps;
-
-                        for (let s = 0; s < steps; s++) {
-                            const angle = Perlin.noise(px * noiseScale, py * noiseScale) * Math.PI * 4;
-                            px += Math.cos(angle) * stepDist;
-                            py += Math.sin(angle) * stepDist;
-                        }
-
-                        // Render displaced dot particles
-                        targetCtx.beginPath();
-                        targetCtx.arc(px, py, dotRadius, 0, Math.PI * 2);
-                        targetCtx.fill();
-                    }
-                }
-            }
-
-            return targetCtx.getImageData(0, 0, targetWidth, targetHeight);
-        }
-
-        function downloadPNG() {
-            const btn = document.querySelector('.btn-download');
-            const origText = btn.innerHTML;
-            btn.innerText = "RENDERING...";
-            btn.disabled = true;
-
-            setTimeout(() => {
-                try {
-                    const scale = parseInt(document.getElementById('exportScale').value) || 4; 
-                    const targetWidth = 800 * scale; 
-                    const targetHeight = 400 * scale; 
-
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = targetWidth;
-                    tempCanvas.height = targetHeight;
-                    const tempCtx = tempCanvas.getContext('2d');
-
-                    const targetData = renderToCanvas(tempCtx, targetWidth, targetHeight, scale);
-
-                    if (!targetData) {
-                        btn.innerHTML = origText;
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    const buffer = new Uint32Array(targetData.data.buffer);
-                    let minX = targetWidth, minY = targetHeight, maxX = 0, maxY = 0;
-                    let hasPixels = false;
-
-                    for (let y = 0; y < targetHeight; y++) {
-                        const rowOffset = y * targetWidth;
-                        for (let x = 0; x < targetWidth; x++) {
-                            if (buffer[rowOffset + x] !== 0) {
-                                if (x < minX) minX = x;
-                                if (x > maxX) maxX = x;
-                                if (y < minY) minY = y;
-                                if (y > maxY) maxY = y;
-                                hasPixels = true;
-                            }
-                        }
-                    }
-
-                    if (!hasPixels) {
-                        alert("No text to download.");
-                        btn.innerHTML = origText;
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    const cropW = maxX - minX + 1;
-                    const cropH = maxY - minY + 1;
-
-                    const cropCanvas = document.createElement('canvas');
-                    cropCanvas.width = cropW;
-                    cropCanvas.height = cropH;
-                    const cropCtx = cropCanvas.getContext('2d');
-                    
-                    const cropData = cropCtx.createImageData(cropW, cropH);
-                    const cropBuffer = new Uint32Array(cropData.data.buffer);
-                    
-                    for (let y = 0; y < cropH; y++) {
-                        const srcRow = (y + minY) * targetWidth;
-                        const dstRow = y * cropW;
-                        for (let x = 0; x < cropW; x++) {
-                            cropBuffer[dstRow + x] = buffer[srcRow + (x + minX)];
-                        }
-                    }
-                    cropCtx.putImageData(cropData, 0, 0);
-
-                    const link = document.createElement('a');
-                    link.download = `kinetic-flowfield-${scale}x.png`;
-                    link.href = cropCanvas.toDataURL('image/png');
-                    link.click();
-
-                } catch (err) {
-                    console.error("Render failed:", err);
-                    alert("An error occurred during export.");
-                } finally {
-                    btn.innerHTML = origText;
-                    btn.disabled = false;
-                }
-            }, 50);
-        }
-
-        initThemeColor();
-
-        if (window.matchMedia) {
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-                initThemeColor();
-                draw();
-            });
-        }
-
-        document.fonts.ready.then(() => {
-            draw();
-        });
-    
-return {renderToCanvas:renderToCanvas};
-},
-function(document,window){
-
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let customFontFamily = '"Instrument Serif", serif';
-
-        function initThemeColor() {
-            const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const defaultColor = isDark? '#FFFFFF' : '#000000';
-            const textColorInput = document.getElementById('textColor');
-            const colorSpan = document.getElementById('v_color');
-            if (textColorInput && colorSpan) {
-                textColorInput.value = defaultColor;
-                colorSpan.innerText = defaultColor;
-            }
-        }
-
-        function handleFontUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const fontName = 'CustomFont_' + Date.now();
-                const font = new FontFace(fontName, e.target.result);
-                font.load().then(function(loadedFont) {
-                    document.fonts.add(loadedFont);
-                    customFontFamily = `"${fontName}", "Instrument Serif", serif`;
-                    const label = document.getElementById('fontLabel');
-                    if (label) label.innerText = file.name;
-                    draw();
-                }).catch(function(err) {
-                    console.error("Error loading custom font:", err);
-                    alert("Could not load custom font file.");
-                });
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function updateColorLabel(colorVal) {
-            const span = document.getElementById('v_color');
-            if (document.activeElement!== span) {
-                span.innerText = colorVal.toUpperCase();
-            }
-            draw();
-        }
-
-        function updateFromColorText() {
-            const span = document.getElementById('v_color');
-            const input = document.getElementById('textColor');
-            let val = span.innerText.trim();
-            if (!val.startsWith('#')) {
-                val = '#' + val;
-            }
-            if (/^#([0-9A-Fa-f]{3})$/.test(val)) {
-                val = '#' + val[1] + val[1] + val[2] + val[2] + val[3] + val[3];
-            }
-            if (/^#([0-9A-Fa-f]{6})$/.test(val)) {
-                input.value = val;
-                draw();
-            }
-        }
-
-        function handleColorBlur() {
-            const span = document.getElementById('v_color');
-            const input = document.getElementById('textColor');
-            span.innerText = input.value.toUpperCase();
-        }
-
-        function updateFromText(id) {
-            const span = document.getElementById('v_' + id);
-            const input = document.getElementById(id);
-            let val = parseInt(span.innerText.replace(/[^0-9-]/g, ''));
-            if (!isNaN(val)) {
-                input.value = val;
-                draw();
-            }
-        }
-
-        function handleBlur(id, suffix = 'px') {
-            const span = document.getElementById('v_' + id);
-            const input = document.getElementById(id);
-            span.innerText = input.value + suffix;
-        }
-
-        function getSpatialRandom(x, y) {
-            let n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
-            return n - Math.floor(n);
-        }
-
-        let renderPending = false;
-
-        function draw() {
-            if (!renderPending) {
-                renderPending = true;
-                requestAnimationFrame(() => {
-                    try {
-                        performDraw();
-                    } finally {
-                        renderPending = false;
-                    }
-                });
-            }
-        }
-
-        function performDraw() {
-            renderToCanvas(ctx, canvas.width, canvas.height, 1);
-        }
-
-        function renderToCanvas(targetCtx, targetWidth, targetHeight, scale) {
-            const text = document.getElementById('textInput').value;
-
-            const origJitter = parseInt(document.getElementById('feedJitter').value);
-            const origBleed = parseInt(document.getElementById('strikeBleed').value) / 100;
-            const origFontSize = parseInt(document.getElementById('fontSize').value);
-            const textColor = document.getElementById('textColor').value;
-
-            if (scale === 1) {
-                if (document.activeElement!== document.getElementById('v_feedJitter')) {
-                    document.getElementById('v_feedJitter').innerText = origJitter + 'px';
-                }
-                if (document.activeElement!== document.getElementById('v_strikeBleed')) {
-                    document.getElementById('v_strikeBleed').innerText = Math.round(origBleed * 100) + '%';
-                }
-                if (document.activeElement!== document.getElementById('v_fontSize')) {
-                    document.getElementById('v_fontSize').innerText = origFontSize + 'px';
-                }
-                if (document.activeElement!== document.getElementById('v_color')) {
-                    document.getElementById('v_color').innerText = textColor.toUpperCase();
-                }
-            }
-
-            targetCtx.clearRect(0, 0, targetWidth, targetHeight);
-
-            if (!text) return null;
-
-            const offscreen = document.createElement('canvas');
-            offscreen.width = targetWidth;
-            offscreen.height = targetHeight;
-            const octx = offscreen.getContext('2d');
-
-            const lines = text.split('\n');
-            const scaledJitter = origJitter * scale;
-            const padding = scaledJitter + (40 * scale);
-
-            const refSize = 100 * scale;
-            octx.font = `400 ${refSize}px ${customFontFamily}`;
-            let maxRefWidth = 1;
-            lines.forEach(line => {
-                let width = octx.measureText(line).width;
-                if (width > maxRefWidth) maxRefWidth = width;
-            });
-
-            const refTotalHeight = lines.length * (refSize * 1.1);
-
-            const availWidth = Math.max(10 * scale, targetWidth - padding);
-            const availHeight = Math.max(10 * scale, targetHeight - padding);
-
-            const maxFontSizeW = (availWidth * refSize) / maxRefWidth;
-            const maxFontSizeH = (availHeight * refSize) / refTotalHeight;
-            const calculatedMaxFontSize = Math.min(maxFontSizeW, maxFontSizeH);
-
-            const scaledFontSize = Math.max(10 * scale, Math.min(origFontSize * scale, calculatedMaxFontSize));
-
-            octx.font = `400 ${scaledFontSize}px ${customFontFamily}`;
-            octx.textAlign = 'center';
-            octx.textBaseline = 'middle';
-            octx.fillStyle = '#000000';
-
-            const lineHeight = scaledFontSize * 1.1;
-            const totalHeight = lines.length * lineHeight;
-            let startY = (targetHeight / 2) - (totalHeight / 2) + (lineHeight / 2);
-
-            lines.forEach((line, index) => {
-                octx.fillText(line, (targetWidth / 2), startY + (index * lineHeight));
-            });
-
-            const maskData = octx.getImageData(0, 0, targetWidth, targetHeight);
-            const maskBuffer = new Uint32Array(maskData.data.buffer);
-
-            targetCtx.fillStyle = textColor;
-
-            const baseSpacing = Math.max(2, Math.round(4 * scale));
-            const baseRadius = baseSpacing * 0.4;
-
-            for (let y = 0; y < targetHeight; y += baseSpacing) {
-                const rowIdx = y / baseSpacing;
-
-                const waveShift = Math.sin(rowIdx * 0.5) * (origJitter * 0.5);
-                const macroNoise = getSpatialRandom(0, Math.floor(rowIdx / 2));
-                const microNoise = getSpatialRandom(100, rowIdx);
-                const chaoticShift = (macroNoise * 0.7 + microNoise * 0.3 - 0.5) * 2 * origJitter;
-
-                const rowShiftX = (waveShift + chaoticShift) * scale;
-
-                for (let x = 0; x < targetWidth; x += baseSpacing) {
-                    const sampleX = Math.round(x - rowShiftX);
-                    const sampleY = Math.round(y);
-
-                    if (sampleX >= 0 && sampleX < targetWidth && sampleY >= 0 && sampleY < targetHeight) {
-                        const maskPixel = maskBuffer[sampleY * targetWidth + sampleX];
-
-                        if (maskPixel!== 0) {
-                            const randBleed = getSpatialRandom(x, y);
-
-                            let radius = baseRadius;
-                            if (randBleed < origBleed) {
-                                const bleedDelta = (getSpatialRandom(x + 50, y + 50) * 0.8 + 0.2) * (1.5 * scale);
-                                radius += bleedDelta;
-                            }
-
-                            targetCtx.beginPath();
-                            targetCtx.arc(x, y, radius, 0, Math.PI * 2);
-                            targetCtx.fill();
-                        }
-                    }
-                }
-            }
-
-            return targetCtx.getImageData(0, 0, targetWidth, targetHeight);
-        }
-
-        function downloadPNG() {
-            const btn = document.querySelector('.btn-download');
-            const origText = btn.innerHTML;
-            btn.innerText = "RENDERING...";
-            btn.disabled = true;
-
-            setTimeout(() => {
-                try {
-                    const scale = parseInt(document.getElementById('exportScale').value) || 4;
-                    const targetWidth = 800 * scale;
-                    const targetHeight = 400 * scale;
-
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = targetWidth;
-                    tempCanvas.height = targetHeight;
-                    const tempCtx = tempCanvas.getContext('2d');
-
-                    const targetData = renderToCanvas(tempCtx, targetWidth, targetHeight, scale);
-
-                    if (!targetData) {
-                        btn.innerHTML = origText;
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    const buffer = new Uint32Array(targetData.data.buffer);
-                    let minX = targetWidth, minY = targetHeight, maxX = 0, maxY = 0;
-                    let hasPixels = false;
-
-                    for (let y = 0; y < targetHeight; y++) {
-                        const rowOffset = y * targetWidth;
-                        for (let x = 0; x < targetWidth; x++) {
-                            if (buffer[rowOffset + x]!== 0) {
-                                if (x < minX) minX = x;
-                                if (x > maxX) maxX = x;
-                                if (y < minY) minY = y;
-                                if (y > maxY) maxY = y;
-                                hasPixels = true;
-                            }
-                        }
-                    }
-
-                    if (!hasPixels) {
-                        alert("No text to download.");
-                        btn.innerHTML = origText;
-                        btn.disabled = false;
-                        return;
-                    }
-
-                    const cropW = maxX - minX + 1;
-                    const cropH = maxY - minY + 1;
-
-                    const cropCanvas = document.createElement('canvas');
-                    cropCanvas.width = cropW;
-                    cropCanvas.height = cropH;
-                    const cropCtx = cropCanvas.getContext('2d');
-
-                    const cropData = cropCtx.createImageData(cropW, cropH);
-                    const cropBuffer = new Uint32Array(cropData.data.buffer);
-
-                    for (let y = 0; y < cropH; y++) {
-                        const srcRow = (y + minY) * targetWidth;
-                        const dstRow = y * cropW;
-                        for (let x = 0; x < cropW; x++) {
-                            cropBuffer[dstRow + x] = buffer[srcRow + (x + minX)];
-                        }
-                    }
-                    cropCtx.putImageData(cropData, 0, 0);
-
-                    const link = document.createElement('a');
-                    link.download = `impact-matrix-${scale}x.png`;
-                    link.href = cropCanvas.toDataURL('image/png');
-                    link.click();
-
-                } catch (err) {
-                    console.error("Render failed:", err);
-                    alert("An error occurred during export.");
-                } finally {
-                    btn.innerHTML = origText;
-                    btn.disabled = false;
-                }
-            }, 50);
-        }
-
-        initThemeColor();
-
-        if (window.matchMedia) {
-            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-                initThemeColor();
-                draw();
-            });
-        }
-
-        document.fonts.ready.then(() => {
-            draw();
-        });
-    
-return {renderToCanvas:renderToCanvas};
-}
-];
-const UNITS={chaos:'%',erosion:'%',edgeWear:'%',threadFuzz:'%',turbulence:'%',strikeBleed:'%'};
-const SHOW_TEXT='DESIGN';
-
-function makeEngine(fn,defaults){
-  const vals=Object.assign({},defaults);
-  const els={},canvas=mkCanvas(800,400);
-  const mk=id=>{const o={id,innerText:'',textContent:'',style:{},classList:{add(){},remove(){},toggle(){}},addEventListener(){},setAttribute(){},getContext:()=>null};
-    Object.defineProperty(o,'value',{get:()=>vals[id],set:v=>{vals[id]=v;}});return o;};
-  const doc={getElementById:id=>id==='canvas'?canvas:(els[id]||(els[id]=mk(id))),createElement:t=>document.createElement(t),activeElement:null,fonts:document.fonts,querySelector:()=>mk('q')};
-  const win={matchMedia:()=>({matches:false,addEventListener(){}}),addEventListener(){}};
-  const api=fn(doc,win);
-  return{vals,render(c,w,h,scale){api.renderToCanvas(c,w,h,scale);}};
-}
-
-/* ---- scene plan: random slider values -> the app's defaults, dragged by the cursor ---- */
-const EFFECT=k=>TOOLS[k].sliders.filter(s=>s.id!=='fontSize');
-const PLAN=[];
-function buildPlan(){
-  TOOLS.forEach((T,k)=>{
-    const sl=EFFECT(k),n=sl.length,rnd=mulberry32(100+k*13);
-    const stp=(SD-.09)/n,items=sl.map((s,i)=>{
-      const f=(s.value-s.min)/(s.max-s.min);let r;
-      do{r=.08+rnd()*.84;}while(Math.abs(r-f)<.32);
-      const a=.03+i*stp,b=a+stp*(n===3?.8:.78);
-      return{s,start:s.min+Math.round(r*(s.max-s.min)),a,b};
-    });
-    PLAN.push(items);
+function drawCaption(c){
+  /* permanent, static. Barlow Condensed Black, 3 lines, centred, inside the safe zone */
+  const lines=[[['ONLY ',INK],['0.001%',RED],[' CAN',INK]],[['PAUSE AT THE',INK]],[['RIGHT TIME',INK]]];
+  c.save();c.textBaseline='middle';c.textAlign='left';
+  if('letterSpacing' in c)c.letterSpacing='1px';
+  /* biggest size at which the widest line still fits the safe width (max 118px) */
+  c.font=`900 100px ${DISPLAY}`;
+  let widest=1;lines.forEach(sg=>{widest=Math.max(widest,c.measureText(sg.map(x=>x[0]).join('')).width);});
+  const size=Math.min(118,Math.floor(100*940/widest)),lh=Math.round(size*.95),top=352;
+  c.font=`900 ${size}px ${DISPLAY}`;
+  lines.forEach((segs,i)=>{
+    const ws=segs.map(s=>c.measureText(s[0]).width),tw=ws.reduce((a,b)=>a+b,0);
+    let x=W/2-tw/2;segs.forEach((s,k)=>{c.fillStyle=s[1];c.fillText(s[0],x,top+i*lh);x+=ws[k];});
   });
+  c.restore();
 }
-function valueAt(k,i,u){
-  const it=PLAN[k][i];
-  if(u<=it.a)return it.start;
-  if(u>=it.b)return it.s.value;
-  return lerp(it.start,it.s.value,EASE.io3((u-it.a)/(it.b-it.a)));
+function mono(c,txt,x,y,o={}){
+  const{size=30,ls=0,color=INK,weight=500}=o;
+  c.save();c.font=`${weight} ${size}px ${MONO}`;if('letterSpacing' in c)c.letterSpacing=ls+'px';
+  c.textBaseline='middle';c.textAlign='center';c.fillStyle=color;c.fillText(txt,x+ls/2,y);c.restore();
 }
-
-/* ---- scene DOM ---- */
-const ui=$('ui'),SC=[],ENG=[];
-const M=[];
-function buildScenes(){
-  TOOLS.forEach((T,k)=>{
-    const rows=EFFECT(k).map((s,i)=>`
-      <div class="row"><div class="row-h"><span class="lab"><svg viewBox="0 0 24 24">${s.svg}</svg>${s.label}</span><span class="val" data-v="${i}"></span></div>
-      <div class="track" data-t="${i}"><i class="thumb" data-th="${i}"></i></div></div>`).join('');
-    const el=document.createElement('div');el.className='scene';
-    el.innerHTML=`
-      <div class="cam"><div class="inner">
-        <div class="canvas-container"><canvas width="1200" height="600"></canvas></div>
-        <div class="text-input" style="font-family:${T.font}">${SHOW_TEXT}</div>
-        ${rows}
-        <div class="adv"><div class="sum"><span>Color and Size</span><span>＋</span></div></div>
-        <div class="btn"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg><span>DOWNLOAD PNG</span></div>
-        <svg class="cursor" viewBox="0 0 24 24"><path d="M4 2 L4 19 L8.6 14.8 L11.6 21.6 L14.2 20.4 L11.3 13.7 L17.5 13.4 Z" fill="#fff" stroke="#121212" stroke-width="1.5" stroke-linejoin="round"/></svg>
-        <i class="ripple"></i>
-      </div></div>
-      <div class="capmask"><div class="cap"><div class="capl"><b>${String(k+1).padStart(2,'0')}</b><span>${T.name}</span><i>CALLISTRA.DESIGN</i></div></div></div>`;
-    ui.appendChild(el);
-    const defs={};T.sliders.forEach(s=>defs[s.id]=s.value);
-    defs.textInput=SHOW_TEXT;defs.textColor='#000000';defs.exportScale='4';
-    SC.push({el,cam:el.querySelector('.cam'),cv:el.querySelector('canvas'),cap:el.querySelector('.capl'),
-      vals:[...el.querySelectorAll('[data-v]')],thumbs:[...el.querySelectorAll('[data-th]')],
-      cur:el.querySelector('.cursor'),rip:el.querySelector('.ripple'),key:''});
-    SC[k].cx=SC[k].cv.getContext('2d');
-    ENG.push(makeEngine(TOOL_FNS[k],defs));
-  });
+function disp(c,txt,x,y,size,color){
+  c.save();if('letterSpacing' in c)c.letterSpacing='1px';
+  c.font=`900 ${size}px ${DISPLAY}`;const mw=c.measureText(txt).width;if(mw>940)size=Math.floor(size*940/mw);   // never leave the safe width
+  c.font=`900 ${size}px ${DISPLAY}`;
+  c.textBaseline='middle';c.textAlign='center';c.fillStyle=color;c.fillText(txt,x,y);c.restore();
 }
-function off(el,root){let x=0,y=0,e=el;while(e&&e!==root){x+=e.offsetLeft;y+=e.offsetTop;e=e.offsetParent;}return{x,y,w:el.offsetWidth,h:el.offsetHeight};}
-function measure(){
-  TOOLS.forEach((T,k)=>{
-    const s=SC[k],inner=s.el.querySelector('.inner');
-    s.el.style.display='block';
-    M[k]={trk:[...s.el.querySelectorAll('[data-t]')].map(e=>off(e,inner))};
-    s.el.style.display='none';
-  });
-}
-function thumbPos(k,i,v){const tr=M[k].trk[i],s=PLAN[k][i].s,r=12;return[tr.x+r+(tr.w-2*r)*((v-s.min)/(s.max-s.min)),tr.y+tr.h/2];}
-function arc(a,b,p){
-  const dx=b[0]-a[0],dy=b[1]-a[1],d=Math.hypot(dx,dy),k=Math.sin(Math.PI*p)*d*.14;
-  return[lerp(a[0],b[0],p)-dy/(d||1)*k,lerp(a[1],b[1],p)+dx/(d||1)*k];
-}
-function cursorAt(k,u){
-  const items=PLAN[k];
-  for(let i=0;i<items.length;i++){
-    const it=items[i];
-    if(u<it.a)return i===0?thumbPos(k,0,it.start):arc(thumbPos(k,i-1,items[i-1].s.value),thumbPos(k,i,it.start),EASE.io3((u-items[i-1].b)/(it.a-items[i-1].b)));
-    if(u<=it.b)return thumbPos(k,i,valueAt(k,i,u));
+/* hints live only on the frames next to the target (and on the frame that follows it in the loop) */
+const HINT_Y=1300;
+function drawHint(c,f){
+  if(f<=1){disp(c,'TOO LATE',W/2,HINT_Y,92,MUTED);return;}
+  if(f>=78&&f<=82){disp(c,'GETTING CLOSE',W/2,HINT_Y,92,MUTED);return;}
+  if(f>=83&&f<RAMP_END){disp(c,'SO CLOSE…',W/2,HINT_Y,104,INK);return;}
+  if(f>=RAMP_END){
+    disp(c,'PERFECT. SCREENSHOT THIS',W/2,HINT_Y-18,100,RED);
+    const L=['Share it with us and get FREE lifetime access','to our Text Effect Maker Collection','— Volume 1'];
+    L.forEach((s,i)=>mono(c,s,W/2,HINT_Y+70+i*50,{size:29,ls:0,weight:500,color:INK}));
   }
-  const l=items.length-1;return thumbPos(k,l,items[l].s.value);
-}
-const pressedAt=(k,u)=>PLAN[k].some(it=>u>=it.a-.008&&u<=it.b+.02);
-const dragIdx=(k,u)=>PLAN[k].findIndex(it=>u>=it.a&&u<=it.b);
-
-function updateScene(k,t){
-  const u=t-SHOW_T0(k),s=SC[k],T=TOOLS[k],eng=ENG[k];
-  const intro=prog(u,0,.2,'o3');
-  s.cam.style.transform=`scale(${1.08*(1+.07*(1-intro))})`;
-  const cur=EFFECT(k).map((sl,i)=>Math.round(valueAt(k,i,u)));
-  const key=cur.join('|');
-  if(key!==s.key){
-    s.key=key;
-    EFFECT(k).forEach((sl,i)=>{eng.vals[sl.id]=cur[i];});
-    s.cx.clearRect(0,0,1200,600);
-    eng.render(s.cx,1200,600,1.5);
-  }
-  const di=dragIdx(k,u);
-  EFFECT(k).forEach((sl,i)=>{
-    const v=valueAt(k,i,u);
-    s.vals[i].textContent=cur[i]+(UNITS[sl.id]||'px');
-    s.thumbs[i].style.left=`calc(12px + (100% - 24px) * ${(v-sl.min)/(sl.max-sl.min)})`;
-    s.thumbs[i].style.transform=`translate(-50%,-50%) scale(${di===i?1.7:1})`;
-  });
-  const cp=cursorAt(k,u);
-  s.cur.style.transform=`translate(${cp[0]-10}px,${cp[1]-5}px) scale(${pressedAt(k,u)?.88:1})`;
-  /* a ripple where the first drag begins */
-  const a0=PLAN[k][0].a,rp=(u-a0)/.3;
-  if(rp>=0&&rp<=1){const c0=thumbPos(k,0,PLAN[k][0].start);s.rip.style.left=c0[0]+'px';s.rip.style.top=c0[1]+'px';s.rip.style.opacity=.55*(1-rp);s.rip.style.transform=`translate(-50%,-50%) scale(${.3+.9*EASE.o3(rp)})`;}
-  else s.rip.style.opacity=0;
-  /* caption slides up through its mask */
-  s.cap.style.transform=`translateY(${(1-prog(u,.005,.11,'oexp'))*100}px)`;
 }
 
-/* ---- grain + flash ---- */
-let grainTile=null;
-function buildGrain(){
-  const rnd=mulberry32(5);grainTile=mkCanvas(512,512);
-  const g=grainTile.getContext('2d'),id=g.createImageData(512,512);
-  for(let i=0;i<512*512;i++){const v=rnd()*255;id.data[i*4]=id.data[i*4+1]=id.data[i*4+2]=v;id.data[i*4+3]=255;}
-  g.putImageData(id,0,0);
-}
-function flash(c,a,col){if(a>.005){c.save();c.globalAlpha=a;c.fillStyle=col;c.fillRect(0,0,W,H);c.restore();}}
+/* =====================================================================
+   FRAME
+   ===================================================================== */
 const stage=$('stage'),sc=stage.getContext('2d');
-const grain=$('grain'),gc=grain.getContext('2d');
-const REEL={width:1080,height:1920,fps:30,duration:DUR,poster:HOOK_END-.08};
-window.REEL=REEL;
-
+function frameIndex(t){return clamp(Math.floor(t*FPS+.001),0,FRAMES-1);}
+function elevation(f){return Math.min(1,f/RAMP_END);}          // linear 0 → 100 %, then hold
 function renderFrame(t){
-  t=clamp(t,0,REEL.duration);
-  sc.setTransform(1,0,0,1,0,0);sc.clearRect(0,0,W,H);
-  const show=t>=HOOK_END;
-  ui.style.display=show?'block':'none';
-  let k=-1;
-  if(show){k=Math.min(NMAKERS-1,Math.floor((t-HOOK_END)/SD+1e-9));}
-  SC.forEach((s,i)=>{s.el.style.display=i===k?'block':'none';});
-  if(!show)drawHook(sc,t);
-  else{
-    updateScene(k,t);
-    const u=t-SHOW_T0(k);
-    flash(sc,.14*Math.exp(-u*34),k%2?'#fff':'#000');
-  }
-  if(t>=HOOK_END&&t<HOOK_END+.05)flash(sc,.12,'#000');
-  const fo=prog(t,REEL.duration-.22,.22);
-  if(fo>0){sc.fillStyle='#000';sc.globalAlpha=fo;sc.fillRect(0,0,W,H);sc.globalAlpha=1;}
-  const f=Math.floor(t*REEL.fps+.001),ox=(f*97)%512,oy=(f*57)%512;
-  gc.clearRect(0,0,W,H);
-  for(let x=-ox;x<W;x+=512)for(let y=-oy;y<H;y+=512)gc.drawImage(grainTile,x,y);
+  const f=frameIndex(t),e=elevation(f);
+  sc.setTransform(1,0,0,1,0,0);sc.globalAlpha=1;sc.filter='none';
+  sc.fillStyle=BG;sc.fillRect(0,0,W,H);
+  /* the one real text element, developing its effect (position of the word never changes) */
+  sc.drawImage(fogDraw(e),FXS.ox,FXS.oy);
+  /* permanent hollow red target */
+  sc.save();sc.filter='blur(.6px)';sc.drawImage(FXS.ring,FXS.ringX,FXS.ringY);sc.restore();
+  drawCaption(sc);
+  drawHint(sc,f);
 }
 window.renderFrame=renderFrame;
 
 /* =====================================================================
-   SOUND — synthesised with the Web Audio API, rendered offline
+   SOUND — soft, quiet, synthesised offline.  A tick every 10 %, rising; a chime on the target.
    ===================================================================== */
 async function buildAudio(){
-  const SR=44100,D=REEL.duration;
-  const oc=new OfflineAudioContext(2,Math.ceil(SR*D),SR);
-  const rand=mulberry32(7);
+  const SR=44100,DUR=REEL.duration;
+  const oc=new OfflineAudioContext(2,Math.ceil(SR*DUR),SR);
+  const rand=mulberry32(11);
   const nb=oc.createBuffer(1,SR*3,SR);{const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=rand()*2-1;}
-  const master=oc.createGain();master.gain.setValueAtTime(.78,0);master.gain.setValueAtTime(.78,D-.3);master.gain.linearRampToValueAtTime(0,D-.02);
-  const comp=oc.createDynamicsCompressor();comp.threshold.value=-12;comp.knee.value=12;comp.ratio.value=10;comp.attack.value=.002;comp.release.value=.12;
+  const master=oc.createGain();master.gain.setValueAtTime(.7,0);master.gain.setValueAtTime(.7,DUR-.12);master.gain.linearRampToValueAtTime(0,DUR-.01);
+  const comp=oc.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=8;comp.attack.value=.002;comp.release.value=.12;
   master.connect(comp);comp.connect(oc.destination);
   const rl=Math.floor(SR*1.4),ir=oc.createBuffer(2,rl,SR);
-  for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<rl;i++)d[i]=(rand()*2-1)*Math.pow(1-i/rl,3.2);}
-  const conv=oc.createConvolver();conv.buffer=ir;
-  const revIn=oc.createGain(),revLp=oc.createBiquadFilter(),revOut=oc.createGain();
-  revLp.type='lowpass';revLp.frequency.value=5000;revOut.gain.value=.4;
-  revIn.connect(conv);conv.connect(revLp);revLp.connect(revOut);revOut.connect(master);
-  const out=(g,o={})=>{let n=g;
-    if(o.pan){const p=oc.createStereoPanner();p.pan.value=o.pan;n.connect(p);n=p;}
-    n.connect(master);
-    if(o.rev>0){const s=oc.createGain();s.gain.value=o.rev;n.connect(s);s.connect(revIn);}
-  };
+  for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<rl;i++)d[i]=(rand()*2-1)*Math.pow(1-i/rl,3);}
+  const conv=oc.createConvolver();conv.buffer=ir;const rv=oc.createGain();rv.gain.value=.45;conv.connect(rv);rv.connect(master);
+  const out=(g,rev=0)=>{g.connect(master);if(rev>0){const s=oc.createGain();s.gain.value=rev;g.connect(s);s.connect(conv);}};
   const env=(p,t,peak,a,d)=>{p.setValueAtTime(.0001,t);p.linearRampToValueAtTime(peak,t+a);p.exponentialRampToValueAtTime(.0001,t+a+d);};
-  const nsrc=(t,dur,seed)=>{const s=oc.createBufferSource();s.buffer=nb;s.loop=true;s.start(t,(Math.abs(seed)*.37)%2,undefined);s.stop(t+dur);return s;};
-  const flt=(type,f,q=1)=>{const b=oc.createBiquadFilter();b.type=type;b.frequency.value=f;b.Q.value=q;return b;};
   const osc=(type,f,t,dur)=>{const o=oc.createOscillator();o.type=type;o.frequency.setValueAtTime(f,t);o.start(t);o.stop(t+dur);return o;};
-  const thud=(t,g=.6)=>{
-    const o=osc('sine',170,t,.45);o.frequency.exponentialRampToValueAtTime(44,t+.2);
-    const og=oc.createGain();env(og.gain,t,g,.003,.32);o.connect(og);out(og,{rev:.15});
-    const n=nsrc(t,.14,t*13.7),bp=flt('bandpass',950,.9),ng=oc.createGain();env(ng.gain,t,g*.7,.001,.075);n.connect(bp);bp.connect(ng);out(ng,{rev:.1});
-  };
-  const tick=(t,f=1200,g=.2,pan=0)=>{
-    const o=osc('triangle',f,t,.08),gn=oc.createGain();env(gn.gain,t,g,.001,.05);o.connect(gn);out(gn,{pan,rev:.08});
-  };
-  const clk=(t,g,f)=>{const n=nsrc(t,.03,t*9.1),bp=flt('bandpass',f,1.2),gn=oc.createGain();env(gn.gain,t,g,.0006,.007);n.connect(bp);bp.connect(gn);out(gn);};
-  const click=(t,g=.3)=>{clk(t,g,2800);clk(t+.045,g*.6,2000);};
-  const whoosh=(t,dur,o={})=>{
-    const{g=.3,up=true,f0=250,f1=5200}=o;
-    const n=nsrc(t,dur,t*7.3),bp=flt('bandpass',1,1.1);
-    bp.frequency.setValueAtTime(up?f0:f1,t);bp.frequency.exponentialRampToValueAtTime(up?f1:f0,t+dur);
-    const gn=oc.createGain();gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(g,t+dur*(up?.7:.3));gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
-    n.connect(bp);bp.connect(gn);
-    const p=oc.createStereoPanner();p.pan.setValueAtTime(up?-.7:.7,t);p.pan.linearRampToValueAtTime(up?.7:-.7,t+dur);gn.connect(p);out(p,{rev:.12});
-  };
-  const sliderTicks=(fn,t0,t1,step,fb,g)=>{
-    let last=Math.round(fn(t0)/step);
-    for(let t=t0;t<=t1;t+=1/300){const q=Math.round(fn(t)/step);if(q!==last){last=q;tick(t,fb+fn(t)*4,g,0);}}
-  };
-
-  /* hook: pen on paper. One filtered-noise bed whose loudness follows the pen's real speed */
-  {
-    const n=nsrc(0,HOOK_END+.2,1.7),bp=flt('bandpass',3100,.7),hp=flt('highpass',1400),gn=oc.createGain();
-    gn.gain.setValueAtTime(.0001,0);
-    for(let t=0;t<=HOOK_END;t+=1/120){
-      const a=penState(t),b=penState(t+1/120),sp=Math.hypot(b.p[0]-a.p[0],b.p[1]-a.p[1])*120;
-      const drawing=a.lift<.05&&t<PEN_EXIT[0];
-      const g=drawing?clamp(sp/2600,0,1)*.2+.012:(a.lift>=.05&&t<PEN_EXIT[0]?.0001+clamp(sp/4000,0,1)*.012:.0001);
-      gn.gain.linearRampToValueAtTime(Math.max(.0001,g),t);
-    }
-    n.connect(hp);hp.connect(bp);bp.connect(gn);out(gn,{rev:.05});
-  }
-  /* soft pen taps between words, a settle when each loop closes */
-  WORDS.forEach((w,i)=>{
-    tick(w[0]+.01,900+i*60,.07,0);
-    const tc=w[1]-.04;
-    thud(tc,.22+.05*i);tick(tc,700*Math.pow(2,i*.14),.2,i%2?.25:-.25);tick(tc+.07,1050*Math.pow(2,i*.14),.12,i%2?.25:-.25);
-  });
-  whoosh(PEN_EXIT[0],.34,{g:.1,f0:500,f1:3600});
-  /* showcase: each glance is a cut on a beat */
-  whoosh(HOOK_END-.1,.12,{g:.12,f0:700,f1:4200});
-  for(let k=0;k<NMAKERS;k++){
-    const t0=SHOW_T0(k);
-    tick(t0,620*Math.pow(2,k*.12),.22,k%2?.25:-.25);thud(t0,.5+.04*k);
-    PLAN[k].forEach((it,i)=>{
-      click(t0+it.a,.22);
-      const sl=it.s,step=Math.max(1,Math.round((sl.max-sl.min)/40));
-      sliderTicks(tt=>valueAt(k,i,tt-t0),t0+it.a+.005,t0+it.b,step,800,.045);
-    });
-  }
+  /* soft airy rise, the haze lifting */
+  {const n=oc.createBufferSource();n.buffer=nb;n.loop=true;n.start(0);n.stop(RAMP_END/FPS+.05);
+   const bp=oc.createBiquadFilter();bp.type='bandpass';bp.Q.value=2.2;bp.frequency.setValueAtTime(260,0);bp.frequency.exponentialRampToValueAtTime(3200,RAMP_END/FPS);
+   const g=oc.createGain();g.gain.setValueAtTime(.0001,0);g.gain.exponentialRampToValueAtTime(.09,RAMP_END/FPS-.05);g.gain.linearRampToValueAtTime(0,RAMP_END/FPS+.04);
+   n.connect(bp);bp.connect(g);out(g,.12);}
+  /* ticks at every 10 % */
+  for(let k=1;k<=9;k++){const t=(k/10)*(RAMP_END/FPS);const o=osc('triangle',640*Math.pow(2,k*.085),t,.1),g=oc.createGain();env(g.gain,t,.11,.001,.06);o.connect(g);out(g,.08);}
+  /* the target */
+  const T=RAMP_END/FPS;
+  [[659.25,0],[987.77,.08],[1318.5,.16]].forEach(([f,d])=>{[[1,.16],[2,.04],[3,.015]].forEach(([m,a])=>{const o=osc('sine',f*m,T+d,.9),g=oc.createGain();env(g.gain,T+d,a,.004,.55);o.connect(g);out(g,.5);});});
   return oc.startRendering();
 }
-let audioP=null;
-const getAudio=()=>audioP||(audioP=buildAudio());
+let audioP=null;const getAudio=()=>audioP||(audioP=buildAudio());
 function toWavB64(buf){
   const ch=buf.numberOfChannels,n=buf.length,sr=buf.sampleRate;
   const data=[];let peak=0;
   for(let c=0;c<ch;c++){const d=buf.getChannelData(c);data.push(d);for(let i=0;i<n;i++){const a=Math.abs(d[i]);if(a>peak)peak=a;}}
-  const gain=peak>.79?.79/peak:1;               // keeps the peak at or under -2 dBFS
+  const gain=peak>.78?.78/peak:1;   // peak below −2 dBFS
   const ab=new ArrayBuffer(44+n*ch*2),v=new DataView(ab);
   const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
   ws(0,'RIFF');v.setUint32(4,36+n*ch*2,true);ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,ch,true);
@@ -2210,16 +265,16 @@ window.renderAudio=async()=>toWavB64(await getAudio());
    ===================================================================== */
 function initPreview(){
   const vp=$('viewport'),pl=$('player'),btn=$('pBtn'),rg=$('pRange'),tm=$('pTime');
-  pl.hidden=false;rg.max=REEL.duration;
+  pl.hidden=false;
   const fit=()=>{const s=Math.min(innerWidth/W,(innerHeight-64)/H);vp.style.transform=`scale(${s})`;vp.style.left=((innerWidth-W*s)/2)+'px';};
   addEventListener('resize',fit);fit();
   let playing=false,base=0,started=0,cur=0,actx=null,srcN=null,buf=null;
   const stopAudio=()=>{if(srcN){try{srcN.stop();}catch(e){}srcN=null;}};
-  const show=t=>{renderFrame(t);rg.value=t;tm.textContent=t.toFixed(2)+'s';};
+  const show=t=>{renderFrame(t);rg.value=t;const f=frameIndex(t);tm.textContent='f'+f+' · '+Math.round(elevation(f)*100)+'%';};
   function loop(){
     if(!playing)return;
     cur=base+(performance.now()-started)/1000;
-    if(cur>=REEL.duration){cur=REEL.duration;show(cur);pause();btn.textContent='REPLAY';cur=0;return;}
+    if(cur>=REEL.duration){show(REEL.duration);pause();btn.textContent='REPLAY';cur=0;return;}
     show(cur);requestAnimationFrame(loop);
   }
   function pause(){playing=false;stopAudio();if(btn.textContent==='PAUSE')btn.textContent='PLAY';}
@@ -2235,24 +290,20 @@ function initPreview(){
   rg.oninput=()=>{const was=playing;pause();cur=parseFloat(rg.value);show(cur);if(was)play();};
   show(0);
 }
-
 async function boot(){
   try{
-    const lat="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.?'’&, ";
-    const loads=FONTS.map(F=>document.fonts.load(`${F.s} ${F.w} 100px "${F.f}"`,lat));
-    loads.push(document.fonts.load('400 100px "Instrument Serif"',lat),document.fonts.load('italic 400 100px "Instrument Serif"',lat),
-      document.fonts.load('900 100px "Barlow Semi Condensed"',lat),
-      document.fonts.load('500 30px "JetBrains Mono"','ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,/·▾＋－’'),
-      document.fonts.load('700 30px "JetBrains Mono"','ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,-'));
-    await Promise.all(loads.map(p=>p.catch(()=>{})));
+    const wait=(p,ms)=>Promise.race([p,new Promise(r=>setTimeout(r,ms))]);
+    await wait(Promise.all([document.fonts.load('900 100px "Barlow Condensed"'),document.fonts.load('500 30px "JetBrains Mono"'),document.fonts.load('700 30px "JetBrains Mono"')]),15000);
     await document.fonts.ready;
-    buildPlan();buildScenes();buildGrain();buildHook();
-    ui.style.display='block';measure();ui.style.display='none';
+    if(!ALLOW_FALLBACK&&!document.fonts.check('900 100px "Barlow Condensed"'))throw new Error('Barlow Condensed failed to load');
+    buildEffect();
+    buildTarget();
+    renderFrame(0);
     if(!RENDER)initPreview();
     window.__reelReady=true;
-  }catch(e){window.__reelError=String(e&&e.stack||e);console.error(e);}
+  }catch(e){window.__reelError=String(e&&e.message||e);console.error(e);}
 }
-window.addEventListener('load',boot);
+boot();
 })();
 </script>
 </body>
