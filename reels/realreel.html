@@ -61,6 +61,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;-webkit-font-sm
 </div>
 <div id="player" hidden><button id="pBtn">PLAY</button><input id="pRange" type="range" min="0" max="7" step="0.01" value="0"><span id="pTime">0.0s</span></div>
 
+<script>window.addEventListener('error',function(e){window.__reelError='script error: '+(e.message||'')+' @'+(e.lineno||'?');});</script>
 <script>
 (function(){
 'use strict';
@@ -2133,4 +2134,128 @@ async function buildAudio(){
   const osc=(type,f,t,dur)=>{const o=oc.createOscillator();o.type=type;o.frequency.setValueAtTime(f,t);o.start(t);o.stop(t+dur);return o;};
   const thud=(t,g=.6)=>{
     const o=osc('sine',170,t,.45);o.frequency.exponentialRampToValueAtTime(44,t+.2);
-    cons
+    const og=oc.createGain();env(og.gain,t,g,.003,.32);o.connect(og);out(og,{rev:.15});
+    const n=nsrc(t,.14,t*13.7),bp=flt('bandpass',950,.9),ng=oc.createGain();env(ng.gain,t,g*.7,.001,.075);n.connect(bp);bp.connect(ng);out(ng,{rev:.1});
+  };
+  const tick=(t,f=1200,g=.2,pan=0)=>{
+    const o=osc('triangle',f,t,.08),gn=oc.createGain();env(gn.gain,t,g,.001,.05);o.connect(gn);out(gn,{pan,rev:.08});
+  };
+  const clk=(t,g,f)=>{const n=nsrc(t,.03,t*9.1),bp=flt('bandpass',f,1.2),gn=oc.createGain();env(gn.gain,t,g,.0006,.007);n.connect(bp);bp.connect(gn);out(gn);};
+  const click=(t,g=.3)=>{clk(t,g,2800);clk(t+.045,g*.6,2000);};
+  const whoosh=(t,dur,o={})=>{
+    const{g=.3,up=true,f0=250,f1=5200}=o;
+    const n=nsrc(t,dur,t*7.3),bp=flt('bandpass',1,1.1);
+    bp.frequency.setValueAtTime(up?f0:f1,t);bp.frequency.exponentialRampToValueAtTime(up?f1:f0,t+dur);
+    const gn=oc.createGain();gn.gain.setValueAtTime(.0001,t);gn.gain.exponentialRampToValueAtTime(g,t+dur*(up?.7:.3));gn.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    n.connect(bp);bp.connect(gn);
+    const p=oc.createStereoPanner();p.pan.setValueAtTime(up?-.7:.7,t);p.pan.linearRampToValueAtTime(up?.7:-.7,t+dur);gn.connect(p);out(p,{rev:.12});
+  };
+  const sliderTicks=(fn,t0,t1,step,fb,g)=>{
+    let last=Math.round(fn(t0)/step);
+    for(let t=t0;t<=t1;t+=1/300){const q=Math.round(fn(t)/step);if(q!==last){last=q;clk(t,g*2.2,3400);}}
+  };
+
+  /* hook: pen on paper. One filtered-noise bed whose loudness follows the pen's real speed */
+  {
+    const n=nsrc(0,HOOK_END+.2,1.7),bp=flt('bandpass',3100,.7),hp=flt('highpass',1400),gn=oc.createGain();
+    gn.gain.setValueAtTime(.0001,0);
+    for(let t=0;t<=HOOK_END;t+=1/120){
+      const a=penState(t),b=penState(t+1/120),sp=Math.hypot(b.p[0]-a.p[0],b.p[1]-a.p[1])*120;
+      const drawing=a.lift<.05&&t<PEN_EXIT[0];
+      const g=drawing?clamp(sp/2600,0,1)*.2+.012:(a.lift>=.05&&t<PEN_EXIT[0]?.0001+clamp(sp/4000,0,1)*.012:.0001);
+      gn.gain.linearRampToValueAtTime(Math.max(.0001,g),t);
+    }
+    n.connect(hp);hp.connect(bp);bp.connect(gn);out(gn,{rev:.05});
+  }
+  /* soft pen taps between words, a settle when each loop closes */
+  WORDS.forEach((w,i)=>{
+    tick(w[0]+.01,900+i*60,.07,0);
+    const tc=w[1]-.04;
+    thud(tc,.22+.05*i);tick(tc,700*Math.pow(2,i*.14),.2,i%2?.25:-.25);tick(tc+.07,1050*Math.pow(2,i*.14),.12,i%2?.25:-.25);
+  });
+  whoosh(PEN_EXIT[0],.34,{g:.1,f0:500,f1:3600});
+  /* showcase: each glance is a cut on a beat */
+  whoosh(HOOK_END-.1,.12,{g:.12,f0:700,f1:4200});
+  for(let k=0;k<NMAKERS;k++){
+    const t0=SHOW_T0(k);
+    click(t0,.32);thud(t0,.42+.03*k);
+    PLAN[k].forEach((it,i)=>{
+      click(t0+it.a,.22);
+      const sl=it.s,step=Math.max(1,Math.round((sl.max-sl.min)/40));
+      sliderTicks(tt=>valueAt(k,i,tt-t0),t0+it.a+.005,t0+it.b,step,800,.045);
+    });
+  }
+  return oc.startRendering();
+}
+let audioP=null;
+const getAudio=()=>audioP||(audioP=buildAudio());
+function toWavB64(buf){
+  const ch=buf.numberOfChannels,n=buf.length,sr=buf.sampleRate;
+  const data=[];let peak=0;
+  for(let c=0;c<ch;c++){const d=buf.getChannelData(c);data.push(d);for(let i=0;i<n;i++){const a=Math.abs(d[i]);if(a>peak)peak=a;}}
+  const gain=peak>.79?.79/peak:1;               // keeps the peak at or under -2 dBFS
+  const ab=new ArrayBuffer(44+n*ch*2),v=new DataView(ab);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,'RIFF');v.setUint32(4,36+n*ch*2,true);ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,ch,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,n*ch*2,true);
+  let o=44;
+  for(let i=0;i<n;i++)for(let c=0;c<ch;c++){v.setInt16(o,Math.round(clamp(data[c][i]*gain,-1,1)*32767),true);o+=2;}
+  const bytes=new Uint8Array(ab);let s='';
+  for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
+  return btoa(s);
+}
+window.renderAudio=async()=>toWavB64(await getAudio());
+
+/* =====================================================================
+   PREVIEW PLAYER (normal browser only) + BOOT
+   ===================================================================== */
+function initPreview(){
+  const vp=$('viewport'),pl=$('player'),btn=$('pBtn'),rg=$('pRange'),tm=$('pTime');
+  pl.hidden=false;rg.max=REEL.duration;
+  const fit=()=>{const s=Math.min(innerWidth/W,(innerHeight-64)/H);vp.style.transform=`scale(${s})`;vp.style.left=((innerWidth-W*s)/2)+'px';};
+  addEventListener('resize',fit);fit();
+  let playing=false,base=0,started=0,cur=0,actx=null,srcN=null,buf=null;
+  const stopAudio=()=>{if(srcN){try{srcN.stop();}catch(e){}srcN=null;}};
+  const show=t=>{renderFrame(t);rg.value=t;tm.textContent=t.toFixed(2)+'s';};
+  function loop(){
+    if(!playing)return;
+    cur=base+(performance.now()-started)/1000;
+    if(cur>=REEL.duration){cur=REEL.duration;show(cur);pause();btn.textContent='REPLAY';cur=0;return;}
+    show(cur);requestAnimationFrame(loop);
+  }
+  function pause(){playing=false;stopAudio();if(btn.textContent==='PAUSE')btn.textContent='PLAY';}
+  async function play(){
+    btn.textContent='PREPARING SOUND…';
+    if(!buf)buf=await getAudio();
+    if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==='suspended')await actx.resume();
+    stopAudio();srcN=actx.createBufferSource();srcN.buffer=buf;srcN.connect(actx.destination);srcN.start(0,cur);
+    base=cur;started=performance.now();playing=true;btn.textContent='PAUSE';loop();
+  }
+  btn.onclick=()=>{playing?pause():play();};
+  rg.oninput=()=>{const was=playing;pause();cur=parseFloat(rg.value);show(cur);if(was)play();};
+  show(0);
+}
+
+async function boot(){
+  try{
+    const lat="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.?'’&, ";
+    const loads=FONTS.map(F=>document.fonts.load(`${F.s} ${F.w} 100px "${F.f}"`,lat));
+    loads.push(document.fonts.load('400 100px "Instrument Serif"',lat),document.fonts.load('italic 400 100px "Instrument Serif"',lat),
+      document.fonts.load('900 100px "Barlow Semi Condensed"',lat),
+      document.fonts.load('500 30px "JetBrains Mono"','ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,/·▾＋－’'),
+      document.fonts.load('700 30px "JetBrains Mono"','ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,-'));
+    const lim=new Promise(r=>setTimeout(r,25000));   // never hang on a slow font request
+    await Promise.race([Promise.all(loads.map(p=>p.catch(()=>{}))),lim]);
+    await Promise.race([document.fonts.ready,new Promise(r=>setTimeout(r,5000))]);
+    buildPlan();buildScenes();buildGrain();buildHook();
+    ui.style.display='block';measure();ui.style.display='none';
+    if(!RENDER)initPreview();
+    window.__reelReady=true;
+  }catch(e){window.__reelError=String(e&&e.stack||e);console.error(e);}
+}
+window.addEventListener('load',boot);
+})();
+</script>
+</body>
+</html>
