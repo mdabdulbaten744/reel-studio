@@ -277,7 +277,7 @@ function wipe(c,t,tIn,color){
 /* =====================================================================
    TIMELINE (seconds) — visuals and sound read the same numbers
    ===================================================================== */
-const SL=1.3,UNR0=1.45,UNR_D=.9;                       // slam + unravel
+const BRK=1.0,FLOW_LIFE=1.05;                          // hook: particles break loose at BRK
 const MW=['FLOW','DRIFT','SWIRL','WAVE','STREAM','CURRENT'];
 const MPAL=[[BRAND.bg,BRAND.accent],[BRAND.darkBg,BRAND.darkInk],['#E9B63B','#121212'],['#2447C9','#f7f5f0'],['#F4B6C2','#B0123F'],['#1F5B45','#F2E7C9']];
 const MONT0=2.6,M_DUR=[.5,.46,.42,.4,.4,.4],M_T0=[];{let a=MONT0;M_DUR.forEach(d=>{M_T0.push(a);a+=d;});}
@@ -313,7 +313,7 @@ const stage=$('stage'),sc=stage.getContext('2d');
 const grain=$('grain'),gc=grain.getContext('2d');
 const ui=$('ui');
 const M={};
-let hookA,hookC,mA=[],bridgeA,outA,grainTile=null;
+let HP=null,mA=[],bridgeA,outA,grainTile=null;
 
 function mkAsset(text,color,o={}){
   const scale=o.scale||1.5,n=o.n||3,bw=o.bw||800,bh=o.bh||400,vars=[];
@@ -322,8 +322,7 @@ function mkAsset(text,color,o={}){
 }
 const pingpong=(f,n)=>{if(n<2)return 0;const p=2*n-2,k=f%p;return k<n?k:p-k;};
 function buildAssets(){
-  hookC=mkAsset('FLOW',BRAND.red,{scale:3,n:1,str:0});          // calm: every dot sits on the letters
-  hookA=mkAsset('FLOW',BRAND.red,{scale:3,n:5});                // flowing
+  HP=buildHookParticles();
   MW.forEach((w,i)=>mA.push(mkAsset(w,MPAL[i][1],{str:16})));
   bridgeA=mkAsset('YOURS',BRAND.ink,{n:4,str:12});
   outA=mkAsset('KINETIC\nFLOWFIELD',BRAND.darkInk,{scale:2,bw:800,bh:600,n:5,str:14});
@@ -354,43 +353,135 @@ function loupe(c,a,cx,cy,dw,t,lx,ly,r,Z){
 function flash(c,a,col){if(a>.005){c.save();c.globalAlpha=a;c.fillStyle=col;c.fillRect(0,0,W,H);c.restore();}}
 
 /* ---------- 0 – 2.6 s : the hook ---------- */
-function drawHook(c,t){
-  c.fillStyle=BRAND.bg;c.fillRect(0,0,W,H);
-  const q=t-SL;let sx=0,sy=0;
-  if(q>=0){const a=13*Math.exp(-q*20);sx=Math.sin(t*210)*a;sy=Math.cos(t*173)*a*.8;}
-  c.save();c.translate(sx,sy);
-  const cx=520,cy=900,dw=1000;
-  const un=prog(t,UNR0,UNR_D,'i2');
-  if(t<UNR0+UNR_D){
-    const ws=q>=0?1+.05*Math.exp(-q*18):1;
-    c.save();c.translate(cx,cy);c.scale(ws,ws);c.translate(-cx,-cy);
-    drawYarn(c,t<SL?hookC:hookA,cx,cy,dw,t,{top:t>=UNR0?un:0});c.restore();
+/* FLOW is built from ~20k individual particles. Every particle owns a precomputed path through the
+   flowfield, so each frame is a pure function of t (safe for the frame-by-frame renderer). */
+const HK={cx:540,cy:1090,dw:1000,PL:40};
+const HK_TONE=['#D8352A','#A3201A','#F0705A'];        // base, shadow, lit
+const HK_ZA=[.7,.92,1],HK_ZR=[.72,1,1.38],HK_ZP=[.6,1,1.5];
+const HK_WAVE0=.22,HK_WAVE_D=.72;                      // activation sweep + macro lens ride together
+function buildHookParticles(){
+  const bw=800,bh=400,sc=3,tw=bw*sc,th=bh*sc,ref=100*sc,pad=40*sc;
+  const mk=mkCanvas(tw,th),oc=mk.getContext('2d',{willReadFrequently:true});
+  oc.font=`900 ${ref}px ${SERIF}`;
+  const mw=Math.max(1,oc.measureText('FLOW').width);
+  const fs=Math.min(340*sc,(tw-pad)*ref/mw,(th-pad)/1.1);
+  oc.font=`900 ${fs}px ${SERIF}`;oc.textAlign='center';oc.textBaseline='middle';oc.fillStyle='#000';
+  oc.fillText('FLOW',tw/2,th/2);
+  const dat=oc.getImageData(0,0,tw,th).data,rnd=mulberry32(11),step=6,k=HK.dw/tw,PL=HK.PL;
+  const pts=[];
+  for(let y=3;y<th;y+=step)for(let x=3;x<tw;x+=step){
+    const jx=x+(rnd()-.5)*step*.95,jy=y+(rnd()-.5)*step*.95;
+    const ix=Math.min(tw-1,Math.max(0,Math.round(jx))),iy=Math.min(th-1,Math.max(0,Math.round(jy)));
+    if(dat[(iy*tw+ix)*4+3]<110)continue;
+    const keep=.80+.24*Perlin.noise(jx*.0045+2.2,jy*.0045+5.1);       // natural density variation
+    if(rnd()>keep)continue;
+    pts.push([HK.cx+(jx-tw/2)*k,HK.cy+(jy-th/2)*k]);
   }
-  /* the stream of particles breaking loose */
-  if(t>=UNR0&&t<UNR0+UNR_D+.15){
-    const dh=dw*hookA.bh/hookA.bw,yE=cy-dh/2+un*dh,xe=cx+230,w=Math.sin(t*11);
-    const fade=1-prog(t,UNR0+UNR_D-.1,.25);
-    c.save();c.strokeStyle=BRAND.red;c.lineWidth=9;c.lineCap='round';c.setLineDash([1,17]);c.lineDashOffset=-t*260;c.globalAlpha=fade;
-    c.beginPath();c.moveTo(xe,yE);c.bezierCurveTo(xe+170+40*w,yE-130,xe+40-30*w,yE-440,1200,-120);c.stroke();c.restore();
+  const n=pts.length;let xmin=1e9,xmax=-1e9;
+  pts.forEach(p=>{xmin=Math.min(xmin,p[0]);xmax=Math.max(xmax,p[0]);});
+  const P={n,PL,xmin,xmax,hx:new Float32Array(n),hy:new Float32Array(n),xn:new Float32Array(n),dl:new Float32Array(n),
+    z:new Uint8Array(n),tn:new Uint8Array(n),ph:new Float32Array(n),jf:new Float32Array(n),path:new Float32Array(n*PL*2),r:1.1};
+  {const NB=128,sy=new Float32Array(NB),cn=new Float32Array(NB);
+   pts.forEach(p=>{const bi=Math.min(NB-1,Math.floor((p[0]-xmin)/(xmax-xmin)*NB));sy[bi]+=p[1];cn[bi]++;});
+   const my=[];for(let b=0;b<NB;b++)my.push(cn[b]>3?sy[b]/cn[b]:null);
+   for(let b=0;b<NB;b++)if(my[b]===null){let d=1;while(d<NB){const a=my[b-d],c2=my[b+d];if(a!=null&&a!==undefined){my[b]=a;break;}if(c2!=null&&c2!==undefined){my[b]=c2;break;}d++;}}
+   P.lyT=my.map((v,b)=>{let a=0,m=0;for(let k=-3;k<=3;k++){const q=my[Math.min(NB-1,Math.max(0,b+k))];if(q!=null){a+=q;m++;}}return m?a/m:HK.cy;});}
+  const ns=.0034;
+  for(let i=0;i<n;i++){
+    const hx=pts[i][0],hy=pts[i][1],xn=(hx-xmin)/(xmax-xmin);
+    P.hx[i]=hx;P.hy[i]=hy;P.xn[i]=xn;
+    P.dl[i]=BRK+.42*xn+rnd()*.14;                       // the current catches the word left → right
+    const zr=rnd();P.z[i]=zr<.25?0:zr<.8?1:2;
+    const tr=rnd();P.tn[i]=tr<.70?0:tr<.88?1:2;
+    P.ph[i]=rnd()*6.283;P.jf[i]=5+rnd()*7;
+    const zs=HK_ZP[P.z[i]]*(.9+rnd()*.25),side=rnd()-.5;
+    let px=hx,py=hy,b=i*PL*2;P.path[b]=px;P.path[b+1]=py;
+    for(let j=1;j<PL;j++){
+      const a=Perlin.noise(px*ns+3.1,py*ns+7.7)*Math.PI*3.2;
+      let dx=Math.cos(a)*.95+1,dy=Math.sin(a)*.95-.3;const dd=Math.hypot(dx,dy)||1;dx/=dd;dy/=dd;
+      const L=(5.5+j*2.3)*zs;
+      px+=dx*L-dy*side*j*.09;py+=dy*L+dx*side*j*.09;
+      b+=2;P.path[b]=px;P.path[b+1]=py;
+    }
   }
-  /* magnifier scanning the stitches */
-  if(t<SL){
-    const lx=lerp(250,790,EASE.io3(clamp(t/1.15))),ly=900+36*Math.sin(t*4.2);
-    const r=230*(1-prog(t,SL-.1,.1,'i2'))*prog(t,0,.01);
-    loupe(c,hookC,cx,cy,dw,t,lx,ly,r,3.2);
+  return P;
+}
+const hkLensX=t=>lerp(HP.xmin-30,HP.xmax+30,EASE.io3(clamp((t-HK_WAVE0)/HK_WAVE_D)));
+const hkLensY=x=>{const T=HP.lyT,u=clamp((x-HP.xmin)/(HP.xmax-HP.xmin))*(T.length-1),k=Math.min(T.length-2,Math.floor(u));return lerp(T[k],T[k+1],u-k);};
+let _hx=0,_hy=0;
+function hkAt(i,s){                                   // position along particle i's path, s in 0..1
+  const P=HP,PL=P.PL,e=.25*s+.75*s*s,u=e*(PL-1);let j=Math.floor(u);if(j>PL-2)j=PL-2;
+  const f=u-j,b=(i*PL+j)*2;
+  _hx=P.path[b]+(P.path[b+2]-P.path[b])*f;_hy=P.path[b+1]+(P.path[b+3]-P.path[b+1])*f;
+}
+function drawHookP(c,t,fadeA){
+  const P=HP,n=P.n,push=.045*EASE.o2(clamp(t/2.6)),jam=lerp(.25,1.25,EASE.o2(clamp(t/.95)));
+  const waving=t>HK_WAVE0&&t<HK_WAVE0+HK_WAVE_D+.12;
+  const wp=waving?(hkLensX(t)-P.xmin)/(P.xmax-P.xmin):-9;
+  const B=[];for(let b=0;b<9;b++)B.push(new Path2D());
+  const cx=HK.cx,cy=HK.cy;
+  for(let i=0;i<n;i++){
+    const z=P.z[i],zf=1+push*HK_ZP[z]*.9;
+    let s=(t-P.dl[i])/FLOW_LIFE,x,y,x2,y2,tone=P.tn[i];
+    if(s<=0){
+      x=P.hx[i]+Math.sin(t*P.jf[i]+P.ph[i])*jam;y=P.hy[i]+Math.cos(t*P.jf[i]*.83+P.ph[i]*1.3)*jam;x2=x;y2=y;
+      if(waving&&Math.abs(P.xn[i]-wp)<.06)tone=2;
+    }else{
+      if(s>1)s=1;
+      hkAt(i,s);x=_hx;y=_hy;
+      const jk=1-Math.min(1,s*8);if(jk>0){x+=Math.sin(t*P.jf[i]+P.ph[i])*jam*jk;y+=Math.cos(t*P.jf[i]*.83+P.ph[i]*1.3)*jam*jk;}
+      hkAt(i,Math.max(0,s-.032));x2=_hx;y2=_hy;
+      if(s<.1)tone=2;
+    }
+    const p=B[z*3+tone];
+    p.moveTo(cx+(x2-cx)*zf,cy+(y2-cy)*zf);p.lineTo(cx+(x-cx)*zf+.01,cy+(y-cy)*zf);
   }
-  /* headline */
-  if(t<SL){
-    block(c,['JUST','TEXT?'],540,505,210,BRAND.ink);
-    mono(c,'LOOK CLOSER',540,272,{size:28,ls:8,align:'center',alpha:.7});
-  }else{
-    const st=stampAnim(q,.1);
-    c.save();c.translate(540,505);c.scale(st.s,st.s);c.globalAlpha=st.a;if(st.blur>.4)c.filter=`blur(${st.blur}px)`;
-    block(c,['FLOW','FREELY.'],0,0,210,BRAND.ink);c.restore();
-    mono(c,'EVERY DOT IN MOTION',540,272,{size:28,ls:8,align:'center',alpha:.7*prog(t,SL+.05,.2)});
+  c.save();c.lineCap='round';
+  for(let b=0;b<9;b++){const z=(b/3)|0;c.globalAlpha=HK_ZA[z]*fadeA;c.strokeStyle=HK_TONE[b%3];c.lineWidth=2*P.r*HK_ZR[z];c.stroke(B[b]);}
+  c.restore();
+}
+/* macro lens: individual shaded particles at ~5x */
+function hookLens(c,t,lx,ly,r,Z){
+  if(r<3)return;
+  const P=HP,n=P.n,push=.045*EASE.o2(clamp(t/2.6)),jam=lerp(.25,1.25,EASE.o2(clamp(t/.95)));
+  const wp=(lx-P.xmin)/(P.xmax-P.xmin),q=r/Z+4;
+  c.save();c.shadowColor='rgba(0,0,0,.28)';c.shadowBlur=40;c.shadowOffsetY=18;
+  c.beginPath();c.arc(lx,ly,r,0,Math.PI*2);c.fillStyle=BRAND.bg;c.fill();c.restore();
+  c.save();c.beginPath();c.arc(lx,ly,r,0,Math.PI*2);c.clip();
+  c.translate(lx,ly);c.scale(Z,Z);c.translate(-lx,-ly);
+  const cx=HK.cx,cy=HK.cy;
+  for(let i=0;i<n;i++){
+    const z=P.z[i],zf=1+push*HK_ZP[z]*.9;
+    const x=cx+(P.hx[i]+Math.sin(t*P.jf[i]+P.ph[i])*jam-cx)*zf,y=cy+(P.hy[i]+Math.cos(t*P.jf[i]*.83+P.ph[i]*1.3)*jam-cy)*zf;
+    if(x<lx-q||x>lx+q||y<ly-q||y>ly+q)continue;
+    const lit=Math.abs(P.xn[i]-wp)<.05,rr=P.r*HK_ZR[z]*1.05;
+    c.globalAlpha=.55+.45*(z/2);
+    c.fillStyle=lit?HK_TONE[2]:HK_TONE[P.tn[i]];
+    c.beginPath();c.arc(x,y,rr,0,Math.PI*2);c.fill();
+    c.fillStyle='rgba(255,255,255,.42)';c.beginPath();c.arc(x-rr*.28,y-rr*.3,rr*.38,0,Math.PI*2);c.fill();
   }
   c.restore();
-  if(q>=0)flash(c,.14*Math.exp(-q*30),'#000');
+  c.save();c.strokeStyle=BRAND.ink;c.lineWidth=8;c.beginPath();c.arc(lx,ly,r,0,Math.PI*2);c.stroke();
+  c.strokeStyle='rgba(255,255,255,.6)';c.lineWidth=6;c.lineCap='round';c.beginPath();c.arc(lx,ly,r-22,Math.PI*1.08,Math.PI*1.42);c.stroke();c.restore();
+}
+/* justified headline lockup: every line fitted to the same width */
+function hookHeadline(c){
+  const lines=['ONE WORD.','SIX DIFFERENT','PARTICLE FLOWS.'],cols=[BRAND.ink,BRAND.ink,BRAND.red],maxS=[260,200,160];
+  c.save();c.textAlign='center';c.textBaseline='alphabetic';
+  let y=300;
+  lines.forEach((l,i)=>{
+    c.font=`900 100px ${SERIF}`;const w=Math.max(1,c.measureText(l).width),s=Math.min(maxS[i],860*100/w);
+    c.font=`900 ${s}px ${SERIF}`;c.fillStyle=cols[i];
+    y+=s*.70;c.fillText(l,540,y);y+=s*.12+8;
+  });
+  c.restore();
+}
+function drawHook(c,t){
+  c.fillStyle=BRAND.bg;c.fillRect(0,0,W,H);
+  drawHookP(c,t,1-prog(t,2.36,.22));
+  hookHeadline(c);
+  const lr=118*EASE.oback(clamp((t-.12)/.14))*(1-prog(t,.9,.1,'i2'));
+  if(t>.12&&lr>3)hookLens(c,t,hkLensX(t),hkLensY(hkLensX(t))+10*Math.sin(t*7),lr,4);
 }
 
 /* ---------- 2.6 – 5.18 s : cut montage ---------- */
@@ -661,11 +752,19 @@ async function buildAudio(){
     for(let t=t0;t<=t1;t+=1/240){const q=Math.round(fn(t)/step);if(q!==last){last=q;tick(t,fb+fn(t)*5,g,0);}}
   };
 
-  /* hook: loupe scan → slam → unravel */
-  riser(0,SL-.02,.10);
-  for(let k=0;k<8;k++)tick(.08+k*.15,900+k*110,.07,k%2?.3:-.3);
-  thud(SL,.85);boom(SL,.35);whoosh(SL,.35,{g:.18,up:false,f0:300,f1:4200});
-  zip(UNR0,UNR_D,.045,false);
+  /* hook: soft deep impact → particle activation → release into the current */
+  thud(.02,.6);boom(.02,.22);
+  for(let k=0;k<17;k++){const p=k/16,tt=HK_WAVE0+p*HK_WAVE_D,pn=lerp(-.7,.7,p);
+    tick(tt,3200+p*3600,.03,pn);if(k%2)tick(tt+.02,5200+p*2400,.018,pn);}
+  glide(HK_WAVE0,HK_WAVE_D,1800,5200,.016);
+  thud(BRK,.7);boom(BRK,.3);                                  // low accent as the word breaks apart
+  whoosh(BRK-.02,.95,{g:.14,up:true,f0:260,f1:3600});
+  whoosh(BRK+.35,1.2,{g:.10,up:true,f0:500,f1:5200});
+  zip(BRK+.05,1.3,.025,false);
+  {const gr=mulberry32(21);                                   // granular clicks scattered across the stream
+   for(let k=0;k<110;k++){const tt=BRK+.1+gr()*1.35;
+     if(k%3)clk(tt,.02+gr()*.04,2000+gr()*4500);else tick(tt,1500+gr()*3000,.02+gr()*.03,(gr()-.5)*1.4);}}
+  riser(2.1,2.58,.07);
   /* montage: every cut is knitted on a beat */
   M_T0.forEach((t0,i)=>{
     tick(t0,620*Math.pow(2,i*.12),.22,i%2?.25:-.25);
