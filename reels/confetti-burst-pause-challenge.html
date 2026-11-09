@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pause Challenge — Confetti Burst — Reel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;-webkit-font-smoothing:antialiased}
+#viewport{position:absolute;left:0;top:0;width:1080px;height:1920px;overflow:hidden;background:#0d0d0d;transform-origin:0 0;isolation:isolate}
+#stage{position:absolute;left:0;top:0;width:1080px;height:1920px}
+/* preview player (normal browser only; never part of the video) */
+#player{position:fixed;left:0;right:0;bottom:0;height:64px;background:#111;color:#eee;display:flex;align-items:center;gap:12px;padding:0 14px;font:500 13px 'JetBrains Mono',monospace;z-index:99}
+#player button{background:#eee;color:#111;border:0;border-radius:4px;padding:10px 14px;font:700 13px 'JetBrains Mono',monospace;letter-spacing:.06em}
+#player input{flex:1}
+</style>
+</head>
+<body>
+<div id="viewport"><canvas id="stage" width="1080" height="1920"></canvas></div>
+<div id="player" hidden><button id="pBtn">PLAY</button><input id="pRange" type="range" min="0" max="3" step="0.0333333" value="0"><span id="pTime">f0</span></div>
+
+<script>
+(function(){
+'use strict';
+
+/* =====================================================================
+   ENGINE  (same contract as the other reels)
+   ===================================================================== */
+const FPS=30, FRAMES=90;                      // exactly 3 seconds
+const HOLD=3;                                 // last 3 frames sit on 100 %
+const RAMP_END=FRAMES-HOLD;                   // frame index that first reaches 100 %  (87)
+const REEL={width:1080,height:1920,fps:FPS,duration:FRAMES/FPS,poster:(FRAMES-1)/FPS};
+window.REEL=REEL;
+const RENDER=/[?&]render=1/.test(location.search);
+const ALLOW_FALLBACK=/[?&]allowfallback=1/.test(location.search);   // local testing only
+const $=id=>document.getElementById(id);
+const W=1080,H=1920;
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const mkCanvas=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
+
+/* =====================================================================
+   DESIGN
+   ===================================================================== */
+const BG='#0d0d0d', INK='#f7f5f0', MUTED='#8c877e', RED='#F0261C';
+const DISPLAY='"Barlow Condensed","Oswald","Arial Narrow",Impact,sans-serif';
+const MONO='"JetBrains Mono",ui-monospace,monospace';
+
+/* the word, and the Confetti Burst effect (same engine + defaults as the app) — pushed in by one intensity 0..100 % */
+const WORD='PARTY';
+const FX={density:70,scatterRadius:7,shapeScale:6,fontSize:140,color:'#f7f5f0'};
+const TEXT_W=700;                 // on-screen width of the word itself
+const CX=540, CY=890;             // where the FINAL effect is centred — inside the safe zone
+
+/* =====================================================================
+   CONFETTI BURST — the app's real engine. The lettering is sampled on a grid and every sample point becomes
+   a small square / circle / triangle / cross / diamond, scattered by a seeded pseudo-random offset.
+   Every piece is built once at full strength, then driven by the intensity e:
+   e = 0 → plain crisp text,  e = 1 → the finished effect (identical to the app's output).
+   Runs at an enlarged scale S (app canvas 800×400 → 800S × 400S) so the word is TEXT_W wide.
+   ===================================================================== */
+const FXS={};
+function pseudo(seed){const x=Math.sin(seed)*10000;return x-Math.floor(x);}
+
+function buildEffect(){
+  const probe=mkCanvas(8,8).getContext('2d');
+  probe.font=`900 ${FX.fontSize}px ${DISPLAY}`;
+  const S=TEXT_W/probe.measureText(WORD).width;
+  const WW=Math.round(800*S), WH=Math.round(400*S);
+  const crisp=mkCanvas(WW,WH),c=crisp.getContext('2d',{willReadFrequently:true});
+  c.font=`900 ${FX.fontSize*S}px ${DISPLAY}`;c.textAlign='center';c.textBaseline='middle';c.fillStyle='#000';
+  c.fillText(WORD,WW/2,WH/2);
+  const id=c.getImageData(0,0,WW,WH).data;
+  /* solid, coloured copy of the plain text (what frame 0 shows) */
+  const crispInk=mkCanvas(WW,WH),ci=crispInk.getContext('2d');
+  ci.drawImage(crisp,0,0);ci.globalCompositeOperation='source-in';ci.fillStyle=FX.color;ci.fillRect(0,0,WW,WH);
+
+  /* sample the grid exactly the way the app does */
+  const step=Math.max(2,Math.floor(6*S*(110-FX.density)/50));
+  const scatter=FX.scatterRadius*S, baseSize=FX.shapeScale*S;
+  const xs=[],ys=[],dxs=[],dys=[],sizes=[],shapes=[],rots=[];
+  let seed=1;
+  for(let y=0;y<WH;y+=step){
+    for(let x=0;x<WW;x+=step){
+      if(id[(y*WW+x)*4+3]===0)continue;
+      seed++;
+      const r1=pseudo(seed*1.1),r2=pseudo(seed*2.3),r3=pseudo(seed*3.7),r4=pseudo(seed*4.9),r5=pseudo(seed*5.2);
+      const ang=r1*Math.PI*2, dist=Math.pow(r2,0.8)*scatter;
+      xs.push(x);ys.push(y);
+      dxs.push(Math.cos(ang)*dist);dys.push(Math.sin(ang)*dist);
+      sizes.push(baseSize*(0.4+r3*1.2));
+      shapes.push(Math.floor(r4*5));
+      rots.push(r5*Math.PI*2);
+    }
+  }
+  if(!xs.length)throw new Error('effect source is empty (font missing?)');
+  const cv=mkCanvas(WW,WH),cx=cv.getContext('2d',{willReadFrequently:true});
+  Object.assign(FXS,{S,WW,WH,crispInk,cv,cx,n:xs.length,xs,ys,dxs,dys,sizes,shapes,rots});
+}
+
+function shapePath(c,size,type){
+  c.beginPath();
+  if(type===0){c.rect(-size/2,-size/2,size,size);}
+  else if(type===1){c.arc(0,0,size/2,0,Math.PI*2);}
+  else if(type===2){c.moveTo(0,-size/2);c.lineTo(size/2,size/2);c.lineTo(-size/2,size/2);c.closePath();}
+  else if(type===3){const w=size/3;c.rect(-w/2,-size/2,w,size);c.rect(-size/2,-w/2,size,w);}
+  else{c.moveTo(0,-size/2);c.lineTo(size/2,0);c.lineTo(0,size/2);c.lineTo(-size/2,0);c.closePath();}
+  c.fill();
+}
+
+/* e: 0..1 intensity. The solid lettering dissolves while the pieces fly out to their final scatter positions. */
+function flowDraw(e){
+  const{cx,cv,crispInk,WW,WH,n,xs,ys,dxs,dys,sizes,shapes,rots}=FXS;
+  cx.setTransform(1,0,0,1,0,0);cx.globalAlpha=1;cx.clearRect(0,0,WW,WH);
+  const ca=1-clamp(e/0.75);                       // frame 0 = perfectly normal text, gone by 75 %
+  if(ca>0){cx.globalAlpha=ca;cx.drawImage(crispInk,0,0);cx.globalAlpha=1;}
+  if(e<=0)return cv;
+  const grow=clamp(e/0.5);                        // pieces reach full size by 50 %
+  cx.fillStyle=FX.color;
+  for(let i=0;i<n;i++){
+    const a=rots[i]*e,co=Math.cos(a),si=Math.sin(a);
+    cx.setTransform(co,si,-si,co,xs[i]+dxs[i]*e,ys[i]+dys[i]*e);
+    shapePath(cx,sizes[i]*grow,shapes[i]);
+  }
+  cx.setTransform(1,0,0,1,0,0);
+  return cv;
+}
+
+/* ---- the red target: a hollow outline of the FINISHED effect (e = 1) ---- */
+function dilate(m,w,h,r){
+  const hwOf=dy=>Math.floor(Math.sqrt(r*r-dy*dy)+.5);
+  const maps={};
+  const horiz=hw=>{
+    const o=new Uint8Array(w*h),pre=new Int32Array(w+1);
+    for(let y=0;y<h;y++){
+      const ro=y*w;pre[0]=0;for(let x=0;x<w;x++)pre[x+1]=pre[x]+m[ro+x];
+      for(let x=0;x<w;x++){const a=Math.max(0,x-hw),b=Math.min(w,x+hw+1);o[ro+x]=pre[b]-pre[a]>0?1:0;}
+    }return o;
+  };
+  const res=new Uint8Array(w*h);
+  for(let dy=-r;dy<=r;dy++){
+    const hw=hwOf(dy);if(!maps[hw])maps[hw]=horiz(hw);const H1=maps[hw];
+    for(let y=0;y<h;y++){const sy=y-dy;if(sy<0||sy>=h)continue;const ro=y*w,so=sy*w;for(let x=0;x<w;x++)if(H1[so+x])res[ro+x]=1;}
+  }
+  return res;
+}
+const invert=m=>{const o=new Uint8Array(m.length);for(let i=0;i<m.length;i++)o[i]=m[i]?0:1;return o;};
+const CLOSE_R=24;   // merges the scattered pieces into one clean silhouette
+const OPEN_R=2;     // drops stray specks
+const RING_W=7;     // outline thickness in px — sits just OUTSIDE the effect
+
+function buildTarget(){
+  const{WW,WH}=FXS;
+  const cvFinal=flowDraw(1);
+  const data=cvFinal.getContext('2d').getImageData(0,0,WW,WH).data;
+  let x0=WW,x1=0,y0=WH,y1=0;
+  for(let y=0;y<WH;y++){const r=y*WW;for(let x=0;x<WW;x++){if(data[(r+x)*4+3]>8){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}}}
+  /* centre the finished composition on CX,CY */
+  FXS.ox=Math.round(CX-(x0+x1)/2);FXS.oy=Math.round(CY-(y0+y1)/2);
+  const PAD=CLOSE_R+RING_W+OPEN_R+6,w=x1-x0+1+PAD*2,h=y1-y0+1+PAD*2;
+  let m=new Uint8Array(w*h);
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if(data[(y*WW+x)*4+3]>8)m[(y-y0+PAD)*w+(x-x0+PAD)]=1;
+  const opened=dilate(invert(dilate(invert(m),w,h,OPEN_R)),w,h,OPEN_R);
+  const closed=invert(dilate(invert(dilate(opened,w,h,CLOSE_R)),w,h,CLOSE_R));
+  const grown=dilate(closed,w,h,RING_W);
+  const cv=mkCanvas(w,h),c=cv.getContext('2d'),idd=c.createImageData(w,h),d=idd.data;
+  const rr=parseInt(RED.substr(1,2),16),rg=parseInt(RED.substr(3,2),16),rb=parseInt(RED.substr(5,2),16);
+  for(let i=0;i<w*h;i++)if(grown[i]&&!closed[i]){d[i*4]=rr;d[i*4+1]=rg;d[i*4+2]=rb;d[i*4+3]=255;}
+  c.putImageData(idd,0,0);
+  FXS.ring=cv;FXS.ringX=FXS.ox+x0-PAD;FXS.ringY=FXS.oy+y0-PAD;
+  FXS.bbox={x:FXS.ox+x0,y:FXS.oy+y0,w:x1-x0+1,h:y1-y0+1};
+}
+
+/* =====================================================================
+   COPY
+   ===================================================================== */
+function drawCaption(c){
+  const lines=[[['ONLY ',INK],['0.001%',RED],[' CAN',INK]],[['PAUSE AT THE',INK]],[['RIGHT TIME',INK]]];
+  c.save();c.textBaseline='middle';c.textAlign='left';
+  if('letterSpacing' in c)c.letterSpacing='1px';
+  c.font=`900 100px ${DISPLAY}`;
+  let widest=1;lines.forEach(sg=>{widest=Math.max(widest,c.measureText(sg.map(x=>x[0]).join('')).width);});
+  const size=Math.min(118,Math.floor(100*940/widest)),lh=Math.round(size*.95),top=352;
+  c.font=`900 ${size}px ${DISPLAY}`;
+  lines.forEach((segs,i)=>{
+    const ws=segs.map(s=>c.measureText(s[0]).width),tw=ws.reduce((a,b)=>a+b,0);
+    let x=W/2-tw/2;segs.forEach((s,k)=>{c.fillStyle=s[1];c.fillText(s[0],x,top+i*lh);x+=ws[k];});
+  });
+  c.restore();
+}
+function mono(c,txt,x,y,o={}){
+  const{size=30,ls=0,color=INK,weight=500}=o;
+  c.save();c.font=`${weight} ${size}px ${MONO}`;if('letterSpacing' in c)c.letterSpacing=ls+'px';
+  c.textBaseline='middle';c.textAlign='center';c.fillStyle=color;c.fillText(txt,x+ls/2,y);c.restore();
+}
+function disp(c,txt,x,y,size,color){
+  c.save();if('letterSpacing' in c)c.letterSpacing='1px';
+  c.font=`900 ${size}px ${DISPLAY}`;const mw=c.measureText(txt).width;if(mw>940)size=Math.floor(size*940/mw);
+  c.font=`900 ${size}px ${DISPLAY}`;
+  c.textBaseline='middle';c.textAlign='center';c.fillStyle=color;c.fillText(txt,x,y);c.restore();
+}
+/* hints live only on the frames next to the target (and on the frame that follows it in the loop) */
+const HINT_Y=1380;
+function drawHint(c,f){
+  if(f<=1){disp(c,'TOO LATE',W/2,HINT_Y,92,MUTED);return;}
+  if(f>=78&&f<=82){disp(c,'GETTING CLOSE',W/2,HINT_Y,92,MUTED);return;}
+  if(f>=83&&f<RAMP_END){disp(c,'SO CLOSE…',W/2,HINT_Y,104,INK);return;}
+  if(f>=RAMP_END){
+    disp(c,'PERFECT. SCREENSHOT THIS',W/2,HINT_Y-18,100,RED);
+    const L=['Share it with us and get a FLAT 50% DISCOUNT','on Callistra Text Effect Makers','— Volume 1'];
+    L.forEach((s,i)=>mono(c,s,W/2,HINT_Y+70+i*50,{size:29,ls:0,weight:500,color:INK}));
+  }
+}
+
+/* =====================================================================
+   FRAME
+   ===================================================================== */
+const stage=$('stage'),sc=stage.getContext('2d');
+function frameIndex(t){return clamp(Math.floor(t*FPS+.001),0,FRAMES-1);}
+function elevation(f){return Math.min(1,f/RAMP_END);}          // linear 0 → 100 %, then hold
+function renderFrame(t){
+  const f=frameIndex(t),e=elevation(f);
+  sc.setTransform(1,0,0,1,0,0);sc.globalAlpha=1;sc.filter='none';
+  sc.fillStyle=BG;sc.fillRect(0,0,W,H);
+  /* the one real text element, bursting into confetti (position never changes) */
+  sc.drawImage(flowDraw(e),FXS.ox,FXS.oy);
+  /* permanent hollow red target */
+  sc.save();sc.filter='blur(.6px)';sc.drawImage(FXS.ring,FXS.ringX,FXS.ringY);sc.restore();
+  drawCaption(sc);
+  drawHint(sc,f);
+}
+window.renderFrame=renderFrame;
+
+/* =====================================================================
+   SOUND — soft, quiet, synthesised offline. Sparkly confetti rustle that grows, a tick every 10 %,
+   a party-pop and a chime on the target.
+   ===================================================================== */
+async function buildAudio(){
+  const SR=44100,DUR=REEL.duration;
+  const oc=new OfflineAudioContext(2,Math.ceil(SR*DUR),SR);
+  const rand=mulberry32(11);
+  const nb=oc.createBuffer(1,SR*1,SR);{const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=rand()*2-1;}
+  const master=oc.createGain();master.gain.setValueAtTime(.7,0);master.gain.setValueAtTime(.7,DUR-.12);master.gain.linearRampToValueAtTime(0,DUR-.01);
+  const comp=oc.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=8;comp.attack.value=.002;comp.release.value=.12;
+  master.connect(comp);comp.connect(oc.destination);
+  const rl=Math.floor(SR*1.4),ir=oc.createBuffer(2,rl,SR);
+  for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<rl;i++)d[i]=(rand()*2-1)*Math.pow(1-i/rl,3);}
+  const conv=oc.createConvolver();conv.buffer=ir;const rv=oc.createGain();rv.gain.value=.45;conv.connect(rv);rv.connect(master);
+  const out=(g,rev=0)=>{g.connect(master);if(rev>0){const s=oc.createGain();s.gain.value=rev;g.connect(s);s.connect(conv);}};
+  const env=(p,t,peak,a,d)=>{p.setValueAtTime(.0001,t);p.linearRampToValueAtTime(peak,t+a);p.exponentialRampToValueAtTime(.0001,t+a+d);};
+  const osc=(type,f,t,dur)=>{const o=oc.createOscillator();o.type=type;o.frequency.setValueAtTime(f,t);o.start(t);o.stop(t+dur);return o;};
+  const T=RAMP_END/FPS;
+  /* confetti rustle: tiny bright noise ticks, denser and louder as the burst builds */
+  {let t=0.05;
+   while(t<T){
+     const p=t/T,n=oc.createBufferSource();n.buffer=nb;
+     const bp=oc.createBiquadFilter();bp.type='bandpass';bp.Q.value=1.6;bp.frequency.value=3000+rand()*5000;
+     const g=oc.createGain();const len=.010+rand()*.022;
+     env(g.gain,t,(.025+.08*p)*(.5+rand()*.7),.001,len);
+     n.start(t,rand()*.5,len+.02);n.connect(bp);bp.connect(g);out(g,.12);
+     t+=Math.max(.02,.11-.09*p)*(.6+rand()*.8);
+   }}
+  /* ticks at every 10 % */
+  for(let k=1;k<=9;k++){const t=(k/10)*T;const o=osc('triangle',640*Math.pow(2,k*.085),t,.1),g=oc.createGain();env(g.gain,t,.09,.001,.06);o.connect(g);out(g,.08);}
+  /* the target: a soft party-pop … */
+  {const n=oc.createBufferSource();n.buffer=nb;const lp=oc.createBiquadFilter();lp.type='lowpass';lp.frequency.setValueAtTime(7000,T);lp.frequency.exponentialRampToValueAtTime(600,T+.25);
+   const g=oc.createGain();env(g.gain,T,.2,.002,.22);n.start(T,.1,.3);n.connect(lp);lp.connect(g);out(g,.3);
+   const o=osc('sine',180,T,.2),og=oc.createGain();o.frequency.exponentialRampToValueAtTime(60,T+.15);env(og.gain,T,.18,.002,.14);o.connect(og);out(og,.1);}
+  /* … and the chime */
+  [[659.25,.04],[987.77,.12],[1318.5,.2]].forEach(([f,d])=>{[[1,.16],[2,.04],[3,.015]].forEach(([m,a])=>{const o=osc('sine',f*m,T+d,.9),g=oc.createGain();env(g.gain,T+d,a,.004,.55);o.connect(g);out(g,.5);});});
+  return oc.startRendering();
+}
+let audioP=null;const getAudio=()=>audioP||(audioP=buildAudio());
+function toWavB64(buf){
+  const ch=buf.numberOfChannels,n=buf.length,sr=buf.sampleRate;
+  const data=[];let peak=0;
+  for(let c=0;c<ch;c++){const d=buf.getChannelData(c);data.push(d);for(let i=0;i<n;i++){const a=Math.abs(d[i]);if(a>peak)peak=a;}}
+  const gain=peak>.78?.78/peak:1;   // peak below −2 dBFS
+  const ab=new ArrayBuffer(44+n*ch*2),v=new DataView(ab);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,'RIFF');v.setUint32(4,36+n*ch*2,true);ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,ch,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,n*ch*2,true);
+  let o=44;
+  for(let i=0;i<n;i++)for(let c=0;c<ch;c++){v.setInt16(o,Math.round(clamp(data[c][i]*gain,-1,1)*32767),true);o+=2;}
+  const bytes=new Uint8Array(ab);let s='';
+  for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
+  return btoa(s);
+}
+window.renderAudio=async()=>toWavB64(await getAudio());
+
+/* =====================================================================
+   PREVIEW PLAYER (normal browser only) + BOOT
+   ===================================================================== */
+function initPreview(){
+  const vp=$('viewport'),pl=$('player'),btn=$('pBtn'),rg=$('pRange'),tm=$('pTime');
+  pl.hidden=false;
+  const fit=()=>{const s=Math.min(innerWidth/W,(innerHeight-64)/H);vp.style.transform=`scale(${s})`;vp.style.left=((innerWidth-W*s)/2)+'px';};
+  addEventListener('resize',fit);fit();
+  let playing=false,base=0,started=0,cur=0,actx=null,srcN=null,buf=null;
+  const stopAudio=()=>{if(srcN){try{srcN.stop();}catch(e){}srcN=null;}};
+  const show=t=>{renderFrame(t);rg.value=t;const f=frameIndex(t);tm.textContent='f'+f+' · '+Math.round(elevation(f)*100)+'%';};
+  function loop(){
+    if(!playing)return;
+    cur=base+(performance.now()-started)/1000;
+    if(cur>=REEL.duration){show(REEL.duration);pause();btn.textContent='REPLAY';cur=0;return;}
+    show(cur);requestAnimationFrame(loop);
+  }
+  function pause(){playing=false;stopAudio();if(btn.textContent==='PAUSE')btn.textContent='PLAY';}
+  async function play(){
+    btn.textContent='PREPARING SOUND…';
+    if(!buf)buf=await getAudio();
+    if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==='suspended')await actx.resume();
+    stopAudio();srcN=actx.createBufferSource();srcN.buffer=buf;srcN.connect(actx.destination);srcN.start(0,cur);
+    base=cur;started=performance.now();playing=true;btn.textContent='PAUSE';loop();
+  }
+  btn.onclick=()=>{playing?pause():play();};
+  rg.oninput=()=>{const was=playing;pause();cur=parseFloat(rg.value);show(cur);if(was)play();};
+  show(0);
+}
+async function boot(){
+  try{
+    const wait=(p,ms)=>Promise.race([p,new Promise(r=>setTimeout(r,ms))]);
+    await wait(Promise.all([document.fonts.load('900 100px "Barlow Condensed"'),document.fonts.load('500 30px "JetBrains Mono"'),document.fonts.load('700 30px "JetBrains Mono"')]),15000);
+    await document.fonts.ready;
+    if(!ALLOW_FALLBACK&&!document.fonts.check('900 100px "Barlow Condensed"'))throw new Error('Barlow Condensed failed to load');
+    buildEffect();
+    buildTarget();
+    renderFrame(0);
+    if(!RENDER)initPreview();
+    window.__reelReady=true;
+  }catch(e){window.__reelError=String(e&&e.message||e);console.error(e);}
+}
+boot();
+})();
+</script>
+</body>
+</html>
