@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pause Challenge — Ink Bleed — Reel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@900&family=Instrument+Serif&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;-webkit-font-smoothing:antialiased}
+#viewport{position:absolute;left:0;top:0;width:1080px;height:1920px;overflow:hidden;background:#f7f5f0;transform-origin:0 0;isolation:isolate}
+#stage{position:absolute;left:0;top:0;width:1080px;height:1920px}
+/* preview player (normal browser only; never part of the video) */
+#player{position:fixed;left:0;right:0;bottom:0;height:64px;background:#111;color:#eee;display:flex;align-items:center;gap:12px;padding:0 14px;font:500 13px 'JetBrains Mono',monospace;z-index:99}
+#player button{background:#eee;color:#111;border:0;border-radius:4px;padding:10px 14px;font:700 13px 'JetBrains Mono',monospace;letter-spacing:.06em}
+#player input{flex:1}
+</style>
+</head>
+<body>
+<div id="viewport"><canvas id="stage" width="1080" height="1920"></canvas></div>
+<div id="player" hidden><button id="pBtn">PLAY</button><input id="pRange" type="range" min="0" max="3" step="0.0333333" value="0"><span id="pTime">f0</span></div>
+
+<script>
+(function(){
+'use strict';
+
+/* =====================================================================
+   ENGINE  (same contract as the other reels)
+   ===================================================================== */
+const FPS=30, FRAMES=90;                      // exactly 3 seconds
+const HOLD=3;                                 // last 3 frames sit on 100 %  (≈0.1 s window to catch it)
+const RAMP_END=FRAMES-HOLD;                   // frame index that first reaches 100 %  (87)
+const REEL={width:1080,height:1920,fps:FPS,duration:FRAMES/FPS,poster:(FRAMES-1)/FPS};
+window.REEL=REEL;
+const RENDER=/[?&]render=1/.test(location.search);
+const ALLOW_FALLBACK=/[?&]allowfallback=1/.test(location.search);   // local testing only
+const $=id=>document.getElementById(id);
+const W=1080,H=1920;
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const lerp=(a,b,p)=>a+(b-a)*p;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const mkCanvas=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
+
+/* =====================================================================
+   DESIGN
+   ===================================================================== */
+const BG='#f7f5f0', INK='#121212', MUTED='#736e65', RED='#F0261C';
+const DISPLAY='"Barlow Condensed","Oswald","Arial Narrow",Impact,sans-serif';
+const MONO='"JetBrains Mono",ui-monospace,monospace';
+const EFFECT_FONT='"Instrument Serif",Georgia,serif';   // main effect word only
+
+/* the word, and the Ink Bleed effect (bleed amount + paper texture) — pushed in together by one intensity 0..100 % */
+const WORD='PRINT';
+const FX={bleed:11,texture:.6,fontSize:160,color:'#000000'};
+const TEXT_W=780;                 // on-screen width of the word itself (before the bleed spreads)
+const CX=540, CY=880;             // where the FINAL effect (text + bleed) is centred — inside the safe zone
+
+/* =====================================================================
+   INK BLEED — the app's real algorithm (crisp layer + blurred layer, thresholded against
+   a paper-texture noise field), run at an enlarged scale S. Blur radius grows with intensity e:
+   e = 0 → plain crisp text, e = 1 → the finished effect.
+   ===================================================================== */
+function getSpatialRandom(x,y){const n=Math.sin(x*12.9898+y*78.233)*43758.5453;return n-Math.floor(n);}
+const FXS={};
+function buildEffect(){
+  const probe=mkCanvas(8,8).getContext('2d');
+  probe.font=`400 ${FX.fontSize}px ${EFFECT_FONT}`;
+  const S=TEXT_W/probe.measureText(WORD).width;
+  const WW=Math.round(800*S), WH=Math.round(400*S);
+  const font=`400 ${FX.fontSize*S}px ${EFFECT_FONT}`;
+  /* crisp layer (never changes) */
+  const crisp=mkCanvas(WW,WH),c=crisp.getContext('2d',{willReadFrequently:true});
+  c.font=font;c.textAlign='center';c.textBaseline='middle';c.fillStyle='#000000';
+  c.fillText(WORD,WW/2,WH/2);
+  const cData=c.getImageData(0,0,WW,WH).data;
+  if(!cData.some((v,i)=>(i&3)===3&&v>0))throw new Error('effect source is empty (font missing?)');
+  /* blur layer (redrawn per frame) */
+  const blurCv=mkCanvas(WW,WH),b=blurCv.getContext('2d',{willReadFrequently:true});
+  b.font=font;b.textAlign='center';b.textBaseline='middle';b.fillStyle='#000000';
+  /* paper-texture noise field: fixed, so the effect grows smoothly with no flicker */
+  const noise=new Float32Array(WW*WH),tex=FX.texture;
+  for(let y=0;y<WH;y++){
+    const uy=y/S;
+    for(let x=0;x<WW;x++){
+      const ux=x/S;
+      const n1=(Math.sin(ux*.12+uy*.08)+Math.cos(ux*.06-uy*.11))*.5+.5;
+      const n2=getSpatialRandom(ux,uy);
+      noise[y*WW+x]=.05+((n1*(1-tex))+(n2*tex))*.9;
+    }
+  }
+  const cv=mkCanvas(WW,WH),cx=cv.getContext('2d'),img=cx.createImageData(WW,WH);
+  const rgb=FX.color,r=parseInt(rgb.substr(1,2),16),g=parseInt(rgb.substr(3,2),16),bl=parseInt(rgb.substr(5,2),16);
+  Object.assign(FXS,{S,WW,WH,font,crisp,cData,blurCv,b,noise,cv,cx,img,buf:new Uint32Array(img.data.buffer),solid:((255<<24)|(bl<<16)|(g<<8)|r)>>>0});
+}
+function inkFill(e){
+  const{WW,WH,cData,b,blurCv,noise,buf,solid,S}=FXS;
+  const bm=FX.bleed*S*e;
+  b.setTransform(1,0,0,1,0,0);b.clearRect(0,0,WW,WH);
+  b.filter=`blur(${bm}px)`;
+  b.fillText(WORD,WW/2,WH/2);b.fillText(WORD,WW/2,WH/2);
+  b.filter='none';
+  const bData=b.getImageData(0,0,WW,WH).data;
+  buf.fill(0);
+  const n=WW*WH;
+  for(let p=0,i=3;p<n;p++,i+=4){
+    const ca=cData[i],ba=bData[i];
+    if(ca===0&&ba===0)continue;
+    if(ca>200){buf[p]=solid;continue;}
+    const fall=(ca>ba?ca:ba)/255;
+    if(fall>noise[p])buf[p]=solid;
+  }
+}
+function inkDraw(e){
+  const{cx,cv,img,crisp,WW,WH}=FXS;
+  if(e<=0){cx.clearRect(0,0,WW,WH);cx.drawImage(crisp,0,0);return cv;}   // frame 0 = perfectly normal text
+  inkFill(e);cx.putImageData(img,0,0);return cv;
+}
+
+/* ---- the red target: a hollow outline of the FINISHED effect (e = 1) ---- */
+function dilate(m,w,h,r){
+  const hwOf=dy=>Math.floor(Math.sqrt(r*r-dy*dy)+.5);
+  const maps={};
+  const horiz=hw=>{
+    const out=new Uint8Array(w*h),pre=new Int32Array(w+1);
+    for(let y=0;y<h;y++){
+      const ro=y*w;pre[0]=0;for(let x=0;x<w;x++)pre[x+1]=pre[x]+m[ro+x];
+      for(let x=0;x<w;x++){const a=Math.max(0,x-hw),b=Math.min(w,x+hw+1);out[ro+x]=pre[b]-pre[a]>0?1:0;}
+    }return out;
+  };
+  const res=new Uint8Array(w*h);
+  for(let dy=-r;dy<=r;dy++){
+    const hw=hwOf(dy);if(!maps[hw])maps[hw]=horiz(hw);const H1=maps[hw];
+    for(let y=0;y<h;y++){const sy=y-dy;if(sy<0||sy>=h)continue;const ro=y*w,so=sy*w;for(let x=0;x<w;x++)if(H1[so+x])res[ro+x]=1;}
+  }
+  return res;
+}
+const invert=m=>{const o=new Uint8Array(m.length);for(let i=0;i<m.length;i++)o[i]=m[i]?0:1;return o;};
+const CLOSE_R=13;   // merges ink speckle and pinholes so the outline reads as one clean silhouette
+const RING_W=7;     // outline thickness in px — sits just OUTSIDE the effect, so the effect fits inside it
+
+function buildTarget(){
+  inkFill(1);
+  const{WW,WH,buf}=FXS;
+  let x0=WW,x1=0,y0=WH,y1=0;
+  for(let y=0;y<WH;y++){const r=y*WW;for(let x=0;x<WW;x++){if(buf[r+x]!==0){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}}}
+  /* centre the finished composition (word + bleed) on CX,CY */
+  FXS.ox=Math.round(CX-(x0+x1)/2);FXS.oy=Math.round(CY-(y0+y1)/2);
+  const PAD=CLOSE_R+RING_W+6,w=x1-x0+1+PAD*2,h=y1-y0+1+PAD*2;
+  let m=new Uint8Array(w*h);
+  for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)if(buf[y*WW+x]!==0)m[(y-y0+PAD)*w+(x-x0+PAD)]=1;
+  const closed=invert(dilate(invert(dilate(m,w,h,CLOSE_R)),w,h,CLOSE_R));
+  const grown=dilate(closed,w,h,RING_W);
+  const cv=mkCanvas(w,h),c=cv.getContext('2d'),id=c.createImageData(w,h),d=id.data;
+  const rr=parseInt(RED.substr(1,2),16),rg=parseInt(RED.substr(3,2),16),rb=parseInt(RED.substr(5,2),16);
+  for(let i=0;i<w*h;i++)if(grown[i]&&!closed[i]){d[i*4]=rr;d[i*4+1]=rg;d[i*4+2]=rb;d[i*4+3]=255;}
+  c.putImageData(id,0,0);
+  FXS.ring=cv;FXS.ringX=FXS.ox+x0-PAD;FXS.ringY=FXS.oy+y0-PAD;
+  FXS.bbox={x:FXS.ox+x0,y:FXS.oy+y0,w:x1-x0+1,h:y1-y0+1};
+}
+
+/* =====================================================================
+   COPY
+   ===================================================================== */
+function drawCaption(c){
+  /* permanent, static. Barlow Condensed Black, 3 lines, centred, inside the safe zone */
+  const lines=[[['ONLY ',INK],['0.001%',RED],[' CAN',INK]],[['PAUSE AT THE',INK]],[['RIGHT TIME',INK]]];
+  c.save();c.textBaseline='middle';c.textAlign='left';
+  if('letterSpacing' in c)c.letterSpacing='1px';
+  /* biggest size at which the widest line still fits the safe width (max 118px) */
+  c.font=`900 100px ${DISPLAY}`;
+  let widest=1;lines.forEach(sg=>{widest=Math.max(widest,c.measureText(sg.map(x=>x[0]).join('')).width);});
+  const size=Math.min(118,Math.floor(100*940/widest)),lh=Math.round(size*.95),top=352;
+  c.font=`900 ${size}px ${DISPLAY}`;
+  lines.forEach((segs,i)=>{
+    const ws=segs.map(s=>c.measureText(s[0]).width),tw=ws.reduce((a,b)=>a+b,0);
+    let x=W/2-tw/2;segs.forEach((s,k)=>{c.fillStyle=s[1];c.fillText(s[0],x,top+i*lh);x+=ws[k];});
+  });
+  c.restore();
+}
+function mono(c,txt,x,y,o={}){
+  const{size=30,ls=0,color=INK,weight=500}=o;
+  c.save();c.font=`${weight} ${size}px ${MONO}`;if('letterSpacing' in c)c.letterSpacing=ls+'px';
+  c.textBaseline='middle';c.textAlign='center';c.fillStyle=color;c.fillText(txt,x+ls/2,y);c.restore();
+}
+function disp(c,txt,x,y,size,color){
+  c.save();if('letterSpacing' in c)c.letterSpacing='1px';
+  c.font=`900 ${size}px ${DISPLAY}`;const mw=c.measureText(txt).width;if(mw>940)size=Math.floor(size*940/mw);   // never leave the safe width
+  c.font=`900 ${size}px ${DISPLAY}`;
+  c.textBaseline='middle';c.textAlign='center';c.fillStyle=color;c.fillText(txt,x,y);c.restore();
+}
+/* hints live only on the frames next to the target (and on the frame that follows it in the loop) */
+const HINT_Y=1300;
+function drawHint(c,f){
+  if(f<=1){disp(c,'TOO LATE',W/2,HINT_Y,92,MUTED);return;}
+  if(f>=78&&f<=82){disp(c,'GETTING CLOSE',W/2,HINT_Y,92,MUTED);return;}
+  if(f>=83&&f<RAMP_END){disp(c,'SO CLOSE…',W/2,HINT_Y,104,INK);return;}
+  if(f>=RAMP_END){
+    disp(c,'PERFECT. SCREENSHOT THIS',W/2,HINT_Y-18,100,RED);
+    const L=['Share it with us and get a FLAT 50% DISCOUNT','on Callistra Text Effect Makers','— Volume 1'];
+    L.forEach((s,i)=>mono(c,s,W/2,HINT_Y+70+i*50,{size:29,ls:0,weight:500,color:INK}));
+  }
+}
+
+/* =====================================================================
+   FRAME
+   ===================================================================== */
+const stage=$('stage'),sc=stage.getContext('2d');
+function frameIndex(t){return clamp(Math.floor(t*FPS+.001),0,FRAMES-1);}
+function elevation(f){return Math.min(1,f/RAMP_END);}          // linear 0 → 100 %, then hold
+function renderFrame(t){
+  const f=frameIndex(t),e=elevation(f);
+  sc.setTransform(1,0,0,1,0,0);sc.globalAlpha=1;sc.filter='none';
+  sc.fillStyle=BG;sc.fillRect(0,0,W,H);
+  /* the one real text element, developing its ink bleed (position of the word never changes) */
+  sc.drawImage(inkDraw(e),FXS.ox,FXS.oy);
+  /* permanent hollow red target */
+  sc.save();sc.filter='blur(.6px)';sc.drawImage(FXS.ring,FXS.ringX,FXS.ringY);sc.restore();
+  drawCaption(sc);
+  drawHint(sc,f);
+}
+window.renderFrame=renderFrame;
+
+/* =====================================================================
+   SOUND — soft, quiet, synthesised offline.  A tick every 10 %, rising; a chime on the target.
+   ===================================================================== */
+async function buildAudio(){
+  const SR=44100,DUR=REEL.duration;
+  const oc=new OfflineAudioContext(2,Math.ceil(SR*DUR),SR);
+  const rand=mulberry32(11);
+  const nb=oc.createBuffer(1,SR*3,SR);{const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=rand()*2-1;}
+  const master=oc.createGain();master.gain.setValueAtTime(.7,0);master.gain.setValueAtTime(.7,DUR-.12);master.gain.linearRampToValueAtTime(0,DUR-.01);
+  const comp=oc.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=8;comp.attack.value=.002;comp.release.value=.12;
+  master.connect(comp);comp.connect(oc.destination);
+  const rl=Math.floor(SR*1.4),ir=oc.createBuffer(2,rl,SR);
+  for(let ch=0;ch<2;ch++){const d=ir.getChannelData(ch);for(let i=0;i<rl;i++)d[i]=(rand()*2-1)*Math.pow(1-i/rl,3);}
+  const conv=oc.createConvolver();conv.buffer=ir;const rv=oc.createGain();rv.gain.value=.45;conv.connect(rv);rv.connect(master);
+  const out=(g,rev=0)=>{g.connect(master);if(rev>0){const s=oc.createGain();s.gain.value=rev;g.connect(s);s.connect(conv);}};
+  const env=(p,t,peak,a,d)=>{p.setValueAtTime(.0001,t);p.linearRampToValueAtTime(peak,t+a);p.exponentialRampToValueAtTime(.0001,t+a+d);};
+  const osc=(type,f,t,dur)=>{const o=oc.createOscillator();o.type=type;o.frequency.setValueAtTime(f,t);o.start(t);o.stop(t+dur);return o;};
+  /* soft airy rise, the ink spreading */
+  {const n=oc.createBufferSource();n.buffer=nb;n.loop=true;n.start(0);n.stop(RAMP_END/FPS+.05);
+   const bp=oc.createBiquadFilter();bp.type='bandpass';bp.Q.value=2.2;bp.frequency.setValueAtTime(260,0);bp.frequency.exponentialRampToValueAtTime(3200,RAMP_END/FPS);
+   const g=oc.createGain();g.gain.setValueAtTime(.0001,0);g.gain.exponentialRampToValueAtTime(.09,RAMP_END/FPS-.05);g.gain.linearRampToValueAtTime(0,RAMP_END/FPS+.04);
+   n.connect(bp);bp.connect(g);out(g,.12);}
+  /* ticks at every 10 % */
+  for(let k=1;k<=9;k++){const t=(k/10)*(RAMP_END/FPS);const o=osc('triangle',640*Math.pow(2,k*.085),t,.1),g=oc.createGain();env(g.gain,t,.11,.001,.06);o.connect(g);out(g,.08);}
+  /* the target */
+  const T=RAMP_END/FPS;
+  [[659.25,0],[987.77,.08],[1318.5,.16]].forEach(([f,d])=>{[[1,.16],[2,.04],[3,.015]].forEach(([m,a])=>{const o=osc('sine',f*m,T+d,.9),g=oc.createGain();env(g.gain,T+d,a,.004,.55);o.connect(g);out(g,.5);});});
+  return oc.startRendering();
+}
+let audioP=null;const getAudio=()=>audioP||(audioP=buildAudio());
+function toWavB64(buf){
+  const ch=buf.numberOfChannels,n=buf.length,sr=buf.sampleRate;
+  const data=[];let peak=0;
+  for(let c=0;c<ch;c++){const d=buf.getChannelData(c);data.push(d);for(let i=0;i<n;i++){const a=Math.abs(d[i]);if(a>peak)peak=a;}}
+  const gain=peak>.78?.78/peak:1;   // peak below −2 dBFS
+  const ab=new ArrayBuffer(44+n*ch*2),v=new DataView(ab);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,'RIFF');v.setUint32(4,36+n*ch*2,true);ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,ch,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*ch*2,true);v.setUint16(32,ch*2,true);v.setUint16(34,16,true);ws(36,'data');v.setUint32(40,n*ch*2,true);
+  let o=44;
+  for(let i=0;i<n;i++)for(let c=0;c<ch;c++){v.setInt16(o,Math.round(clamp(data[c][i]*gain,-1,1)*32767),true);o+=2;}
+  const bytes=new Uint8Array(ab);let s='';
+  for(let i=0;i<bytes.length;i+=0x8000)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
+  return btoa(s);
+}
+window.renderAudio=async()=>toWavB64(await getAudio());
+
+/* =====================================================================
+   PREVIEW PLAYER (normal browser only) + BOOT
+   ===================================================================== */
+function initPreview(){
+  const vp=$('viewport'),pl=$('player'),btn=$('pBtn'),rg=$('pRange'),tm=$('pTime');
+  pl.hidden=false;
+  const fit=()=>{const s=Math.min(innerWidth/W,(innerHeight-64)/H);vp.style.transform=`scale(${s})`;vp.style.left=((innerWidth-W*s)/2)+'px';};
+  addEventListener('resize',fit);fit();
+  let playing=false,base=0,started=0,cur=0,actx=null,srcN=null,buf=null;
+  const stopAudio=()=>{if(srcN){try{srcN.stop();}catch(e){}srcN=null;}};
+  const show=t=>{renderFrame(t);rg.value=t;const f=frameIndex(t);tm.textContent='f'+f+' · '+Math.round(elevation(f)*100)+'%';};
+  function loop(){
+    if(!playing)return;
+    cur=base+(performance.now()-started)/1000;
+    if(cur>=REEL.duration){show(REEL.duration);pause();btn.textContent='REPLAY';cur=0;return;}
+    show(cur);requestAnimationFrame(loop);
+  }
+  function pause(){playing=false;stopAudio();if(btn.textContent==='PAUSE')btn.textContent='PLAY';}
+  async function play(){
+    btn.textContent='PREPARING SOUND…';
+    if(!buf)buf=await getAudio();
+    if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==='suspended')await actx.resume();
+    stopAudio();srcN=actx.createBufferSource();srcN.buffer=buf;srcN.connect(actx.destination);srcN.start(0,cur);
+    base=cur;started=performance.now();playing=true;btn.textContent='PAUSE';loop();
+  }
+  btn.onclick=()=>{playing?pause():play();};
+  rg.oninput=()=>{const was=playing;pause();cur=parseFloat(rg.value);show(cur);if(was)play();};
+  show(0);
+}
+async function boot(){
+  try{
+    const wait=(p,ms)=>Promise.race([p,new Promise(r=>setTimeout(r,ms))]);
+    await wait(Promise.all([document.fonts.load('400 100px "Instrument Serif"'),document.fonts.load('900 100px "Barlow Condensed"'),document.fonts.load('500 30px "JetBrains Mono"'),document.fonts.load('700 30px "JetBrains Mono"')]),15000);
+    await document.fonts.ready;
+    if(!ALLOW_FALLBACK&&!document.fonts.check('900 100px "Barlow Condensed"'))throw new Error('Barlow Condensed failed to load');
+    buildEffect();
+    buildTarget();
+    renderFrame(0);
+    if(!RENDER)initPreview();
+    window.__reelReady=true;
+  }catch(e){window.__reelError=String(e&&e.message||e);console.error(e);}
+}
+boot();
+})();
+</script>
+</body>
+</html>
