@@ -70,3 +70,14 @@ jobs:
         with:
           name: reels
           path: output/
+
+      - name: Remove HTML files from reels (non-draft runs only)
+        if: success() && github.event.inputs.draft != 'true'
+        run: |
+          if ls reels/*.html >/dev/null 2>&1; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git rm -q reels/*.html
+            git commit -m "Remove rendered reel files (build #${{ github.run_number }})"
+            git push
+          fi
