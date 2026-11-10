@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The details make everything — Kinetic Flowfield Reel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#000}
+#viewport{position:absolute;left:0;top:0;width:1080px;height:1920px;transform-origin:0 0;overflow:hidden;background:#f7f5f0}
+#stage{position:absolute;left:0;top:0;width:1080px;height:1920px;display:block}
+</style>
+</head>
+<body>
+<div id="viewport"><canvas id="stage" width="1080" height="1920"></canvas></div>
+<script>
+(function(){
+'use strict';
+
+/* ---------- reel contract ---------- */
+const FPS=30, DUR=6;
+const REEL={width:1080,height:1920,fps:FPS,duration:DUR,poster:2.6};
+window.REEL=REEL;
+const RENDER=/[?&]render=1/.test(location.search);
+const W=1080,H=1920;
+const $=id=>document.getElementById(id);
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const lerp=(a,b,u)=>a+(b-a)*u;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ---------- design (light theme of the Kinetic Flowfield tool) ---------- */
+const BG='#f7f5f0', INK='#121212', RED='#F0261C';
+const WORD='FLOW';                          // the tool's default word
+const CAPTION='The details make everything.';
+const LINK='callistra.design';
+const SANS='"Barlow Condensed", sans-serif';
+const MONO='"JetBrains Mono", monospace';
+
+/* tool settings: strength 26, turbulence 26, font 140 — scaled to the 1080 reel */
+const WORD_PX=920;                          // word width at zoom 1
+const SAMPLE=4, DOT_R=2, STRENGTH=52, NSCALE=0.0013;
+const ORG_X=540, ORG_Y=900;                 // where world origin sits on screen at zoom 1
+const BAND_TOP=430, BAND_BOT=1320;          // solid plates behind caption and link
+const CAP_Y=330, LINK_Y=1400;
+let CAP_PX=90, LINK_PX=50, LINK_W=0;
+
+/* ---------- Perlin noise: copied verbatim from the Kinetic Flowfield tool ---------- */
+        // --- Perlin Noise Implementation ---
+        const Perlin = {
+            p: new Uint8Array(512),
+            init: function() {
+                const permutation = [151,160,137,91,90,15,
+                131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,8,99,37,240,21,10,23,
+                190, 6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,35,11,32,57,177,33,
+                88,237,149,56,87,174,20,125,136,171,168, 68,175,74,165,71,134,139,48,27,166,
+                77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,55,46,245,40,244,
+                102,143,54,65,25,63,161, 1,216,80,73,209,76,132,187,208, 89,18,169,200,196,
+                135,130,116,188,159,86,164,100,109,198,173,186, 3,64,52,217,226,250,124,123,
+                5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,189,28,42,
+                223,183,170,213,119,248,152, 2,44,145,31,179,228,165,55,110,178,224,183,225,
+                40,242,172,239,249,14,236,97,21,50,45,127,4,150,254,138,209,204,184,218,61,
+                84,121,98,223,34,39,176,155,51,193,113,70,213,9,144,3,180,243,108,181,241,
+                251,114,238,205,107,177,157,167,115,195,192,67,69,215,128,1,214,141,93,246,
+                24,185,199,147,22,66,129,222,61,191,101,43,210,106,41,253,153,112,149,154,
+                156,127,152,78,162,171,81,21,120,207,11,104,221,58,18,24,206,24,242,123];
+                for (let i=0; i<256; i++) {
+                    this.p[256+i] = this.p[i] = permutation[i % permutation.length];
+                }
+            },
+            fade: function(t) { return t * t * t * (t * (t * 6 - 15) + 10); },
+            lerp: function(t, a, b) { return a + t * (b - a); },
+            grad: function(hash, x, y) {
+                const h = hash & 7;
+                const u = h < 4 ? x : y;
+                const v = h < 4 ? y : x;
+                return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+            },
+            noise: function(x, y) {
+                const X = Math.floor(x) & 255;
+                const Y = Math.floor(y) & 255;
+                x -= Math.floor(x);
+                y -= Math.floor(y);
+                const u = this.fade(x);
+                const v = this.fade(y);
+                const A = this.p[X] + Y, B = this.p[X + 1] + Y;
+                return this.lerp(v, this.lerp(u, this.grad(this.p[A], x, y),
+                                                 this.grad(this.p[B], x - 1, y)),
+                                    this.lerp(u, this.grad(this.p[A + 1], x, y - 1),
+                                                 this.grad(this.p[B + 1], x - 1, y - 1)));
+            }
+        };
+        Perlin.init();
+
+/* ---------- flowfield particles: built once, pure data afterwards ---------- */
+let WORLD=null;
+function buildWorld(){
+  const MW=1200, MH=600;
+  const cv=document.createElement('canvas'); cv.width=MW; cv.height=MH;
+  const c=cv.getContext('2d',{willReadFrequently:true});
+  c.font=`400 100px ${SANS}`;
+  const fs=100*WORD_PX/c.measureText(WORD).width;
+  c.font=`400 ${fs}px ${SANS}`;
+  c.textAlign='center'; c.textBaseline='middle'; c.fillStyle=INK;
+  c.fillText(WORD,MW/2,MH/2);
+  const data=c.getImageData(0,0,MW,MH).data;
+  const pts=[];
+  for(let y=0;y<MH;y+=SAMPLE)for(let x=0;x<MW;x+=SAMPLE){
+    if(data[(y*MW+x)*4+3]>0){
+      let px=x,py=y;
+      const steps=8, sd=STRENGTH/steps;
+      for(let s=0;s<steps;s++){
+        const a=Perlin.noise(px*NSCALE,py*NSCALE)*Math.PI*4;
+        px+=Math.cos(a)*sd; py+=Math.sin(a)*sd;
+      }
+      pts.push(x-MW/2,y-MH/2,px-MW/2,py-MH/2);
+    }
+  }
+  return {pts:Float32Array.from(pts),n:pts.length/4};
+}
+
+/* ---------- timeline ---------- */
+// forming: text becomes flowfield over 0–1.2 s
+function formK(t){const u=clamp(t/1.2);return u>=1?1:1-Math.pow(2,-10*u);}
+// camera keys: [t, zoom, worldX, worldY, arc of the segment ending here]
+const KEYS=[
+  [0.0,1.0,0,0,0],
+  [1.0,1.0,0,0,0],
+  [2.3,6.0,-190,-26,0],
+  [3.8,7.0,110,34,70],
+  [4.9,8.5,300,-40,70],
+  [6.0,2.1,0,0,0]
+];
+function ease(u){return u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2;}
+function camera(t){
+  for(let i=0;i<KEYS.length-1;i++){
+    const a=KEYS[i], b=KEYS[i+1];
+    if(t<=b[0]||i===KEYS.length-2){
+      const u=clamp((t-a[0])/(b[0]-a[0])), e=ease(u);
+      const z=Math.exp(lerp(Math.log(a[1]),Math.log(b[1]),e));
+      let x=lerp(a[2],b[2],e), y=lerp(a[3],b[3],e);
+      if(b[4]){
+        const dx=b[2]-a[2], dy=b[3]-a[3], L=Math.hypot(dx,dy)||1;
+        const off=Math.sin(Math.PI*e)*b[4];
+        x+=-dy/L*off; y+=dx/L*off;          // curved path across the surface
+      }
+      return {z,x,y};
+    }
+  }
+  return {z:1,x:0,y:0};
+}
+
+/* ---------- drawing ---------- */
+let ctx=null;
+function renderFrame(t){
+  if(!ctx)ctx=$('stage').getContext('2d');
+  t=clamp(t,0,DUR);
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle=BG; ctx.fillRect(0,0,W,H);
+
+  const cam=camera(t), k=formK(t), z=cam.z;
+  const r=DOT_R*z;
+  const minX=cam.x-ORG_X/z-4, maxX=cam.x+(W-ORG_X)/z+4;
+  const minY=cam.y-ORG_Y/z-4, maxY=cam.y+(H-ORG_Y)/z+4;
+  const P=WORLD.pts;
+  ctx.fillStyle=INK; ctx.beginPath();
+  for(let i=0;i<WORLD.n;i++){
+    const o=i*4;
+    const x=P[o]+(P[o+2]-P[o])*k, y=P[o+1]+(P[o+3]-P[o+1])*k;
+    if(x<minX||x>maxX||y<minY||y>maxY)continue;
+    const sx=(x-cam.x)*z+ORG_X, sy=(y-cam.y)*z+ORG_Y;
+    ctx.moveTo(sx+r,sy); ctx.arc(sx,sy,r,0,Math.PI*2);
+  }
+  ctx.fill();
+
+  // plates: caption and link always sit on top, never move, never animate
+  ctx.fillStyle=BG;
+  ctx.fillRect(0,0,W,BAND_TOP);
+  ctx.fillRect(0,BAND_BOT,W,H-BAND_BOT);
+
+  ctx.fillStyle=INK;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font=`400 ${CAP_PX}px ${SANS}`;
+  ctx.fillText(CAPTION,540,CAP_Y);
+
+  ctx.font=`500 ${LINK_PX}px ${MONO}`;
+  ctx.fillText(LINK,540,LINK_Y);
+  ctx.fillStyle=RED;
+  ctx.fillRect(540-LINK_W/2,LINK_Y+LINK_PX*0.5+14,LINK_W,5);
+}
+window.renderFrame=renderFrame;
+
+/* ---------- sound: clicks, keyboard typing, soft whooshes; no music ---------- */
+function biquad(x,type,f0,Q,SR){
+  const w=2*Math.PI*f0/SR, cw=Math.cos(w), sw=Math.sin(w), al=sw/(2*Q);
+  let b0,b1,b2;
+  if(type==='bp'){b0=al;b1=0;b2=-al;}
+  else if(type==='hp'){b0=(1+cw)/2;b1=-(1+cw);b2=(1+cw)/2;}
+  else {b0=(1-cw)/2;b1=1-cw;b2=(1-cw)/2;}
+  const a0=1+al, a1=-2*cw, a2=1-al;
+  const y=new Float32Array(x.length);
+  let x1=0,x2=0,y1=0,y2=0;
+  for(let i=0;i<x.length;i++){
+    const xi=x[i];
+    const yi=(b0*xi+b1*x1+b2*x2-a1*y1-a2*y2)/a0;
+    y[i]=yi; x2=x1; x1=xi; y2=y1; y1=yi;
+  }
+  return y;
+}
+function keyClick(SR,r){
+  const n=Math.round(0.035*SR), b=new Float32Array(n);
+  for(let i=0;i<n;i++)b[i]=(r()*2-1)*Math.exp(-(i/SR)/0.004);
+  const y=biquad(b,'bp',3200,1.6,SR);
+  for(let i=0;i<n;i++)y[i]*=0.6;
+  return y;
+}
+function mouseClick(SR,r){
+  const n=Math.round(0.03*SR);
+  const a=new Float32Array(n), c=new Float32Array(n);
+  for(let i=0;i<n;i++){
+    const t=i/SR;
+    a[i]=(r()*2-1)*Math.exp(-t/0.0015);
+    c[i]=(r()*2-1)*Math.exp(-t/0.012)*0.5;
+  }
+  const hp=biquad(a,'hp',2200,0.7,SR), lp=biquad(c,'lp',900,0.7,SR);
+  const out=new Float32Array(n);
+  for(let i=0;i<n;i++)out[i]=(hp[i]*0.9+lp[i]*0.6)*0.5;
+  return out;
+}
+function whoosh(SR,dur,f0,f1,r){
+  const n=Math.round(dur*SR), out=new Float32Array(n);
+  let s1=0,s2=0;
+  for(let i=0;i<n;i++){
+    const u=i/n;
+    const fc=f0*Math.pow(f1/f0,u);
+    const a=1-Math.exp(-2*Math.PI*fc/SR);
+    const x=(r()*2-1);
+    s1+=a*(x-s1); s2+=a*(s1-s2);
+    const env=Math.pow(Math.sin(Math.PI*u),2);
+    out[i]=s2*env*0.9;
+  }
+  return out;
+}
+function renderSamples(){
+  const SR=44100, N=Math.round(DUR*SR), out=new Float32Array(N);
+  const r=mulberry32(20261110);
+  const add=(buf,t0)=>{
+    const s0=Math.round(t0*SR);
+    for(let i=0;i<buf.length;i++){const j=s0+i; if(j>=0&&j<N)out[j]+=buf[i];}
+  };
+  // keyboard typing while the flowfield forms
+  [0.04,0.17,0.26,0.41,0.49,0.63,0.72,0.88].forEach(t=>add(keyClick(SR,r),t));
+  // mouse clicks on each camera move
+  [1.0,2.3,3.8,4.9].forEach(t=>add(mouseClick(SR,r),t));
+  // soft whooshes under the camera moves
+  [[1.0,1.3,300,2600],[2.3,1.5,400,3000],[3.8,1.1,400,2400],[4.9,1.1,2400,400]]
+    .forEach(([t,d,f0,f1])=>add(whoosh(SR,d,f0,f1,r),t));
+  // fade out over the last 0.5 s
+  for(let i=0;i<N;i++){const t=i/SR; if(t>DUR-0.5)out[i]*=Math.max(0,(DUR-t)/0.5);}
+  // normalise to -2.5 dBFS peak
+  let pk=0; for(let i=0;i<N;i++)pk=Math.max(pk,Math.abs(out[i]));
+  if(pk>0){const g=0.75/pk; for(let i=0;i<N;i++)out[i]*=g;}
+  return {samples:out,SR};
+}
+function toWavB64(samples,SR){
+  const N=samples.length, buf=new ArrayBuffer(44+N*2), v=new DataView(buf);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,'RIFF'); v.setUint32(4,36+N*2,true); ws(8,'WAVE'); ws(12,'fmt ');
+  v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+  v.setUint32(24,SR,true); v.setUint32(28,SR*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true);
+  ws(36,'data'); v.setUint32(40,N*2,true);
+  for(let i=0;i<N;i++){const s=clamp(samples[i],-1,1); v.setInt16(44+i*2,s<0?s*0x8000:s*0x7fff,true);}
+  const bytes=new Uint8Array(buf); let bin='';
+  for(let i=0;i<bytes.length;i+=0x8000)bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+0x8000));
+  return btoa(bin);
+}
+window.renderAudio=()=>Promise.resolve().then(()=>{const a=renderSamples();return toWavB64(a.samples,a.SR);});
+
+/* ---------- boot ---------- */
+async function boot(){
+  try{
+    await Promise.all([
+      document.fonts.load(`400 100px "Barlow Condensed"`),
+      document.fonts.load(`500 50px "JetBrains Mono"`)
+    ]);
+    WORLD=buildWorld();
+    const c=document.createElement('canvas').getContext('2d');
+    c.font=`400 100px ${SANS}`;
+    CAP_PX=Math.min(104, Math.floor(100*940/c.measureText(CAPTION).width));
+    c.font=`500 ${LINK_PX}px ${MONO}`;
+    LINK_W=c.measureText(LINK).width;
+    window.__reelReady=true;
+  }catch(e){ window.__reelError=String((e&&e.message)||e); }
+}
+
+/* ---------- preview (normal browser only; never part of the video) ---------- */
+function fit(){
+  const s=Math.min(innerWidth/W,innerHeight/H);
+  const vp=$('viewport');
+  vp.style.transform=`translate(${(innerWidth-W*s)/2}px,${(innerHeight-H*s)/2}px) scale(${s})`;
+}
+if(!RENDER){
+  fit(); addEventListener('resize',fit);
+  let start=null;
+  const loop=now=>{
+    if(window.__reelReady){
+      if(start===null)start=now;
+      renderFrame(((now-start)/1000)%DUR);
+    }
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+  $('viewport').addEventListener('click',()=>{start=null;});
+}
+boot();
+})();
+</script>
+</body>
+</html>
